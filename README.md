@@ -1,21 +1,24 @@
 # Databrickster
 
-A free, in-depth course teaching experienced **Data Engineers** how to build
-production-grade **Databricks AI & AI Agents** — from LLM fundamentals to
-enterprise deployment.
+A free, in-depth learning site for **Data Engineers becoming AI Engineers**. It is a
+multi-topic [Docusaurus](https://docusaurus.io/) site located in [`website/`](website/):
 
-The website is a [Docusaurus](https://docusaurus.io/) site located in
-[`website/ai/`](website/ai/).
+- **Databricks AI** *(available)* — from LLM fundamentals to building, evaluating,
+  deploying, and governing production AI agents on Databricks, plus an AI system
+  design interview track.
+- **Genie** *(planned)* — conversational analytics over governed data.
+- **Business Intelligence** *(planned)* — AI-era BI on the lakehouse.
+- **Agentic Coding** *(planned)* — building AI software faster with VS Code and Claude Code.
 
 ## Local development
 
 Requires **Node.js ≥ 20**.
 
 ```bash
-cd website/ai
+cd website
 npm install
 npm run start      # dev server at http://localhost:3000
-npm run build      # production build into website/ai/build
+npm run build      # production build into website/build
 ```
 
 ## Deployment (Render)
@@ -23,9 +26,9 @@ npm run build      # production build into website/ai/build
 This repo includes a [`render.yaml`](render.yaml) Blueprint that deploys the site
 as a Render **Static Site**:
 
-- **Root directory:** `website/ai`
+- **Root directory:** `website`
 - **Build command:** `npm ci && npm run build`
-- **Publish directory:** `website/ai/build`
+- **Publish directory:** `website/build`
 - **Node version:** pinned to 20.20.2
 
 To deploy: create a new Blueprint on Render pointing at this repo, or configure a

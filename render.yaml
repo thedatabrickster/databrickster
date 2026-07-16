@@ -1,11 +1,11 @@
 # Render Blueprint — https://render.com/docs/blueprint-spec
 # Deploys the Databrickster Docusaurus site as a static site.
-# The Docusaurus project lives in website/ai/ within this repo.
+# The Docusaurus project lives in website/ within this repo.
 services:
   - type: web
     name: databrickster
     runtime: static
-    rootDir: website/ai
+    rootDir: website
     buildCommand: npm ci && npm run build
     staticPublishPath: ./build
     # Auto-deploy on every push to the default branch.
