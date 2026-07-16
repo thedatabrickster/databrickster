@@ -1,0 +1,166 @@
+---
+sidebar_position: 8
+title: "Part 1 · Interview Prep"
+description: Friendly, active-recall review questions covering all of Part 1 — tokens, embeddings, similarity, prompting, sampling, the context window, and calling models on Databricks.
+---
+
+# Part 1 · Interview Prep
+
+You just covered a lot — and if some of it felt new, that's completely normal. This
+page is your gentle checkpoint. There's no pressure and no grade. Read each question,
+try to answer it in your own words, then open the toggle to check yourself.
+
+:::tip The trick that actually works
+Answer *out loud or on paper before you peek.* Pulling the answer out of your own head
+(even a shaky one) locks it in far better than re-reading. If one won't come, just pop
+back to the linked lesson — that's not failing, that's studying.
+:::
+
+**Covers:**
+[Tokens](/docs/llm-foundations/tokens-and-tokenization) ·
+[Embeddings](/docs/llm-foundations/embeddings) ·
+[Vector Similarity](/docs/llm-foundations/vector-similarity) ·
+[Prompting](/docs/llm-foundations/prompting-fundamentals) ·
+[Sampling & Decoding](/docs/llm-foundations/sampling-and-decoding) ·
+[Context Window](/docs/llm-foundations/context-window) ·
+[Calling Foundation Models](/docs/llm-foundations/calling-foundation-models)
+
+---
+
+## Section A — Tokens, embeddings, and similarity
+
+**A1. What is a token, in plain English?**
+
+<details>
+
+A token is a small chunk of text — usually a piece of a word — that the model reads and writes. Text gets chopped into these chunks before the model sees it. A rough rule of thumb: one token is about ¾ of an English word. Tokens matter because you pay per token and the model can only hold so many at once.
+
+</details>
+
+**A2. What is an embedding, and what does it let you do that keyword search can't?**
+
+<details>
+
+An embedding is a list of numbers that captures the *meaning* of a piece of text. Texts that mean similar things get similar number-lists. That lets you find matches by meaning — so "I can't get my money out" matches "withdrawal delay" even though they share no words. Keyword search only matches the exact letters, so it would miss that.
+
+</details>
+
+**A3. How is an embedding model different from a chat model (LLM)?**
+
+<details>
+
+An embedding model reads text and gives you back a list of numbers (a meaning-fingerprint). A chat LLM reads text and gives you back more text. Different jobs: embeddings power search and retrieval; chat models power answers and writing. You often use them together.
+
+</details>
+
+**A4. When we say two pieces of text are "similar," how does a machine measure that?**
+
+<details>
+
+It compares their embedding vectors. The most common measure for text is **cosine similarity**, which basically checks whether the two number-lists "point the same direction." A score near 1 means very similar; near 0 means unrelated. Higher = closer.
+
+</details>
+
+**A5. Why can't you find the closest matches by comparing your query to every document one by one in a big system?**
+
+<details>
+
+You can for a few thousand items, but comparing against millions on every search is slow and expensive — like a full table scan. Instead we use a vector index (Databricks Vector Search) that jumps to the likely matches, the way a database index saves you from scanning every row.
+
+</details>
+
+## Section B — Talking to the model
+
+**B1. What are the three roles in a chat message, and what is each for?**
+
+<details>
+
+**system** sets the rules and persona ("You are a careful compliance assistant"). **user** is the actual request. **assistant** is the model's reply. To continue a conversation, you send the previous messages back each time, because the model doesn't remember on its own.
+
+</details>
+
+**B2. Why does a good prompt usually spell out the format you want the answer in?**
+
+<details>
+
+Because the model gives its best guess at what you want — if you don't say "answer with just the label" or "return JSON," it may add chit-chat or vary the shape. Being specific about the output format makes the result predictable and easy for the next step in your pipeline to use.
+
+</details>
+
+**B3. What does `temperature` do, in one sentence?**
+
+<details>
+
+It's a dial for how adventurous the model's word choices are: low temperature = focused and repeatable (great for classification), high temperature = varied and creative (great for brainstorming).
+
+</details>
+
+**B4. Your teammate sets `temperature = 0` and expects the exact same answer every single time, forever. Are they fully right?**
+
+<details>
+
+Almost — but not guaranteed. Temperature 0 makes the model pick its top choice every time, so it's *highly* repeatable. Tiny hardware and rounding details can still occasionally flip a genuinely close call. So treat it as "very reliable," not "mathematically identical," and don't build logic that needs byte-for-byte equality.
+
+</details>
+
+## Section C — The context window and calling models on Databricks
+
+**C1. What is the context window, and what shares its space?**
+
+<details>
+
+It's the maximum amount of text (measured in tokens) the model can consider in one request — its short-term working memory. Both your input (the prompt) and the model's output share that same budget, so a very long prompt leaves less room for the answer.
+
+</details>
+
+**C2. What happens if you try to stuff in more than the context window allows?**
+
+<details>
+
+Either the request errors out, or the text gets silently cut off — quietly losing information, which is dangerous in a pipeline. The fixes: trim it, summarize it, or (best) retrieve just the relevant parts. That "retrieve only what's relevant" idea is exactly what RAG does, coming up in Part 2.
+
+</details>
+
+**C3. Name the three ways to call a model on Databricks and when you'd use each.**
+
+<details>
+
+**AI Playground** — a no-code web UI for quick experiments. **`ai_query` in SQL** — for running a model over a whole table (batch), the way you'd apply a function in ETL. **Python OpenAI-compatible client** — for apps and interactive, one-request-at-a-time features.
+
+</details>
+
+**C4. In one line, what's the easiest way to think about `ai_query`?**
+
+<details>
+
+It's a function you call on a column — the model runs on each row, and Spark spreads the work out, just like any other SQL function in your pipeline.
+
+</details>
+
+**C5. Pay-per-token vs provisioned throughput — what's the everyday way to think about the choice?**
+
+<details>
+
+Pay-per-token is like a pay-as-you-go plan: no commitment, great for trying things out and light or bursty use. Provisioned throughput is like a dedicated line you reserve: steady, predictable speed for real production traffic. Start with pay-per-token; upgrade when you go to production.
+
+</details>
+
+**C6. Why route an outside model (like OpenAI or Anthropic) *through* Databricks instead of calling it directly?**
+
+<details>
+
+So every call goes through one governed front door: the API key stays in a Databricks secret (not scattered in code), and you get consistent logging, permissions, rate limits, and budgets — the same controls you already use for your data.
+
+</details>
+
+---
+
+## You made it through Part 1 🎉
+
+If you can answer most of these without peeking, you now understand the building blocks
+that *everything* else in this course sits on. You don't need to have every detail
+memorized — you just need the mental model, and you've got it.
+
+Next up is **Part 2 — Grounding LLMs in Your Data (RAG & AI Search)**, where all of
+this pays off: we'll connect a model to your own documents so it can answer questions
+about *your* data, not just what it learned during training.

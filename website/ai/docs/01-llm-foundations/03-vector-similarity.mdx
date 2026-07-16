@@ -1,0 +1,475 @@
+---
+sidebar_position: 3
+title: "Vector Similarity: How Machines Compare Meaning"
+description: Learn how machines measure semantic closeness between embeddings using cosine similarity, dot product, and Euclidean distance, and how nearest-neighbor search powers semantic search and RAG.
+---
+
+# Vector Similarity: How Machines Compare Meaning
+
+> If embeddings turn meaning into coordinates, similarity is the ruler we use to measure how close two meanings really are.
+
+## Learning Objectives
+
+By the end of this lesson, you will be able to:
+
+- Explain what it means for two embeddings to be "similar" and why we need a numeric measure for it.
+- Describe and contrast the three workhorse metrics: **cosine similarity**, **dot product**, and **Euclidean (L2) distance**.
+- Articulate why cosine similarity is the default for text embeddings (hint: it ignores magnitude and focuses on direction).
+- Distinguish **similarity** (higher = closer) from **distance** (lower = closer) so you never invert a ranking by accident.
+- Explain **nearest-neighbor search** and why it is the engine behind semantic search and Retrieval-Augmented Generation (RAG).
+- Explain intuitively why exact brute-force search does not scale, and what an **Approximate Nearest Neighbor (ANN)** index like HNSW buys you.
+- Map all of this onto Data Engineering concepts you already own: equality joins, fuzzy joins, table indexes, and full-table scans.
+
+## Prerequisites
+
+- [Embeddings](/docs/llm-foundations/embeddings) — you must understand that text is converted into fixed-length numeric vectors. This lesson is entirely about comparing those vectors.
+- [Tokens & Tokenization](/docs/llm-foundations/tokens-and-tokenization) — helpful context for how raw text becomes model input (optional but recommended).
+- Comfort with basic linear algebra intuition (vectors, addition) — no proofs required. If you can picture an arrow, you are ready.
+- Working knowledge of SQL joins and table indexes (you already have this as a Data Engineer).
+
+## Estimated Reading Time
+
+Approximately 30-35 minutes, plus 10-15 minutes if you run the code examples.
+
+## Business Motivation
+
+Let's ground this in a fictional enterprise. **Northwind Trust**, a mid-sized asset-management firm, has a 400-page internal compliance handbook plus fifteen years of client-service emails. A relationship manager types into an internal tool:
+
+> "Can a client withdraw from a locked retirement account early without penalty?"
+
+With traditional keyword search (think a SQL `LIKE '%penalty%'` or a full-text index), the system hunts for documents that literally contain the words "withdraw", "penalty", "retirement". But the authoritative paragraph in the handbook is titled *"Early distribution provisions and applicable excise charges for tax-advantaged accounts."* It does not contain the word "penalty" or "withdraw" at all. Keyword search misses it entirely. The relationship manager gives the client wrong information, and Northwind Trust eats a compliance incident.
+
+The fix is **semantic search**: match on *meaning*, not on *characters*. In the previous lesson you learned that embeddings place text with similar meaning close together in a high-dimensional space. That's the raw material. But "close together" is a spatial intuition — to actually build a system, you need a precise, computable answer to the question: **given two embedding vectors, how similar are they?** And then: **given one query vector, which of my millions of document vectors are the closest?**
+
+That is this entire lesson. Vector similarity is the small mathematical primitive that quietly powers semantic search, recommendation, deduplication, clustering, anomaly detection, and every RAG system you will ever build on Databricks. Get the intuition right here and everything downstream in Part 2 becomes mechanical.
+
+## Intuition
+
+Here is the whole idea in one sentence: **similar meaning means the vectors point in the same direction.**
+
+Imagine you work at **Cascade Mutual**, a fictional insurance carrier, and you reduce every claim description to a simple 2D vector so we can actually draw it. (Real embeddings have hundreds or thousands of dimensions, but the geometry is identical — humans just can't picture 1,024 dimensions, so we practice in 2D.)
+
+- "car accident on the highway" → an arrow pointing up-and-right.
+- "vehicle collision on the freeway" → an arrow pointing almost the same way.
+- "kitchen fire damage" → an arrow pointing somewhere completely different.
+
+The first two arrows point nearly the same direction even if one is a bit longer than the other. That small **angle** between them is the signal. The third arrow points elsewhere — big angle, low similarity.
+
+Notice what we just did: we decided that **direction encodes meaning** and **the angle between directions encodes similarity**. Length (magnitude) is treated as noise. Why? Because a longer document, or a phrase repeated three times, might produce a longer vector without changing what the text is *about*. We usually don't want a document to rank higher just because it's wordier. Angle ignores that. That is the seed of cosine similarity, which we'll formalize in a moment.
+
+Now connect it to your day job. In SQL, a join with `=` is binary: two values either match or they don't. `'freeway' = 'highway'` is `FALSE`, full stop. Vector similarity replaces that hard TRUE/FALSE with a **continuous score** — a number that says "these are 0.94 similar" or "these are 0.11 similar." It is, in effect, a **fuzzy semantic join**. We'll return to that analogy repeatedly.
+
+## Theory
+
+Let's define the three metrics precisely. Throughout, assume two vectors **a** and **b**, each with the same number of dimensions (they must — you cannot compare a 768-dimension vector to a 1,024-dimension one, exactly like you cannot join two tables on columns of incompatible types).
+
+### 1. Dot product
+
+The dot product multiplies the vectors element-by-element and sums the result:
+
+```text
+dot(a, b) = a[0]*b[0] + a[1]*b[1] + ... + a[n-1]*b[n-1]
+```
+
+It is a single number. It grows when the vectors point the same way AND when they are long. So the dot product mixes together two things: **direction** (how aligned they are) and **magnitude** (how big they are). Sometimes you want that mix; often you don't.
+
+### 2. Euclidean distance (L2)
+
+This is ordinary straight-line distance — the length of the line segment connecting the tips of the two arrows:
+
+```text
+euclidean(a, b) = sqrt( (a[0]-b[0])^2 + (a[1]-b[1])^2 + ... + (a[n-1]-b[n-1])^2 )
+```
+
+It is a **distance**: it equals 0 when the vectors are identical and grows as they get further apart. Lower means closer/more similar. It is sensitive to magnitude — two arrows pointing the exact same direction but very different lengths can be far apart in Euclidean terms.
+
+### 3. Cosine similarity
+
+Cosine similarity is the dot product **normalized** by both magnitudes. It is literally the cosine of the angle between the two vectors:
+
+```text
+cosine(a, b) = dot(a, b) / ( ||a|| * ||b|| )
+
+where ||a|| = sqrt(a[0]^2 + a[1]^2 + ... + a[n-1]^2)   (the length of a)
+```
+
+Because it divides out the lengths, cosine similarity depends **only on direction**, not magnitude. Its range is a tidy `-1` to `+1`:
+
+- `+1` → vectors point in exactly the same direction (angle 0°) → maximally similar.
+- `0` → perpendicular (angle 90°) → unrelated.
+- `-1` → opposite directions (angle 180°) → maximally dissimilar.
+
+For text embeddings from modern models, values are usually positive (roughly 0 to 1), and you'll treat something like 0.85+ as "very related."
+
+### Similarity vs. distance — do not invert your ranking
+
+This trips people up constantly, so burn it in:
+
+| Measure | Range | "Best match" is the... | Rank by |
+|---|---|---|---|
+| Cosine similarity | -1 to +1 | **highest** value | `ORDER BY ... DESC` |
+| Dot product | unbounded | **highest** value | `ORDER BY ... DESC` |
+| Euclidean distance | 0 to ∞ | **lowest** value | `ORDER BY ... ASC` |
+
+A **similarity** goes up as things get closer. A **distance** goes down as things get closer. If you sort a similarity ascending, you'll surface the *least* relevant documents and quietly ship a broken search. Many vector systems expose a "cosine distance" defined as `1 - cosine_similarity` precisely so that everything can be treated as a distance (lower = better); always check which convention your API returns.
+
+## Deep Dive
+
+### Why cosine is the default for text
+
+Let's make the magnitude-invariance concrete. Suppose at the fictional retailer **Harborline Goods** you embed two product reviews:
+
+- Review A: "Great boots, very comfortable."
+- Review B: "Great boots, very comfortable. Great boots, very comfortable. Great boots, very comfortable."
+
+Review B is the same sentence three times. A naive embedding pipeline might produce a vector for B that points in nearly the same direction as A but is noticeably longer (more "signal" piled up). Now:
+
+- **Cosine** says A and B are ~0.99 similar. Correct — they mean the same thing.
+- **Dot product** says B scores much higher than A against a query, purely because B is longer. If you rank raw dot products, the repetitive review wins for no good reason.
+- **Euclidean** puts real distance between A and B because their tips are far apart, even though they point the same way.
+
+For text, we almost always care "what is this about," not "how long/emphatic is it." Cosine isolates the "about." That is why **cosine similarity is the standard metric for text embeddings**, and it's the metric you should reach for by default on Databricks unless you have a specific reason not to.
+
+### The secret handshake: normalize once, then dot product == cosine
+
+Here's a behind-the-scenes trick that matters enormously for performance. If you **normalize** every vector to length 1 (divide each vector by its own magnitude — called L2-normalization), then its magnitude is 1, and the cosine formula's denominator becomes `1 * 1 = 1`. Which means:
+
+```text
+For unit-length vectors:  cosine(a, b) == dot(a, b)
+```
+
+So production systems normalize all embeddings *once* at index time, and from then on they compute the cheap dot product at query time and get cosine similarity for free. Dot product is just a multiply-and-add — extremely fast on modern hardware and trivially parallelizable. This is exactly the kind of precompute-once optimization you already do in ETL when you materialize a derived column so downstream queries stay cheap. Same instinct, different layer.
+
+### The DE analogy, sharpened
+
+Let's line these up so it clicks:
+
+| SQL / Data Engineering | Vector world |
+|---|---|
+| `WHERE a = b` (equality join) | Cosine similarity as a **fuzzy/semantic join** — returns a score, not TRUE/FALSE |
+| `ORDER BY x LIMIT k` | Return the **top-k** nearest neighbors |
+| B-tree index on a column | **ANN index** (HNSW) over the vector column |
+| Full table scan | **Brute-force (exact) nearest-neighbor** search |
+| Partition pruning (skip irrelevant partitions) | ANN graph traversal (skip irrelevant regions of vector space) |
+
+An equality join is beautiful because a B-tree index lets the engine jump straight to matching rows without scanning the whole table. Vector similarity has no exact key to jump to — "similar" is fuzzy — so the naive version must compare the query against **every** vector: a full scan. The rest of this lesson is about how we get an "index" back.
+
+## Architecture
+
+Here is where similarity sits in a semantic-search / RAG pipeline. Everything to the left happens ahead of time (offline, like a batch ETL load); everything to the right happens per user query (online).
+
+```text
+        OFFLINE (indexing / ingest)                         ONLINE (per query)
+  ┌──────────────────────────────────────┐        ┌──────────────────────────────────┐
+  │  Documents  ─►  chunk  ─►  Embedding  │        │  User query text                 │
+  │                            model      │        │        │                         │
+  │                              │        │        │        ▼                         │
+  │                              ▼        │        │   Embedding model (SAME model)   │
+  │                    normalized vectors │        │        │                         │
+  │                              │        │        │        ▼                         │
+  │                              ▼        │        │   query vector                   │
+  │                    ┌──────────────┐   │        │        │                         │
+  │                    │  ANN INDEX   │◄──┼────────┼────────┘  (search)               │
+  │                    │  (e.g. HNSW) │   │        │        │                         │
+  │                    └──────────────┘   │        │        ▼                         │
+  └──────────────────────────────────────┘        │   top-k nearest neighbors        │
+                                                   │   (by cosine similarity)         │
+                                                   └──────────────────────────────────┘
+```
+
+**Reading the diagram:** Offline, you split documents into chunks, run each chunk through an embedding model, normalize the resulting vectors, and load them into an ANN index — this is conceptually your "batch load into an indexed table." Online, a user's query is embedded by the **same** model (critical: query and documents must live in the same vector space, or the comparison is meaningless — like joining two tables whose keys were hashed with different algorithms), then the index is searched for the top-k most similar vectors. Similarity is the operation happening at that "search" arrow.
+
+On Databricks, the offline loading and the online search are both handled for you by **Databricks Vector Search** (also called AI Search), and you can invoke similarity retrieval directly in SQL with the **`vector_search()`** function. We only foreshadow that here; Part 2 covers it end to end.
+
+## Internal Working
+
+### What actually happens on a brute-force search
+
+For a query vector `q` and a table of `N` document vectors, exact nearest-neighbor search does this:
+
+```text
+for each document vector d in the table:      # N iterations
+    score[d] = cosine(q, d)                   # each is D multiply-adds
+sort documents by score descending
+return the top k
+```
+
+If you have `N` vectors of dimension `D`, that's roughly `N × D` multiply-add operations per query, plus a sort. At Northwind Trust's scale — say 2 million chunks × 1,024 dimensions — that's ~2 billion floating-point operations for **every single keystroke-driven query**. Correct, but slow and expensive. This is your full table scan: guaranteed right answer, terrible at scale.
+
+### Why we accept "approximate"
+
+Here's the pragmatic leap. In semantic search you rarely need the *mathematically perfect* top-10. If the true 7th-best result is missed and the 11th-best slips in, no user notices — they're all "very relevant." So we trade a tiny, tunable amount of accuracy (called **recall**) for orders-of-magnitude speed. That trade is what an **Approximate Nearest Neighbor (ANN)** index gives you.
+
+### HNSW, intuitively
+
+The most common ANN structure is **HNSW** — Hierarchical Navigable Small World graphs. You do **not** need the math; you need the picture. Imagine an air-travel network:
+
+```text
+Layer 2 (few nodes, long hops):   A ────────────── F ────────────── K
+                                    \                                /
+Layer 1 (more nodes):        A ── C ── F ──── H ──── K
+                                          \    |
+Layer 0 (every node):   A-B-C-D-E-F-G-H-I-J-K-L-M-N-...   (all vectors)
+```
+
+**Reading it:** The top layer has only a few "hub" vectors with long-range connections — like major international airports. To find neighbors of a query, you start at a hub in the top layer and greedily hop toward whichever connected node is closest to your query. When you can't get closer at that layer, you drop down a layer where there are more nodes and shorter hops, and repeat — like flying into a hub, then a regional airport, then driving the last few miles. You reach the query's neighborhood in a handful of hops instead of visiting every vector.
+
+The payoff: search cost grows roughly like `log(N)` instead of `N`. That is *exactly* the leap from a full table scan to a B-tree index lookup — the same order-of-magnitude story you already trust in SQL, transplanted into vector space. You give up the guarantee of perfection (a B-tree index lookup is exact; an HNSW traversal is approximate), which is the one wrinkle to keep in mind.
+
+## Step-by-Step Walkthrough
+
+Let's trace a single query at Northwind Trust from text to answer.
+
+1. **Query arrives.** The relationship manager types: "Can a client withdraw early from a locked retirement account without penalty?"
+2. **Embed the query.** The same embedding model used for the handbook converts it to a vector `q` of, say, 1,024 dimensions. (Same model — this is non-negotiable.)
+3. **Normalize `q`.** Scale it to length 1, so later dot products equal cosine similarity.
+4. **Search the index.** The ANN index (already holding the handbook's normalized chunk vectors) is traversed starting from top-layer hubs, greedily hopping toward `q`.
+5. **Score candidates.** For the small set of candidate vectors the traversal reaches, compute `cosine(q, candidate)` — which, thanks to normalization, is just a dot product.
+6. **Rank and cut.** Sort candidates by similarity **descending**, keep the top-k (say, top 5).
+7. **Return.** The chunk *"Early distribution provisions and applicable excise charges for tax-advantaged accounts"* scores 0.89 despite sharing almost no words with the query — because their *meanings* align. Keyword search never had a chance; semantic search nails it.
+8. **(In RAG, next step)** Those top chunks get stuffed into a prompt for an LLM to synthesize an answer — but that's a later lesson. Retrieval, powered by similarity, is done.
+
+## Hands-on Examples
+
+You don't need Spark or Databricks for the core intuition — a few lines of NumPy in any notebook will do. If you have a Databricks workspace, you can run the NumPy example in a notebook cell as-is, and preview the SQL teaser against a Vector Search index (fully covered in Part 2).
+
+Try predicting the ranking *before* you run the code:
+
+- Query: "vehicle collision on the freeway"
+- Candidates: "car accident on the highway", "kitchen fire in an apartment", "auto crash on the interstate", "flooded basement after a storm"
+
+Which two should rank highest? (Answer: the two auto-related ones — watch the code confirm it.)
+
+## Code Examples
+
+### Example 1 — Cosine similarity in pure NumPy, then rank a small set
+
+This example uses tiny hand-made vectors so you can see the mechanics. In practice you'd get these vectors from an embedding model (previous lesson), but the comparison math is identical.
+
+```python
+import numpy as np
+
+def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
+    """
+    Cosine similarity = dot(a, b) / (||a|| * ||b||).
+    Returns a value in [-1, 1]; higher means more similar (same direction).
+    """
+    a = np.asarray(a, dtype=np.float32)
+    b = np.asarray(b, dtype=np.float32)
+    denom = np.linalg.norm(a) * np.linalg.norm(b)
+    if denom == 0.0:
+        # A zero vector has no direction, so similarity is undefined.
+        # Returning 0.0 (treat as "unrelated") is a safe default.
+        return 0.0
+    return float(np.dot(a, b) / denom)
+
+
+# --- Toy "embeddings" for a Cascade Mutual claims-triage demo ---
+# Pretend an embedding model produced these 4-dimensional vectors.
+# (Real ones have hundreds/thousands of dims, but the math is the same.)
+query = np.array([0.90, 0.10, 0.80, 0.05])   # "vehicle collision on the freeway"
+
+candidates = {
+    "car accident on the highway":        np.array([0.88, 0.12, 0.79, 0.07]),
+    "auto crash on the interstate":       np.array([0.85, 0.20, 0.75, 0.10]),
+    "kitchen fire in an apartment":       np.array([0.10, 0.90, 0.05, 0.85]),
+    "flooded basement after a storm":     np.array([0.05, 0.80, 0.10, 0.90]),
+}
+
+# Score every candidate against the query (this is the "brute-force" scan).
+scored = [
+    (text, cosine_similarity(query, vec))
+    for text, vec in candidates.items()
+]
+
+# Rank by similarity DESCENDING — highest similarity = closest meaning.
+scored.sort(key=lambda pair: pair[1], reverse=True)
+
+print("Query: vehicle collision on the freeway\n")
+print(f"{'candidate text':40s} cosine")
+print("-" * 50)
+for text, score in scored:
+    print(f"{text:40s} {score:0.4f}")
+```
+
+Expected output (values will be very close to this):
+
+```text
+Query: vehicle collision on the freeway
+
+candidate text                           cosine
+--------------------------------------------------
+car accident on the highway              0.9993
+auto crash on the interstate             0.9931
+kitchen fire in an apartment             0.2043
+flooded basement after a storm           0.1740
+```
+
+The two auto-related phrases score ~0.99 while the fire/flood phrases score ~0.2 — the model matched *meaning*, not words. Note the sort uses `reverse=True` because cosine is a **similarity**. If you'd used Euclidean distance instead, you would sort ascending. Getting that direction right is the single most common beginner bug.
+
+To see the equivalence discussed earlier, L2-normalize the vectors first and then a plain `np.dot` reproduces the cosine values exactly:
+
+```python
+def l2_normalize(v: np.ndarray) -> np.ndarray:
+    """Scale a vector to length 1 so dot product == cosine similarity."""
+    v = np.asarray(v, dtype=np.float32)
+    n = np.linalg.norm(v)
+    return v if n == 0.0 else v / n
+
+qn = l2_normalize(query)
+for text, vec in candidates.items():
+    # After normalization, dot product equals cosine similarity.
+    print(f"{text:40s} {float(np.dot(qn, l2_normalize(vec))):0.4f}")
+```
+
+### Example 2 — SQL teaser with `vector_search()` (full coverage in Part 2)
+
+On Databricks you rarely hand-roll the scan — you let **Databricks Vector Search** maintain an ANN index and query it in SQL. This is the "fuzzy semantic join" made real. Treat this as a preview; the index setup, embedding configuration, and tuning are covered fully in Part 2.
+
+```sql
+-- Semantic search over Northwind Trust's compliance handbook.
+-- vector_search() embeds the query string, searches the ANN index,
+-- and returns the most similar chunks (ranked by cosine similarity).
+SELECT
+    chunk_text,
+    search_score          -- higher = more similar (cosine-based)
+FROM vector_search(
+    index      => 'northwind_trust.compliance.handbook_index',
+    query_text => 'Can a client withdraw early from a locked retirement account without penalty?',
+    num_results => 5      -- top-k nearest neighbors
+);
+```
+
+Behind that single function call is everything from this lesson: the query text is embedded into the same vector space as the indexed chunks, the ANN index is traversed instead of scanned, candidates are scored by cosine similarity, and the top 5 come back ranked. The magic word "penalty" never had to appear in the matching document.
+
+## Production Considerations
+
+- **Same model, both sides.** Query vectors and document vectors must come from the *same* embedding model and version. Change the model and you must re-embed and rebuild the index — otherwise you're comparing vectors from two incompatible coordinate systems (the hash-mismatch join failure from earlier).
+- **Pick and lock the metric.** Decide on cosine (the default for text) up front and configure the index for it. Mixing metrics between indexing and querying silently corrupts rankings.
+- **Normalize consistently.** If you normalize at index time, normalize queries too. Half-normalized pipelines produce subtly wrong scores that are painful to debug.
+- **Dimension must match.** A 768-dim query cannot search a 1,024-dim index. This is a hard error, analogous to a type mismatch on a join key — good, because it fails loudly.
+- **Let the platform manage the index.** On Databricks, Vector Search keeps the index in sync with the underlying Delta table (incremental updates as data changes). Prefer that over building your own index infrastructure.
+
+## Performance Considerations
+
+- **Brute-force is O(N × D) per query.** Fine for a few thousand vectors (a quick prototype), untenable for millions. This is your full-table-scan cost.
+- **ANN is roughly O(log N) per query.** HNSW turns a scan into an index lookup. Use ANN once your corpus outgrows "small."
+- **Normalize once, dot product forever.** L2-normalize at index time so query-time similarity is a cheap dot product, not a full cosine with divisions.
+- **Recall vs. speed is a dial.** ANN indexes expose tuning knobs (e.g., how many candidates to explore). More exploration = higher recall but slower queries. Tune to your accuracy needs; you rarely need 100% recall for search.
+- **Batch your embeddings.** Embedding is often the real bottleneck, not similarity. Embed documents in batches offline; embed the single query online.
+- **Dimensionality has a cost.** Larger `D` means more compute and memory per comparison and per stored vector. Bigger embeddings aren't automatically better — they cost more at every layer.
+
+## Security Considerations
+
+- **Similarity ignores permissions.** A vector index will happily return the closest chunk regardless of whether the requesting user is allowed to see it. Enforce access control (row/column-level, Unity Catalog governance) *around* retrieval — filter candidates by the user's entitlements. Never assume the index is a security boundary.
+- **Sensitive data lives in the vectors.** Embeddings are derived from your source text and can leak information about it. Treat the vector store with the same data-classification and governance rules as the source Delta tables (PII, PHI, financial data).
+- **Metadata filtering.** Combine similarity with hard filters (e.g., `region = 'US'`, `clearance <= user_clearance`) so retrieval respects tenancy and compliance boundaries, not just semantic closeness.
+- **Injection via retrieved content.** In RAG, retrieved chunks are fed to an LLM. Malicious text embedded in a document can carry prompt-injection payloads. Validate and sanitize retrieved content before trusting it downstream (covered later in the agent lessons).
+
+## Common Mistakes
+
+- **Sorting a similarity ascending (or a distance descending).** The number-one bug. Cosine/dot: sort DESC. Euclidean/cosine-distance: sort ASC. Always confirm whether your API returns a similarity or a distance.
+- **Comparing vectors from different models or versions.** Meaningless scores that *look* plausible. Silent and dangerous.
+- **Mismatched normalization.** Normalizing documents but not queries (or vice versa) skews results.
+- **Expecting exact answers from ANN.** ANN is approximate by design. If a specific known-relevant doc is occasionally missed, that's the recall trade-off, not a bug — tune it, don't panic.
+- **Using raw dot product on un-normalized text vectors.** Long/repetitive documents win unfairly. Prefer cosine (or normalize first).
+- **Assuming high similarity means "correct."** Similarity means "semantically close," not "factually right." A wrong-but-related chunk can score high. Retrieval quality is necessary, not sufficient.
+
+## Best Practices
+
+- **Default to cosine similarity for text.** It's the standard for a reason: magnitude-invariant, focused on meaning.
+- **Normalize at index time; use dot product at query time.** Free cosine, faster queries.
+- **Use ANN (HNSW) once you exceed a few thousand vectors.** Let Databricks Vector Search manage it.
+- **Keep query and document embeddings in lock-step** — same model, same version, same normalization, same dimension.
+- **Combine similarity with metadata filters** for correctness, security, and tenancy.
+- **Evaluate retrieval explicitly.** Measure recall/precision on a labeled query set before trusting the pipeline in production.
+- **Foreshadow, then formalize.** Prototype with brute-force NumPy to build intuition; graduate to `vector_search()` for production.
+
+## Interview Questions
+
+**1. Why is cosine similarity preferred over Euclidean distance or raw dot product for text embeddings?**
+Because cosine is magnitude-invariant: it measures only the angle (direction) between vectors, and for text, direction encodes meaning while magnitude often reflects incidental things like document length or word repetition. Euclidean distance and raw dot product both let magnitude influence the score, so a longer or more repetitive document can rank higher without being more relevant. Cosine isolates "what the text is about."
+
+**2. What's the relationship between cosine similarity and dot product?**
+Cosine similarity is the dot product divided by the product of the two vectors' magnitudes. If both vectors are L2-normalized (length 1), the denominator is 1 and cosine similarity equals the dot product exactly. Production systems exploit this: normalize once at index time, then compute cheap dot products at query time.
+
+**3. Explain the difference between exact and approximate nearest-neighbor search, and when you'd use each.**
+Exact (brute-force) compares the query against every vector — O(N × D) per query — guaranteeing the true top-k but scaling poorly. Approximate (ANN, e.g., HNSW) uses a graph/index to reach the query's neighborhood in roughly O(log N) hops, trading a small, tunable amount of recall for massive speed. Use exact for small corpora or when perfect recall is required; use ANN for large-scale production search.
+
+**4. Give the Data Engineering analogy for a vector similarity search and its index.**
+An equality join (`=`) finds exact matches; vector similarity is a fuzzy/semantic join that returns a continuous closeness score and the top-k closest rows. Brute-force search is a full table scan; an ANN index is like a B-tree index on a column — it lets you avoid scanning every row and jump toward the relevant region, turning O(N) into roughly O(log N).
+
+**5. A colleague reports their semantic search returns the *least* relevant results first. What's the most likely cause?**
+They almost certainly sorted in the wrong direction — treating a similarity as a distance (or vice versa). Cosine/dot-product similarities must be sorted descending (higher = closer); Euclidean or "cosine distance" (`1 - cosine`) must be sorted ascending (lower = closer). Confirm what the API returns and fix the sort order.
+
+## Quiz
+
+**Q1.** What is the range of cosine similarity, and what does each extreme mean?
+
+<details>
+
+Cosine similarity ranges from -1 to +1. A value of +1 means the vectors point in exactly the same direction (maximally similar), 0 means they are perpendicular/unrelated, and -1 means they point in opposite directions (maximally dissimilar). For typical text embeddings, values are usually positive.
+
+</details>
+
+**Q2.** You have 5 million document vectors and need low-latency semantic search. Should you use brute-force or ANN, and why?
+
+<details>
+
+Use ANN (e.g., HNSW). Brute-force is O(N × D) per query, so 5 million vectors means comparing against all of them on every query — far too slow and expensive. ANN reaches the query's neighborhood in roughly O(log N) hops by traversing an index/graph, trading a small, tunable amount of recall for a huge speedup. This is the vector equivalent of using a B-tree index instead of a full table scan.
+
+</details>
+
+**Q3.** Why do many production pipelines L2-normalize embeddings before storing them?
+
+<details>
+
+After L2-normalization every vector has length 1, so the magnitudes in the cosine formula cancel to 1 and cosine similarity equals a plain dot product. A dot product is a fast multiply-and-add with no divisions, so normalizing once at index time makes every query-time comparison cheaper while still giving cosine-equivalent results.
+
+</details>
+
+**Q4.** Two teams embed their query text and their documents with different embedding models, then compare the vectors. What goes wrong?
+
+<details>
+
+The comparison is meaningless. Different models produce vectors in different, incompatible coordinate systems (and often different dimensions). Cosine similarity between them is essentially noise — high or low scores don't reflect real semantic closeness. Query and document embeddings must come from the same model and version, analogous to joining two tables whose keys were produced by different hashing schemes.
+
+</details>
+
+## Summary
+
+Embeddings give you coordinates for meaning; **vector similarity** is how you measure closeness between those coordinates. The three core metrics are **dot product** (mixes direction and magnitude), **Euclidean distance** (straight-line distance, magnitude-sensitive, lower = closer), and **cosine similarity** (angle only, magnitude-invariant, higher = closer). For text, **cosine is the default** because meaning lives in direction, not length. Similarities are ranked descending; distances ascending — inverting that quietly breaks search. **Nearest-neighbor search** — embed the query, find the closest document vectors — is the engine behind semantic search and RAG. Brute-force search is an O(N × D) full table scan; **ANN indexes** like HNSW behave like a B-tree index, reaching the answer in roughly O(log N) by trading a little recall for enormous speed. On Databricks, all of this is delivered by Databricks Vector Search and the SQL `vector_search()` function, which you'll master in Part 2.
+
+## Key Takeaways
+
+- Similarity turns "close in vector space" into a computable number — a **fuzzy semantic join** replacing hard `=` matching.
+- **Cosine similarity is the standard for text**: it ignores magnitude and focuses on direction (meaning). Range -1 to +1.
+- Know your sign convention: **similarity sorts DESC, distance sorts ASC.** This is the most common bug.
+- Normalize once → dot product equals cosine and is faster at query time.
+- **Brute-force = full table scan (O(N × D)); ANN/HNSW = index lookup (~O(log N))**, trading a little recall for big speed.
+- Query and document embeddings must share the same model, version, dimension, and normalization.
+- Similarity is not security and not correctness — govern access around retrieval, and remember "related" is not "right."
+
+## Glossary
+
+- **Vector similarity:** A numeric measure of how alike two embedding vectors are.
+- **Cosine similarity:** Similarity based on the angle between vectors; magnitude-invariant; the default for text. Range -1 to +1.
+- **Dot product:** Element-wise multiply-and-sum of two vectors; grows with both alignment and magnitude. Equals cosine for unit-length vectors.
+- **Euclidean (L2) distance:** Straight-line distance between vector tips; lower = closer; magnitude-sensitive.
+- **L2 normalization:** Scaling a vector to length 1 so that dot product equals cosine similarity.
+- **Similarity vs. distance:** Similarity increases as items get closer (sort DESC); distance decreases as items get closer (sort ASC).
+- **Nearest-neighbor search:** Finding the vectors closest to a query vector; the retrieval engine of semantic search and RAG.
+- **Top-k:** The k most similar results returned by a search.
+- **Brute-force (exact) search:** Comparing the query against every vector; guaranteed but O(N × D) — a full table scan.
+- **Approximate Nearest Neighbor (ANN):** Index-based search that trades a little recall for large speed gains (~O(log N)).
+- **HNSW:** Hierarchical Navigable Small World — a layered graph structure that powers fast ANN search.
+- **Recall:** The fraction of the true nearest neighbors an approximate search actually returns.
+
+## Further Reading
+
+- [Databricks Vector Search documentation](https://docs.databricks.com/aws/en/generative-ai/vector-search)
+- Previous lesson: [Embeddings](/docs/llm-foundations/embeddings)
+
+## Next Lesson
+
+➡️ [Prompting Fundamentals & the Chat Format](/docs/llm-foundations/prompting-fundamentals)

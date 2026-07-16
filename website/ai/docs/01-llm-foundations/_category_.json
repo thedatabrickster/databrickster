@@ -1,0 +1,12 @@
+{
+  "label": "Part 1 · LLM Foundations",
+  "position": 1,
+  "collapsible": true,
+  "collapsed": false,
+  "link": {
+    "type": "generated-index",
+    "slug": "/category/part-1-llm-foundations",
+    "title": "Part 1 · LLM Foundations",
+    "description": "The core mechanics of how large language models actually read, represent, and generate text: tokens, embeddings, context windows, and the vocabulary you need to reason about cost, latency, and quality on Databricks."
+  }
+}
