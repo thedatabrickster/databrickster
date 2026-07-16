@@ -14,7 +14,7 @@ By the end of this lesson, you will be able to:
 
 - Explain what an embedding is: a fixed-length vector of floating-point numbers that captures the *meaning* of a piece of text (or image, audio, etc.).
 - Articulate the problem embeddings solve and why keyword matching (`LIKE '%...%'`, exact joins) fundamentally cannot understand meaning.
-- Distinguish an **embedding model** (outputs a vector) from an **<abbr title="Large Language Model">LLM</abbr>** (outputs text), and explain what "dimensions" means.
+- Distinguish an **embedding model** (outputs a vector) from an **LLM** (outputs text), and explain what "dimensions" means.
 - Describe, at a light-internals level, how text flows from tokens to a single pooled vector.
 - Reason about the **semantic vector space**: why nearby vectors mean similar things, and why topics form clusters.
 - Map embeddings onto Data Engineering concepts you already know: feature vectors, computed columns, "semantic hashes", and similarity joins.
@@ -109,9 +109,9 @@ vec("king") - vec("man") + vec("woman") ≈ vec("queen")
 
 Read that as: "start at king, remove the 'man-ness', add 'woman-ness', and you land near queen." This does not always work perfectly with modern contextual models, but it captures the right intuition: **relationships between concepts show up as consistent directions in the space.** "Paris - France + Italy ≈ Rome" is the classic capital-city version.
 
-**3. Similar things cluster.** All the "withdrawal / redemption / cash-out" phrasings from Northwind Trust's tickets land in one region. All the "onboarding / new account / <abbr title="Know Your Customer — the regulated identity-verification process for new clients">KYC</abbr>" phrasings land in another. If you projected the space down to 2D and plotted it, you'd see visible blobs by topic.
+**3. Similar things cluster.** All the "withdrawal / redemption / cash-out" phrasings from Northwind Trust's tickets land in one region. All the "onboarding / new account / KYC" phrasings land in another. If you projected the space down to 2D and plotted it, you'd see visible blobs by topic.
 
-**4. Context matters (modern models are contextual).** Older embedding techniques (like `word2vec`) gave every word one fixed vector. Modern transformer-based models like <abbr title="General Text Embeddings — the model family behind databricks-gte-large-en">GTE</abbr> and <abbr title="BAAI General Embedding — from the Beijing Academy of Artificial Intelligence; behind databricks-bge-large-en">BGE</abbr> are **contextual**: the word "bank" gets a different vector in "river bank" than in "savings bank," because the model reads the whole sentence before producing the vector. This is a big deal for real business text where the same word means different things.
+**4. Context matters (modern models are contextual).** Older embedding techniques (like `word2vec`) gave every word one fixed vector. Modern transformer-based models like GTE and BGE are **contextual**: the word "bank" gets a different vector in "river bank" than in "savings bank," because the model reads the whole sentence before producing the vector. This is a big deal for real business text where the same word means different things.
 
 :::note[What GTE and BGE stand for]
 **GTE** = *General Text Embeddings*, and **BGE** = *BAAI General Embedding* (from the Beijing Academy of Artificial Intelligence). Both are open, transformer-based embedding model families; Databricks serves them as `databricks-gte-large-en` and `databricks-bge-large-en`. Throughout this site, hover (or tap) any dotted-underlined acronym to see what it stands for.
@@ -171,7 +171,7 @@ When text hits an embedding model, roughly this happens:
 
 3. **Contextualize (the transformer layers).** The model passes all token vectors through many layers of **self-attention**. Each token's vector gets updated based on every other token in the input. After these layers, the vector for "bank" has absorbed information from "river" or "savings" nearby. This is why the model is *contextual*. (Attention gets its own lesson; for now: "every token looks at every other token and updates itself.")
 
-4. **Pool into one vector.** We now have one contextualized vector *per token*, but we want *one* vector for the whole input. The model **pools** them — commonly by taking a special <abbr title="Classification token — a special token whose final vector is often used to represent the whole sequence">`[CLS]`</abbr> token's vector, or by averaging all token vectors ("mean pooling"). The result is a single fixed-length vector.
+4. **Pool into one vector.** We now have one contextualized vector *per token*, but we want *one* vector for the whole input. The model **pools** them — commonly by taking a special `[CLS]` token's vector, or by averaging all token vectors ("mean pooling"). The result is a single fixed-length vector.
 
 5. **Normalize (usually).** Many models scale the vector to unit length so that cosine similarity behaves cleanly. After this, comparing two embeddings is just a dot product.
 
@@ -286,7 +286,7 @@ print(f"Number of vectors: {len(embeddings)}")   # 3
 print(f"Dimensions each:  {len(embeddings[0])}")  # 1024
 ```
 
-### 4. Python — persist embeddings back to a Delta table with a Spark <abbr title="User-Defined Function — a custom function you register to run over DataFrame rows">UDF</abbr>
+### 4. Python — persist embeddings back to a Delta table with a Spark UDF
 
 ```python
 # Pattern for embedding a Spark DataFrame column in application code.
@@ -347,7 +347,7 @@ The two "money out" sentences share almost no words yet score high; the address 
 
 - **Re-embedding on model upgrades.** When you upgrade the embedding model, every stored vector is now in the "old" space. You must regenerate all embeddings. Design your pipeline so a full re-embed is a routine, repeatable job, not a heroic effort. Store the model name/version in the table so you always know what produced a vector.
 
-- **Idempotency & incrementality.** Embedding is expensive (a model call per row). Don't re-embed unchanged rows. Use a hash of the source text (`sha2(body, 256)`) as a change key; only embed rows whose text hash changed. This is classic incremental <abbr title="Extract, Transform, Load — the standard data-pipeline pattern">ETL</abbr> thinking applied to embeddings.
+- **Idempotency & incrementality.** Embedding is expensive (a model call per row). Don't re-embed unchanged rows. Use a hash of the source text (`sha2(body, 256)`) as a change key; only embed rows whose text hash changed. This is classic incremental ETL thinking applied to embeddings.
 
 - **Storage.** A 1024-dim float32 vector is ~4 KB per row (1024 × 4 bytes). Ten million rows ≈ 40 GB just for vectors. Delta handles this fine, but budget for it and consider it when planning your Vector Search index.
 
@@ -365,7 +365,7 @@ The two "money out" sentences share almost no words yet score high; the address 
 
 ## Security Considerations
 
-- **Embeddings can leak information.** A vector is derived from the source text and, while not human-readable, is *not* anonymization. Research shows text can sometimes be partially reconstructed from embeddings. Treat an embedding of sensitive data (<abbr title="Personally Identifiable Information">PII</abbr>, <abbr title="Protected Health Information">PHI</abbr>, <abbr title="Material Non-Public Information — price-sensitive information not yet public">MNPI</abbr>) with the **same** access controls as the source text. Apply Unity Catalog governance to the embedding column/table.
+- **Embeddings can leak information.** A vector is derived from the source text and, while not human-readable, is *not* anonymization. Research shows text can sometimes be partially reconstructed from embeddings. Treat an embedding of sensitive data (PII, PHI, MNPI) with the **same** access controls as the source text. Apply Unity Catalog governance to the embedding column/table.
 
 - **Governance travels with the data.** Because embeddings sit in Delta tables under Unity Catalog, you get column/row-level security, lineage, and audit for free — use them. Don't export vectors to an ungoverned external store just because "they're just numbers."
 

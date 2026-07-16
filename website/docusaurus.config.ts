@@ -1,6 +1,7 @@
 import {themes as prismThemes} from 'prism-react-renderer';
 import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
+import remarkAcronyms from './src/remark/acronyms.mjs';
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
@@ -44,6 +45,7 @@ const config: Config = {
         docs: {
           sidebarPath: './sidebars.ts',
           // "Edit this page" links intentionally disabled (no GitHub links on site).
+          remarkPlugins: [remarkAcronyms],
         },
         blog: {
           showReadingTime: true,
@@ -54,6 +56,7 @@ const config: Config = {
           onInlineTags: 'warn',
           onInlineAuthors: 'warn',
           onUntruncatedBlogPosts: 'warn',
+          remarkPlugins: [remarkAcronyms],
         },
         theme: {
           customCss: './src/css/custom.css',
@@ -73,6 +76,7 @@ const config: Config = {
         path: 'genie',
         routeBasePath: 'genie',
         sidebarPath: './sidebarsGenie.ts',
+        remarkPlugins: [remarkAcronyms],
       },
     ],
     [
@@ -82,6 +86,7 @@ const config: Config = {
         path: 'business-intelligence',
         routeBasePath: 'business-intelligence',
         sidebarPath: './sidebarsBusinessIntelligence.ts',
+        remarkPlugins: [remarkAcronyms],
       },
     ],
     [
@@ -91,6 +96,7 @@ const config: Config = {
         path: 'agentic-coding',
         routeBasePath: 'agentic-coding',
         sidebarPath: './sidebarsAgenticCoding.ts',
+        remarkPlugins: [remarkAcronyms],
       },
     ],
   ],

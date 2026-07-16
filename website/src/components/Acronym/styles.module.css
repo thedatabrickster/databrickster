@@ -1,0 +1,58 @@
+.acronym {
+  position: relative;
+  white-space: nowrap;
+}
+
+/* The acronym itself: looks like inline text with a dotted underline that
+   signals "there's an explanation here." Reset the button chrome. */
+.term {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: help;
+  text-decoration: underline dotted;
+  text-underline-offset: 0.15em;
+  text-decoration-thickness: 1px;
+}
+
+.term:hover,
+.term:focus-visible {
+  text-decoration-color: var(--ifm-color-primary);
+  outline: none;
+}
+
+/* The click-to-open popover. Theme-aware via Infima CSS variables. */
+.pop {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 20;
+  min-width: 12rem;
+  max-width: 22rem;
+  white-space: normal;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--ifm-font-color-base);
+  background: var(--ifm-background-surface-color, var(--ifm-background-color));
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 6px;
+  box-shadow: var(--ifm-global-shadow-md);
+}
+
+/* Little pointer up to the term. */
+.pop::before {
+  content: '';
+  position: absolute;
+  left: 0.75rem;
+  top: -5px;
+  width: 9px;
+  height: 9px;
+  background: inherit;
+  border-left: 1px solid var(--ifm-color-emphasis-300);
+  border-top: 1px solid var(--ifm-color-emphasis-300);
+  transform: rotate(45deg);
+}
