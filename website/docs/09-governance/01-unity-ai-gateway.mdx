@@ -107,7 +107,7 @@ Let's connect this to instincts you already have as a data engineer, because you
 
 So the Gateway isn't a new, alien concept. It's three tools you already trust (a gateway, a policy engine, an audit log) fused into one layer and pointed at model traffic.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 The Gateway governs **all three kinds of things you can put behind a serving endpoint**: Databricks-hosted models (like Foundation Model APIs), external models (a third-party provider you've connected), and agents. That's important. It means even a model running in someone else's cloud is still governed by *your* policies, because your app talks to it through your Gateway, not directly. The choke point holds no matter where the model physically lives.
 :::
 

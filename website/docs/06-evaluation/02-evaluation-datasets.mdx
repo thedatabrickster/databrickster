@@ -85,7 +85,7 @@ Let us unpack the three pieces of a row.
 
 Why are two of the three optional? Because AI answers are open-ended. There is rarely one exact correct string. So instead of demanding an exact match, you often check "did the answer contain these facts?" or "did the agent pull the right policy document?" That flexibility is what makes evaluation datasets work for language, where a strict `assertEquals` would fail on wording alone.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 The reason we lean on "expected facts" rather than "expected exact answer" is that natural language has many correct phrasings. "You have 30 days to return an item" and "Returns are accepted within a month of purchase" mean the same thing. An exact-match test would fail the second one. A fact-based check asks whether the 30-day window is present, and passes both. You will see this pay off in the next lesson when a judge scores answers against these facts.
 :::
 
@@ -310,7 +310,7 @@ And the narration.
 - We save it as a Delta table in Unity Catalog. Now it is a shared, governed, versioned asset - not a list living in one person's notebook.
 - Delta's time travel means you can point back to exactly the version used in a past evaluation run.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 MLflow 3 for GenAI also provides a managed evaluation dataset concept, so you can register a dataset as a first-class, versioned object that the platform tracks alongside your runs. A Delta table and a Python list are perfectly good starting points; reach for the managed dataset when you want the platform to handle versioning and lineage for you. The exact API surface evolves, so check the current Databricks docs for the precise calls.
 :::
 

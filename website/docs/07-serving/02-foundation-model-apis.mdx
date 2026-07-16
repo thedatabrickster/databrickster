@@ -83,7 +83,7 @@ Let us define the few terms you need. Nothing scary here.
 
 **Provisioned throughput mode.** Here you deploy a foundation model (a base model, or a **fine-tuned** version with your own custom weights) onto **dedicated capacity that you reserve**. You size that capacity in **throughput units**, which you can think of as roughly a tokens-per-second capacity. You are billed for that reserved capacity over time, whether or not you are using every second of it. In return you get **predictable latency** and **higher sustained throughput**. This is the mode for production workloads, strict SLAs, compliance needs, and custom models.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 "Throughput units" are an abstraction. The exact tokens-per-second a unit gives you depends on the specific model and can change, so always check the current Databricks documentation for the model you plan to use rather than memorizing a number. The mental model — "more units equals more tokens per second of guaranteed capacity" — is what matters and stays true.
 :::
 
@@ -145,7 +145,7 @@ You do not need deep internals, but a little intuition helps you reason about co
 - On pay-per-token, the meter counts those input and output tokens and that is your charge for the call.
 - On provisioned throughput, your reserved units define how many tokens per second the dedicated capacity can sustain. If you try to push more than your reservation can handle, requests queue up. If you reserve far more than you use, you pay for idle capacity. **Right-sizing is the whole game.**
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 This is why "tokens per second" matters more than "requests per second." Two requests can be wildly different in cost and time if one has a 50-token answer and the other has a 2,000-token answer. When you size capacity, always think in tokens, not in request counts.
 :::
 
@@ -217,7 +217,7 @@ print("Tokens used:", response.usage.total_tokens)
 
 Let us narrate. You create a client pointed at your workspace's serving endpoints, using a personal access token. You call a **pay-per-token** model by name, send a system instruction plus the user's message, and cap the answer at 60 tokens. You get back a summary and — importantly — a `usage` object telling you how many tokens the call cost. That `total_tokens` number is exactly what you are billed on in this mode. No endpoint to create, no capacity to reserve, nothing running when you are idle.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 Model names and available models change over time. Always check the current [Foundation Model APIs documentation](https://docs.databricks.com/aws/en/machine-learning/foundation-model-apis/) for the exact model identifiers and which are offered in pay-per-token versus provisioned throughput. The *shape* of the call stays the same.
 :::
 
@@ -297,7 +297,7 @@ print("Cheaper:", "reserved" if reserved < metered else "metered")
 
 Let us narrate. The first function scales your daily token estimate up to a month and multiplies by a price per million tokens. The second is just a flat daily reservation cost times the days. With these **placeholder** numbers, the metered path costs about `$45,000/month` while the reserved lane costs `$9,000/month`, so the script prints `Cheaper: reserved`. The exact answer depends entirely on real prices, which change — so **always plug in current numbers from the Databricks pricing page.** The technique, not the placeholders, is what you keep.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 A more careful model prices **input** and **output** tokens separately, since output is often priced higher. For a first-pass decision, a blended price is usually good enough to see which side of the crossover you are on. Refine only if you are near the line.
 :::
 

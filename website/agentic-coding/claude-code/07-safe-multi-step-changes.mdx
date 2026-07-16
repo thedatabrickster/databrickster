@@ -131,7 +131,7 @@ refactor into batches — and committing after each — turns one terrifying dif
 you a second, durable layer: a branch to contain the work and a commit after each good step. When
 both are in place, "that step went wrong" is a five-second fix, not a salvage operation.
 
-:::note The permission modes, briefly
+:::note[The permission modes, briefly]
 Cycle them live with `Shift+Tab`. Roughly: **plan** (explore, no writes), **default/manual** (ask
 before edits and bash), **accept-edits** (auto-apply edits and safe file ops, still gate risky
 bash), plus an **auto** mode for trusted flows. Reads and safe bash never prompt. Exact names and
@@ -270,7 +270,7 @@ pushing, hard resets, recursive deletes, and any deploy or delete are denied out
 accept-edits mode, that deploy cannot fire without Maya. `deny` beats `allow`, so a broad `Read(*)`
 allow never overrides a specific deny.
 
-:::tip Put the gitignored file to work
+:::tip[Put the gitignored file to work]
 `.claude/settings.local.json` is gitignored — use it for your *personal* allow-list (the commands you
 trust on your machine) and keep `.claude/settings.json` for the team-wide rules, especially the `deny`
 list, which you *want* committed so everyone shares the same kill switch.

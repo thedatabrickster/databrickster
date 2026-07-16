@@ -106,7 +106,7 @@ There are two roles:
 
 The magic word is **discovery**. Because every MCP server describes its tools in the same standard way, a client can ask for the list and understand it without any custom code written ahead of time. This is different from plain function calling, where *you* hand the model a fixed list of tool definitions you wrote yourself. With MCP, the server publishes that list, and the agent picks it up.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 Under the hood, MCP defines a small set of message types over a transport (such as HTTP). A client and server exchange structured messages like "list your tools" and "call this tool with these arguments," and the server replies with results. It also has room for other things like resources and prompts. You do **not** need any of this to use MCP on Databricks — the platform and the client libraries handle it. Come back to it only if you ever build a server from scratch.
 :::
 

@@ -73,7 +73,7 @@ firm like Northwind Trust: routine engineering moves faster, the human stays acc
 for every change, and the guardrails (permissions, review, project conventions) are built
 into how the tool works — not bolted on afterward.
 
-:::note Not a Databricks product
+:::note[Not a Databricks product]
 Claude Code is a general coding agent from Anthropic — it works on any codebase, Databricks
 or not. Later in this track, the **Databricks AI Dev Kit** is what makes it Databricks-aware.
 So the habits you learn here travel with you to non-Databricks work too.
@@ -129,7 +129,7 @@ many tool calls, chained, with the model deciding when it's done. The
 [function-calling lesson](/docs/agents-tools-mcp/function-calling) is the atom; Claude Code
 is the molecule.
 
-:::info The human is part of the loop, on purpose
+:::info[The human is part of the loop, on purpose]
 An agent left fully unattended can drift — make a wrong assumption early and build on it.
 Claude Code's design keeps you in the loop at the moments that matter: it proposes plans,
 shows diffs, and asks permission before risky actions. This is a feature, not friction.
@@ -195,7 +195,7 @@ to know the categories, because they map directly onto the loop:
   focused sub-task (research, a large search, a scoped change), which reports a summary back.
   This keeps the main conversation from drowning in detail.
 
-:::tip Tools are extensible
+:::tip[Tools are extensible]
 This is the built-in set. Later in the track you'll add **MCP servers** — the same
 [universal-plug standard](/docs/agents-tools-mcp/mcp) from the Databricks AI track — to give
 Claude Code *more* tools, including governed Databricks tools via the AI Dev Kit. The loop

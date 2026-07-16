@@ -74,7 +74,7 @@ Let's name the six capabilities that make regulated AI safe. A unified platform 
 5. **A governed data boundary.** Regulated data ideally stays inside one governed perimeter. DIY often means data leaves that perimeter — copied into a separate vector database, sent to a separate model vendor, exported to a separate evaluation tool. Each hop raises egress, residency, and data-processing-agreement concerns.
 6. **Audit trails and inference logging.** A durable record of every inference — inputs, outputs, who, when — that compliance can query. This is your evidence when a regulator comes asking.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 The reason "data and AI together" matters so much for regulated firms is **data residency and data-processing agreements (DPAs)**. Every time regulated data crosses a vendor boundary, someone in legal has to confirm that vendor is contractually allowed to process it, in the right region, with the right retention. One boundary is one contract to maintain. Five boundaries is five. This is administrative, not technical, but it's often the slowest part of a regulated launch — and it's exactly what a governed boundary reduces.
 :::
 
@@ -165,7 +165,7 @@ Why does the unified path make lineage and audit "just happen," while the stitch
 
 That shared-key threading is the quiet cost of the DIY path. It's not hard in principle. It's just something that must be *designed in from day one and never dropped*, because a missing request ID on one hop is a gap in your audit trail — and gaps are what auditors find.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 This is why "we'll add lineage later" rarely works in a stitched stack. Lineage can't be reconstructed for requests that already happened without the shared key. If app version 1 didn't thread a request ID through the vector DB and model call, those old requests are simply un-linkable. Unified platforms sidestep this because the linking key exists whether or not you thought to ask for it.
 :::
 

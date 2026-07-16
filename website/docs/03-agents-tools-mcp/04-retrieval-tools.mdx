@@ -72,7 +72,7 @@ Two kinds of facts, two kinds of tools:
 
 The agent reads the question, notices which kind of fact it needs, and picks the right tool. You do not write a big pile of if-statements. The model decides.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 "Unstructured" and "structured" are just data-world words. Unstructured means text with no fixed shape — a paragraph could say anything. Structured means data with columns and types — a row in a table. The retrieval technique differs because the data differs: you *search* documents by similarity, but you *query* tables by exact conditions.
 :::
 
@@ -232,7 +232,7 @@ policy_search_tool = VectorSearchRetrieverTool(
 
 Let's narrate that. We imported `VectorSearchRetrieverTool` from `databricks-langchain`. We pointed it at a Vector Search index by its full three-level name (`catalog.schema.index`). We asked for the top 5 chunks and chose `HYBRID` search so both meaning and exact keywords count. Most importantly, we gave it a plain-English `tool_description` — that sentence is how the agent knows this tool is for *policy documents*, not account data.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 There is an older approach where you wrap the `vector_search()` SQL function inside a Unity Catalog function and expose it with `UCFunctionToolkit`. It works and gives you a single governance surface, but Databricks now recommends the `VectorSearchRetrieverTool` class (or an AI Search MCP server) for new work. Same idea, friendlier packaging.
 :::
 

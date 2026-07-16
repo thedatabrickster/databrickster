@@ -103,7 +103,7 @@ Spans come in **types**, and the type tells you what kind of work that step did.
 
 You do not need to memorize this table. Just know that when you open a trace, each span will be labeled, and the label tells you what kind of step you're looking at. A RETRIEVER span is where you go to see *what documents were found*. An LLM span is where you go to see *the exact prompt and the model's reply* (and the token count).
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 Span types are not just labels — some Databricks and MLflow features key off them. For example, the retrieval-quality parts of evaluation know to look at `RETRIEVER` spans specifically. So the type is both a hint for you and a signal for the tooling. You can skip this detail for now; it becomes relevant in the evaluation lessons.
 :::
 
@@ -233,7 +233,7 @@ for span in trace.data.spans:
 
 This last snippet zeroes in on the **LLM** span — the model call — and pulls out two numbers you'll care about constantly: **token usage** (what the step cost) and **latency** (how long it took, computed from the span's start and end times). Those are exactly the numbers we read off Figure 3 by eye. In code, they're right there on the span.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 Exact attribute keys and helper methods can shift a little between MLflow versions, and the MLflow UI shows token usage and latency without you writing any of this. Treat the code as illustrative of the *shape* of the data — a trace is a list of spans, and each span carries inputs, outputs, timing, and metadata. That mental model won't change even if a method name does.
 :::
 

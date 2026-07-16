@@ -113,7 +113,7 @@ Read that as: "start at king, remove the 'man-ness', add 'woman-ness', and you l
 
 **4. Context matters (modern models are contextual).** Older embedding techniques (like `word2vec`) gave every word one fixed vector. Modern transformer-based models like <abbr title="General Text Embeddings — the model family behind databricks-gte-large-en">GTE</abbr> and <abbr title="BAAI General Embedding — from the Beijing Academy of Artificial Intelligence; behind databricks-bge-large-en">BGE</abbr> are **contextual**: the word "bank" gets a different vector in "river bank" than in "savings bank," because the model reads the whole sentence before producing the vector. This is a big deal for real business text where the same word means different things.
 
-:::note What GTE and BGE stand for
+:::note[What GTE and BGE stand for]
 **GTE** = *General Text Embeddings*, and **BGE** = *BAAI General Embedding* (from the Beijing Academy of Artificial Intelligence). Both are open, transformer-based embedding model families; Databricks serves them as `databricks-gte-large-en` and `databricks-bge-large-en`. Throughout this site, hover (or tap) any dotted-underlined acronym to see what it stands for.
 :::
 

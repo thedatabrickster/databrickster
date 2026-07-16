@@ -113,7 +113,7 @@ There is a limit to how much you can paste, and that limit is the [Context Windo
 
 **Step 3 — Generate.** The model reads your prompt — question plus passages — and writes an answer grounded in that text. Because you included the source passages, you can also show *which* document each fact came from. That is your citation, your receipt.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 "Grounded" is a term you will hear a lot. It means the answer is tied to real source text you provided, rather than floating free from the model's memory. A grounded answer is one you can check. This is why RAG is popular in regulated industries like finance and healthcare — being able to trace every claim back to a document is often a hard requirement, not a nice-to-have.
 :::
 
@@ -265,7 +265,7 @@ Walking through it: `embed()` turns the question into a vector, the same trick y
 
 What to notice: the model call is the *last* line. Everything above it is retrieval and prompt-building — the parts you, a data engineer, will feel right at home writing.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 On Databricks, you will not hand-roll most of this. Databricks provides Mosaic AI Vector Search to store and search your embeddings, and Foundation Model APIs to do the generation. The `embed()` and `vector_index.search()` steps map to a managed vector search index; the `model.generate()` step maps to a served model endpoint. You will meet both in later lessons. Full details live in the [Databricks documentation](https://docs.databricks.com/aws/en/generative-ai/retrieval-augmented-generation).
 :::
 

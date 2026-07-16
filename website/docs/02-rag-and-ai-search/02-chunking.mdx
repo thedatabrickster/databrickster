@@ -67,7 +67,7 @@ Remember from the embeddings lesson that an embedding turns a piece of text into
 
 **Reason 1: It literally will not fit.** Every embedding model has an input limit, measured in tokens. A token is roughly three-quarters of a word. Many embedding models accept only a few hundred to a few thousand tokens at a time. A 50-page document is tens of thousands of tokens. It simply does not fit through the door.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 "Token" is the unit language models count in, not characters or words. A rough rule of thumb for English: 1 token is about 4 characters, or roughly 0.75 words. So 1,000 tokens is around 750 words. You do not need to count by hand — a tokenizer library does it for you, and we will use one later.
 :::
 
@@ -309,7 +309,7 @@ What to notice:
 - `chunk_id` is unique and human-readable, which makes debugging ("why did *this* chunk get retrieved?") much easier later.
 - The output is an ordinary Delta table. This matters: the next lesson builds a Vector Search index directly on top of a Delta table like this one. You are handing off a clean, familiar artifact.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 For a production ingestion job you would loop this over many PDFs, extract real per-page text (a PDF library gives you page numbers), and enable **Change Data Feed** on the Delta table so the vector index can sync only the rows that changed. We will cover that sync in the next lesson.
 :::
 

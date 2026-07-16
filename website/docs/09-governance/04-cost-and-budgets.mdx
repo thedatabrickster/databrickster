@@ -114,7 +114,7 @@ For a data engineer this is the friendly part: it's just tables and dashboards, 
 
 An inference table logs **every request and response** to a Unity Catalog Delta table. This is your audit trail and your analysis surface in one. Because it's just Delta, you analyze it with plain SQL — no new tool, no new language. Want spend by day? Group by date. Want the top spender? Group by user and order by tokens. This is the control a DE tends to love most, because it turns "AI cost" into a normal SQL problem.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 The exact columns in an inference table depend on your configuration and the model, but you'll generally find a timestamp, an identifier for the caller, the endpoint or model name, and token counts (input and output). Cost is often computed by joining or by multiplying token counts by a per-token price, since tokens are the true meter. Payload logging (the request and response text) can be enabled or disabled depending on how sensitive the content is — see Security Considerations below.
 :::
 
@@ -208,7 +208,7 @@ ai_gateway:
 
 Reading this top to bottom: we cap each user to 60 calls a minute (that's the seatbelt on the runaway loop), and the whole endpoint to 1000 a minute (a ceiling no matter who calls). We switch on usage tracking so tokens and cost flow to system tables, and we switch on the inference table so every request and response is saved to Delta under `northwind.ai_audit`. Setting this once is what makes the loop harmless.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 Budgets are often configured separately from the per-endpoint config above — at an account or workspace level where you set dollar thresholds, alert recipients, and (where supported) hard caps across many endpoints and providers at once. The idea is the same: a spend ceiling per period, with alerts before the ceiling.
 :::
 

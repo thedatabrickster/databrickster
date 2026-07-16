@@ -120,7 +120,7 @@ flowchart TD
 
 *Diagram 1: The two failure points. A bad answer comes from one of these two places. Your job is to find out which — before you try to fix anything.*
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 In formal evaluation you'd also track **precision** (of what we retrieved, how much was actually relevant?) alongside recall, and you'd measure faithfulness and relevance with automated judges. We keep it eyeball-based here on purpose. The tooling — including LLM-as-a-judge and evaluation datasets — comes in a later Part. Right now, trusting your own eyes on a handful of real examples will take you surprisingly far.
 :::
 
@@ -212,7 +212,7 @@ flowchart TD
 
 Analogy: the vector search librarian grabs 20 books that "look about right" from a quick glance at the spines. The reranker librarian actually opens each of the 20, checks whether it truly answers your question, and hands you the best 5.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 The reranker is often a **cross-encoder**. The name just describes how it works: instead of embedding the question and the chunk separately and comparing (what vector search does), it feeds the question *and* the chunk into the model *at the same time*, letting the model directly judge the pair. That "read together" step is exactly why it's more accurate — and why it's too slow to run across millions of chunks, only across your shortlist.
 :::
 
@@ -350,7 +350,7 @@ Let's narrate this carefully, because it's the heart of the lesson.
 - The `try/except` is a small safety net: if the model ever replies with something that isn't a clean number, we score it `0.0` instead of crashing. Always assume a model's output might be messy.
 - We score all 20 candidates, sort them by the new score, and slice off the **top 5**. Those five — chosen by careful reading, not rough similarity — are what we hand to the generation model.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 This is a *teaching sketch*. In production you'd use a purpose-built reranker (a cross-encoder) rather than a general chat model prompted for a number — it's faster, cheaper, and more consistent. But this version shows the mechanics clearly: pair the question with each candidate, score, sort, cut. That's all a reranker does.
 :::
 

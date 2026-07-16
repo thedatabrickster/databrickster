@@ -126,7 +126,7 @@ Here is the tour of the task-specific family, one line each:
 You do not need to memorize this table. You need to remember it *exists* — so that when a task
 lands on your desk, your first thought is "there is probably a function for that."
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 `ai_gen` and `ai_query` overlap: both do free-form generation. `ai_gen` is the simplest possible
 call (a prompt in, text out) on a Databricks-managed default. `ai_query` is the full interface
 where you name the endpoint and control every parameter. Start with `ai_gen` for quick jobs;
@@ -155,7 +155,7 @@ Notice the shared shape: **column in, structured value out.** Once you see that,
 in the family reads the same way. You are always describing what you want and letting the model
 do the reading.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 Task-specific functions return results in documented, stable shapes — often a struct or a scalar
 you can reference directly, e.g. `ai_extract(...).amount`. `ai_query` returns whatever the model
 produces, so with `ai_query` you are responsible for constraining and parsing the output (a

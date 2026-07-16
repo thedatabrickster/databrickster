@@ -56,7 +56,7 @@ That analyst is Genie.
 
 You do not talk to Genie in SQL. You talk to it the way you would talk to a helpful colleague. Genie figures out the query. And because you were the one who set up which tables it can see and how they connect, its answers stay grounded in **your** trusted data, not made-up numbers.
 
-:::tip Confidence boost
+:::tip[Confidence boost]
 If you can imagine explaining your data model to a smart new teammate, you already understand the core skill Genie needs from you. That is a data engineer's day job. You are not learning AI from scratch here; you are pointing a new tool at work you already do well.
 :::
 
@@ -96,7 +96,7 @@ You close that gap with three levers, and all three are curation work you unders
 2. **Good names and comments.** A column called `amt` is a mystery. A column called `net_inflow_usd` with a comment "deposits minus withdrawals, in USD" is a gift. Unity Catalog lets you add comments on tables and columns, and Genie reads them.
 3. **Space instructions and sample queries.** This is where you teach Genie your business vocabulary and your preferred query shapes. A single good sample query for "inflows by fund" can fix a whole category of questions.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 Under the hood, when Genie plans a query it assembles context: the schemas of the included tables, their comments, your instructions, and relevant sample queries. It sends that context to the model along with the user's question, and asks it to produce SQL. It may also verify the SQL is valid before running, and can iterate if there is an error. You do not have to manage any of this; you just make the inputs good. The takeaway: **garbage-in, garbage-out applies to metadata, not just data.**
 :::
 
@@ -285,7 +285,7 @@ This is the part that lets you sleep at night.
 - **Row and column filters are respected.** If you use Unity Catalog row filters or column masks, they apply to Genie's queries too, because it is the same governed SQL path.
 - **The SQL is visible.** Because Genie returns the query it ran, security and audit teams can review exactly what was accessed.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 The important architectural fact is that Genie does not sit on top of a privileged service account that sees everything. It runs in the user's own permission context. So governance you already set up in Unity Catalog is automatically inherited. You do not configure permissions twice.
 :::
 

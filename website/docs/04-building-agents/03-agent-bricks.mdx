@@ -73,7 +73,7 @@ Three things happen for you automatically. Hold onto these three words:
 
 **It's pattern-based.** Agent Bricks doesn't do *anything* you can imagine. It does a set of well-defined, common patterns extremely well. If your need matches one of those patterns, you win big. If it doesn't, you use Agent Framework instead. We'll tour those patterns next.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 "Auto-optimize" isn't magic. Under the hood, Databricks compares multiple optimization strategies, things like different prompt formulations and different underlying model choices, and evaluates each against the criteria it inferred from your data. It keeps what scores best. You don't have to understand or run any of this. It just means the defaults you get are tuned rather than arbitrary.
 :::
 
@@ -159,7 +159,7 @@ You don't need to know the internals to use Agent Bricks. But a light peek helps
 4. **It tries multiple strategies and scores them.** This is auto-optimize: different prompt and model choices, each measured against the criteria from step 2. The best-scoring setup wins.
 5. **It deploys an endpoint.** You get a governed, queryable Model Serving endpoint, plus a place in the UI to test and improve it.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 For the offering that processes text at scale (Custom LLM), Databricks recommends giving it a decent amount of example data, on the order of 100 or more inputs, so the optimizer has enough to learn from. More representative examples generally mean a better-tuned, more accurate agent. If you only have a handful of examples, you'll still get a result; it just won't be as finely tuned. You can safely start small and add more later.
 :::
 
@@ -249,7 +249,7 @@ print(response.choices[0].message.content)
 
 Narrating the Python: you create a `client` pointed at your workspace's `serving-endpoints` URL, set `model` to your agent's endpoint name, send your question in the `messages` list (the same chat format you saw in Part 1), and read the answer off `response.choices[0].message.content`. If you've called any chat model before, this looks identical, because to your code, an Agent Bricks agent is just another chat endpoint.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 The exact `base_url`, the token type, and whether you use a personal access token versus an OAuth machine identity depend on your workspace setup. Treat the values above as placeholders. Your team's Databricks admin can give you the real workspace URL and the right credential. The *shape* of the call, endpoint name plus messages, stays the same.
 :::
 

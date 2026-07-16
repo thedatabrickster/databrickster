@@ -118,7 +118,7 @@ Production monitoring sits on top of that stream of traces. Here's the loop, in 
 
 Why a **sample** and not every request? Running an LLM judge on a trace costs money and time (it's another model call). At scale, grading 100% of traffic could cost as much as serving it. So you grade a representative slice, say 5% or 10%. That's enough to spot a real trend without doubling your bill. This is the same reason you don't run full data-quality checks on every row of a billion-row table; you sample.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 Sampling introduces a trade-off you already understand from data QA. A smaller sample is cheaper but noisier: a quality dip in a small sample might just be luck. A larger sample is more sensitive but more expensive. In practice you tune the sample rate so the dashboard is stable enough to trust but cheap enough to run forever. You can also bias sampling toward interesting cases (for example, sample more heavily from requests where a user gave a thumbs-down). You don't need to master this now; just know the knob exists.
 :::
 
@@ -167,7 +167,7 @@ When you enable monitoring on a deployed app, MLflow attaches a scheduled job to
 
 The traces already exist because your app is instrumented (Part 5). The judges already exist because you built them for offline eval (earlier this Part). Monitoring is mostly *wiring*: connect the graders to the trace stream, on a schedule, with a sample rate. That's why so much of it is configuration and dashboards rather than heavy code.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 Because a judge is itself an LLM call, monitoring inherits a subtle property: your quality metric has its own error bars. A judge might occasionally misgrade a fine answer as bad, or vice versa. That's normal. You don't treat a single monitored score as gospel; you watch the *trend* across many samples, where individual judge noise averages out. Same as you wouldn't page someone over one slightly-late file, but you would over a week of them.
 :::
 

@@ -93,7 +93,7 @@ Let's name the pieces of a well-structured agent repo and why each one exists. T
 
 The guiding principle behind all of these is **separation of concerns**: logic separate from experiments, configuration separate from code, and secrets separate from everything. Each drawer holds one kind of thing.
 
-:::tip The "src layout"
+:::tip[The "src layout"]
 Putting your package under a `src/` directory (rather than at the repo root) is a well-worn Python convention. It forces you to *install* your package to import it, which means your tests exercise the same code path as a real deployment — no accidental "it only works because the files happen to be in the current directory."
 :::
 
@@ -117,7 +117,7 @@ When you configure a Databricks cluster, you specify a runtime version and a set
 
 The mental link to lock in: **your dependency manifest is to your code what a cluster's library spec is to a job.** Both exist so that "reproducible" is a property you get for free instead of a debugging session you pay for later.
 
-:::info uv, pip, or requirements.txt?
+:::info[uv, pip, or requirements.txt?]
 `uv` is a fast, modern package and environment manager that reads `pyproject.toml` and produces a lockfile (`uv.lock`) capturing exact versions of *every* transitive dependency — the strongest reproducibility. Plain `pip` with a pinned `requirements.txt` is simpler and universally understood. Either is fine; the non-negotiable is that versions are **pinned**, not floating. Exact commands evolve — verify current usage in the [uv docs](https://docs.astral.sh/uv/).
 :::
 

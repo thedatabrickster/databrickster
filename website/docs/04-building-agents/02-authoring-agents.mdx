@@ -86,7 +86,7 @@ The one method you must implement is `predict`. Its signature looks like this in
 
 There's also an optional method called `predict_stream`. It does the same job but streams the answer out in small chunks, so the user sees words appear as they're generated instead of waiting for the whole thing. You don't need it to get started, so we'll treat it as a bonus.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 `ResponsesAgent` is the interface Databricks now recommends. You may see an older interface called `ChatAgent` in tutorials and forum posts. It still works, but `ResponsesAgent` is the preferred choice for new agents because it handles multi-step tool calls and streaming more cleanly, and MLflow can automatically aggregate streamed output into a single trace. If you're starting fresh, start here.
 :::
 
@@ -174,7 +174,7 @@ Because MLflow knows the flavor, it knows exactly how to call your agent later: 
 
 Tracing works the same way. Because MLflow understands the interface, it can wrap `predict` and record each internal step, the model call, the tool call, timings, inputs, and outputs, as a **trace**. You turn this on with a single line, and then every run becomes something you can inspect and debug.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 "Models-from-code" means MLflow logs the *source file* that defines your agent, rather than trying to pickle a live Python object. This is more robust for agents, which often hold references to clients and tools that don't serialize cleanly. You point MLflow at your script and tell it which object is the agent. We'll do exactly that below.
 :::
 

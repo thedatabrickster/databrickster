@@ -83,7 +83,7 @@ The punchline for data engineers: **output length is usually the biggest driver 
 
 **Cost has its own simple rule: tokens are the meter.** In pay-per-token pricing, you pay for input tokens plus output tokens. That's it. A long prompt costs money every single call. A long answer costs money every single call. Cutting either cuts the bill directly.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 Input tokens and output tokens are often priced differently, and output tokens are frequently more expensive per token than input tokens. That's because generating each output token is the sequential, compute-heavy step, while reading the input is done in one efficient pass. Practically, this means a tight `max_tokens` cap can save more than an equal trim to the prompt. You don't need to memorize the ratio; just know output tokens tend to be the pricier half.
 :::
 
@@ -158,7 +158,7 @@ That single fact explains most of the lesson:
 - **Why capping `max_tokens` is such a strong lever:** it directly caps the number of sequential passes.
 - **Why streaming helps perceived speed:** each pass finishes a token, so you can show it immediately rather than waiting for the last one.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 The efficient input pass is sometimes called "prefill," and the sequential output stage "decode." Providers optimize both heavily (batching many users' requests together, caching parts of prompts), which is part of why a managed endpoint can be faster and cheaper than running your own. You don't need these words for the job, but you'll see them in vendor docs, and now they won't be scary.
 :::
 

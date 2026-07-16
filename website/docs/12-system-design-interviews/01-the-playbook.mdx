@@ -94,7 +94,7 @@ Here is the table to keep in your head:
 
 Notice the left column does not disappear. You still gather requirements and draw an architecture. The right column is bolted on top. That is the entire mental model.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 "Tokens" are the chunks of text a model reads and writes (roughly ¾ of a word each). You pay per input token and per output token, and the price differs by model. "Time to first token" is how long the user waits before the very first word appears. Streaming means showing words as they are generated, so a slow total response still *feels* fast. You do not need the exact numbers in an interview. You need to show you know these are the levers.
 :::
 
@@ -198,7 +198,7 @@ The **"everywhere" box** is the stuff that runs across the whole system: a cache
 
 If you can draw and narrate this, you can pass most GenAI interviews. Everything else is just zooming into one box.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 "Top-k" means "retrieve the k most similar chunks" (k is often 3 to 10). The vector index uses **approximate** nearest-neighbor search (ANN) so it stays fast even with millions of chunks - it trades a tiny bit of accuracy for a huge speed win. You will not be asked to implement ANN. You just need to say the phrase and know why it exists: exact search over millions of vectors would be too slow.
 :::
 

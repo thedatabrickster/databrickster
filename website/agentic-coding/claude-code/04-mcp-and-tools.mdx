@@ -113,7 +113,7 @@ Code a list of Databricks tools. When it connects to the server, it *asks* for t
 reads back each tool's name and description. That's why the assistant "knows" it can create
 a job or list catalogs: the server told it, in a standard format, at connection time.
 
-:::note Why discovery matters here
+:::note[Why discovery matters here]
 Because tools are discovered, not hardcoded, the AI Dev Kit can add, rename, or improve
 tools and your assistant picks up the changes without you editing any config. The trade-off:
 the *quality of tool descriptions* directly drives how well the model chooses. Good
@@ -146,7 +146,7 @@ graph TD
 *Diagram 2: The AI Dev Kit tools cluster into five families. You describe an outcome; the
 model maps it onto tools from these families.*
 
-:::note Exact tool names evolve
+:::note[Exact tool names evolve]
 Tool names, counts, and groupings change as the AI Dev Kit evolves (recall the setup
 lesson's note about skills moving to Databricks-managed sets). Don't hardcode a name like
 `create_job` in your head — ask the assistant "what Databricks tools can you see?" or check

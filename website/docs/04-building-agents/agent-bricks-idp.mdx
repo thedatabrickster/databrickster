@@ -86,7 +86,7 @@ The payoff: for one narrow, high-volume job, a tuned specialist can beat a gener
 
 Everything runs inside Unity Catalog and lands in **Delta** tables, so the output is clean, governed data that you, a data engineer, can immediately query and join.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 IDP is the guided, low-code packaging of AI Functions you already met in SQL. Under the hood the stages map to `ai_parse_document` (parse), `ai_extract` (extract), and `ai_classify` (classify). There is also an `ai_prep_search` step (in Beta at the time of writing) that chunks parsed documents for semantic search. If you ever outgrow the guided UI, you can drop down and call these functions directly in SQL. Same engine, more control.
 :::
 
@@ -173,7 +173,7 @@ You do not need the internals to use either tool, but a light peek makes the "au
 
 **For IDP**, each document flows through stages that call the AI Functions in sequence: parse turns the file into structured text and tables, extract reads your schema and pulls those fields, classify assigns a category. Each stage's output feeds the next without you writing glue code, and the final result is written to Delta.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 Databricks recommends giving a Custom LLM a decent amount of example data, on the order of 100 or more representative inputs, so the optimizer has enough to learn from. You can build one with as few as around three manual examples to try it out, but more representative examples generally mean a better-tuned, more accurate model. Optimization compares multiple strategies and can take several hours to finish; that is normal and it runs for you in the background.
 :::
 
@@ -289,7 +289,7 @@ FROM READ_FILES('/Volumes/cascade/claims/raw_pdfs/', format => 'binaryFile');
 
 Narrating this: `READ_FILES` reads the raw document bytes from a Unity Catalog volume, and `ai_parse_document` turns each file into structured content. This is exactly the first station of the IDP assembly line, exposed as a function. The parsed text is also what feeds RAG ingestion: parse first, then chunk, then index, as you saw in the RAG lessons.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 The exact `base_url`, token type, and whether you use a personal access token versus an OAuth machine identity depend on your workspace setup. Treat those values as placeholders; your Databricks admin gives you the real workspace URL and the right credential. The *shape* of the call, endpoint name plus input, stays the same.
 :::
 

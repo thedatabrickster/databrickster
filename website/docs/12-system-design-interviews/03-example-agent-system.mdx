@@ -80,7 +80,7 @@ This is the **reason-act-observe** loop (sometimes called ReAct). Compare it to 
 
 A **tool** is just a function the model is allowed to call, described by a name, a short description, and a **schema** for its arguments. The model picks the tool and fills in the arguments; your code runs the function and hands back the result. That mechanism is **function calling**.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 
 The model never actually runs code itself. It emits a structured request that says, in effect, "please call `get_account_balance` with `account_id = 12345`." Your orchestration layer runs the real function, then feeds the result back into the conversation as a new message. The model reads it and decides the next step. Keeping that boundary crisp is what makes the whole thing auditable and safe.
 
@@ -182,7 +182,7 @@ We will walk all eight steps of the framework. Watch the candidate think out lou
 
 **Candidate:** That settles it. Reads can be automatic. Writes need a **human-in-the-loop** approval and a full **audit trail**.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 
 Notice how much the candidate front-loaded. In an agent interview the clarifying step is where you separate "read" from "write," because the write path carries almost all the risk. If you get one clarification right, make it "what exactly is it allowed to *do*?"
 
@@ -314,7 +314,7 @@ flowchart LR
 
 **Candidate:** Three things. First, the **max-step cap** already stops it, it exits and returns a graceful "couldn't finish." Second, I look at the **trace** to see what it kept retrying, usually a tool returning something the model can't use, so it tries again. Third, I fix the root cause: clearer tool result formats, a better prompt, or a **loop-detection** check that notices the same tool call with the same args repeating and breaks out. The cap protects the user and the budget today; the trace tells me what to fix tomorrow.
 
-:::note Databricks mapping
+:::note[Databricks mapping]
 
 Here's how each piece lands on the Databricks platform, so the abstract design becomes buildable:
 

@@ -71,7 +71,7 @@ next. It is less like a query engine and more like an extraordinarily
 well-read consultant who answers from experience — fast, fluent, usually right,
 occasionally confidently wrong, and never word-for-word identical twice.
 
-:::tip The one-sentence mental model
+:::tip[The one-sentence mental model]
 **A classic pipeline retrieves facts; a generative model produces its best guess.**
 Everything strange about building AI systems — evaluation, hallucinations,
 guardrails, tracing — flows from that difference.
@@ -291,7 +291,7 @@ behavior becomes *almost* deterministic — a fact you'll exploit constantly whe
 want reproducibility. At higher temperatures it takes more chances, which is great
 for creative drafting and dangerous for factual accuracy.
 
-:::note You don't train these models
+:::note[You don't train these models]
 As a Data Engineer building applications, you almost never train an LLM from
 scratch (that costs millions of dollars and enormous compute). You *use* a
 pre-trained **foundation model** through an API and shape its behavior with prompts,
@@ -381,7 +381,7 @@ response = client.chat.completions.create(
 print(response.choices[0].message.content)
 ```
 
-:::info What to notice, not memorize
+:::info[What to notice, not memorize]
 Three things: (1) you called AI from **SQL you already know**; (2) scaling from one
 row to millions was *the same function*, parallelized by Spark — a pattern you've
 used a thousand times; (3) the Python call took a `temperature` — a probability

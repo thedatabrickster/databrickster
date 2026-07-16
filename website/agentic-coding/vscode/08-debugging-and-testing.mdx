@@ -107,7 +107,7 @@ While paused, three panels are your instruments:
 - **Watch** — pin an expression like `len(messages)` or `response.tool_calls[0].name` and VS Code re-evaluates it at every stop. This is the dipstick for the value you care about most.
 - **Debug Console** — a live Python REPL *in the paused frame*. Type `messages[-1]["content"]` and read the actual prompt text the model saw. Call `json.dumps(args, indent=2)` to pretty-print. This is where hidden-prompt bugs die.
 
-:::tip The Debug Console is the single most powerful anti-agent-mystery tool
+:::tip[The Debug Console is the single most powerful anti-agent-mystery tool]
 Pause right before the model call and print the fully assembled prompt from the Debug Console. Nine times out of ten, "the model chose the wrong tool" turns out to be "the tool descriptions were ambiguous" or "the history I passed was stale." You cannot fix a prompt you have never read.
 :::
 

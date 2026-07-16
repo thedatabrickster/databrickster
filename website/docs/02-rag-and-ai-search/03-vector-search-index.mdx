@@ -59,7 +59,7 @@ A vector index is that smart catalog, but for meaning.
 
 Remember from the embeddings lesson: we turn each chunk of text into a list of numbers (a **vector**) that captures its meaning. Similar meanings land close together in "number space." The index is a clever structure that lets us ask "which vectors are closest to *this* one?" without checking every single one.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 The reason it's fast is that the index doesn't compare your query to all vectors one by one (that's called brute force). It uses an approximate nearest-neighbor structure that skips most of the candidates while still finding the closest ones. You do not need to understand the algorithm to use it well. Databricks builds and tunes it for you.
 :::
 
@@ -104,7 +104,7 @@ There are two ways it stays in sync, and you choose with one parameter:
 
 Most teams start with TRIGGERED and move to CONTINUOUS only where the use case demands it.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 "Managed embeddings" means Databricks calls an embedding model serving endpoint on your behalf for every row. You just name the model (for example `databricks-gte-large-en`) and the text column. The alternative, "self-managed embeddings," is the Direct Vector Access path where *you* produce the vectors. Same search engine underneath; the only difference is who computes the numbers.
 :::
 
@@ -228,7 +228,7 @@ client.create_endpoint(
 
 What just happened: we asked Databricks to spin up a serving endpoint named `northwind_vs_endpoint`. `STANDARD` is the everyday endpoint type and is the right choice unless you're storing an enormous number of vectors. Creating an endpoint takes a few minutes; it runs in the background. You only do this once, then many indexes can live on it.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 There's also a storage-optimized endpoint type for very large collections (think a billion-plus vectors) with faster indexing. You will not need it for a policy library. Reach for it only when a standard endpoint's capacity becomes a real limit.
 :::
 

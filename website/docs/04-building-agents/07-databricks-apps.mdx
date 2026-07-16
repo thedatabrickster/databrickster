@@ -89,7 +89,7 @@ Three properties make it a natural fit for putting a UI in front of an agent:
 
 Put those together and you get the headline benefit: **the person's identity carries through**. Because the user logged in as themselves, the App knows who they are, and access can be checked against *their* permissions — not some shared, all-powerful service account. This is often called **on-behalf-of** access, and Apps make it natural.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 "On-behalf-of" means the App can act using the logged-in user's own identity when it reaches downstream resources, rather than one shared identity for everyone. The practical effect: if Alice is not allowed to see a certain table, the answer she gets respects that — even though the App code is the same for everyone. You can also run an App under a dedicated service principal for some flows. If this feels abstract right now, that is fine; the takeaway is simply "permissions follow the person."
 :::
 
@@ -276,7 +276,7 @@ Reading it:
 - `command` is how Databricks launches your app — here, "run `app.py` with Streamlit."
 - `env` sets environment variables the app can read. We pass the endpoint name here, which is why `app.py` could read `SERVING_ENDPOINT` from the environment instead of hardcoding it.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 Exact config keys and the cleanest way to wire credentials can evolve. In current Databricks Apps, host and token for reaching serving endpoints are typically made available to the app automatically, and you can bind resources (like a serving endpoint) to the app so access is managed for you rather than passed as raw tokens. When you build for real, check the official docs for the current recommended pattern. The shape above is the stable idea: a run command plus configuration, kept out of your source code.
 :::
 

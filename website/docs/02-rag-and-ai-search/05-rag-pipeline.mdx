@@ -101,7 +101,7 @@ A chat model takes a list of messages. Each message has a **role**. For our purp
 
 Here is the mental model. The system message is the exam's instruction sheet. The user message is the open textbook pages plus the question written at the top. The model reads both and writes an answer.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 Why put the retrieved chunks in the *user* message and not the system message? Both can work, and you will see teams do it either way. Putting the chunks alongside the question in the user message keeps a clean separation: the system message is stable, reusable rules, while the user message is the specific, changing data for this one question. It also tends to make the model treat the chunks as material to reason over, rather than as standing instructions. This is a style choice, not a hard law — do not worry about it as a beginner.
 :::
 
@@ -330,7 +330,7 @@ print(answer_question("What happens if a client makes an early withdrawal?"))
 
 That is the payoff. Everything we built collapses into a single, readable call.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 You may be itching to deploy this so a real app can call it over HTTP, or to turn it into an agent that can take actions. That is real, and it is coming — deploying this as an agent or a serving endpoint is the subject of a later Part in this course. For now, a function you can run in a notebook is exactly the right scope. Walk before you run; you are walking beautifully.
 :::
 

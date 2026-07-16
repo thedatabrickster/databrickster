@@ -90,7 +90,7 @@ That recording is what observability gives you. And it comes in two neat pieces 
 
 So a trace is the whole journey; spans are the individual stops along the way. When something goes wrong, you open the trace and read the spans one by one until you find the stop where things went sideways.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 The words "trace" and "span" are not invented for AI. They come from a broader field called **distributed tracing**, used for years to debug complicated systems made of many services talking to each other. AI observability borrows the same vocabulary because an agent is, in a sense, a little distributed system: several steps and services cooperating on one request. If you have ever looked at a request trace across microservices, this will feel familiar. If you have not, no problem — the trace-and-span idea is all you need here.
 :::
 
@@ -227,7 +227,7 @@ Let us narrate that single line, because it is doing more than it looks.
 
 That is genuinely the whole idea at the code level for now: observability is closer to a switch than to a build project. The next lesson shows you exactly where that switch lives, how to open the traces it produces, and how to read them like a pro.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 The exact line depends on what your agent is built with — there are matching `autolog` switches for different agent libraries, and you can also record spans manually when you want fine control. Do not memorize any of this now. Just hold onto the takeaway: **tracing is something you enable, not something you hand-build.**
 :::
 

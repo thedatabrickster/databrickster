@@ -103,7 +103,7 @@ Let's zoom in on each of the four steps, because getting these clear now saves c
 
 **Step 4 — The model continues.** You send the result back as a `"tool"` message and call the model again. The model reads the result and decides what's next. Usually it writes the final answer. Sometimes it needs another tool, and the loop repeats.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 The model can request **several** tool calls at once when a request needs multiple independent lookups. Your code runs each one and sends back one `"tool"` message per call, matched by a `tool_call_id`. You don't need this for your first agent, so feel free to skip it for now. Just know it exists.
 :::
 
@@ -156,7 +156,7 @@ A conversation is a list of messages, each with a role. You already know `"user"
 
 So the "magic" is really just a growing list of messages that you pass back in full on every call. The model has no memory of its own between calls; it re-reads the whole list each time. Your job is to keep that list accurate: append the model's tool request, then append your tool result, then ask again.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 The `arguments` come back as a JSON **string**, not a ready-made Python object, so your code parses it with something like `json.loads`. This matters because the model generated that string, which means it could occasionally be malformed or contain unexpected values. Always parse defensively. We'll come back to this in Security.
 :::
 

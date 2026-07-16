@@ -74,7 +74,7 @@ Let's define the two terms carefully, then name what they share.
 
 **The unifying theme.** Foundation Model APIs, external models, and custom models are all hosted by the *same* Model Serving system. That means one place to manage endpoints, one place for governance, and one calling pattern for your apps. You learn the serving layer once and reuse it for every backend.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 An external-model endpoint config uses a `task` field that tells the Gateway what kind of request this is: `llm/v1/chat` for chat, `llm/v1/completions` for text completion, or `llm/v1/embeddings` for embeddings. This lets Databricks translate between providers that have slightly different request shapes, so your app can keep speaking one dialect.
 :::
 
@@ -138,7 +138,7 @@ Let's walk through what actually happens on a single request, step by step, for 
 
 For a **custom model**, steps 4 and 5 change: instead of fetching a key and calling a vendor, Model Serving loads your model from Unity Catalog onto compute and runs it directly. Everything else, the naming, the governance, the logging, stays the same.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 Custom-model endpoints can scale automatically with traffic, and can even "scale to zero" (spin down to no compute when idle) to save money. For production workloads that need constant uptime, you would turn scale-to-zero off. A brand-new model version can take around 10 minutes to become ready, and updates roll out with zero downtime so the old version keeps serving until the new one is healthy.
 :::
 

@@ -84,7 +84,7 @@ This pattern is often called **orchestration**. The supervisor orchestrates a sm
 
 The key insight is this: each specialist stays **small and focused**. Small things are easier to build correctly, easier to test, and easier to trust. The supervisor keeps the "which expert?" decision in one tidy place, instead of tangled inside every agent.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 The supervisor's routing is itself powered by a language model. It reads the descriptions you write for each specialist and matches the user's request against them. This is why writing clear, honest descriptions for your specialists matters so much — the description is how the supervisor "knows" what each one is for. We will come back to this in Best Practices.
 :::
 
@@ -243,7 +243,7 @@ curl -X POST \
       }'
 ```
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 Compare this with the code-first path. In the **Agent Framework**, you would write the orchestration yourself: define each specialist, write the logic that inspects a request, decide who handles it, call them in order, and merge the outputs by hand. That gives you total control, and it is the right choice for unusual routing logic. The Multi-Agent Supervisor trades some of that control for speed and simplicity — you describe the team and Databricks writes the orchestration. Many teams start with the supervisor and only drop to the framework when they hit something it cannot express.
 :::
 

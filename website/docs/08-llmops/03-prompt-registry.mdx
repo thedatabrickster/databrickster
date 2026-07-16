@@ -81,7 +81,7 @@ Let us name the pieces cleanly.
 
 The big payoff is **decoupling**. Your application code does not say "use version 7." It says "use whatever `production` points to." That one indirection is what lets a non-engineer promote a better prompt, and lets you roll back in seconds, without ever redeploying the app.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 This is the same pattern you may know from container image tags (`myapp:latest`) or from the MLflow Model Registry's model aliases. A fixed version is the immutable artifact; the alias is the pointer you move. If that clicks for you, you already understand aliases completely.
 :::
 
@@ -141,7 +141,7 @@ You do not need to know the internals to use the registry, but a light peek buil
 - **Loading** by `name@alias` resolves the alias to a version, then returns that frozen template. Loading by `name/version` skips the alias and pins an exact version.
 - **Template variables** are validated at format time: when you fill the template, MLflow checks that you supplied the variables the prompt declared.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 Because versions are immutable and aliases are mutable pointers, the registry gives you both reproducibility and flexibility at once. A trace logged in production can record "used support_prompt v2," so months later you can reproduce exactly what the model saw - even though `production` has since moved to v5. This ties directly into what you saw in Part 5 on tracing.
 :::
 
@@ -295,7 +295,7 @@ mlflow.genai.set_prompt_alias(
 
 What just happened: suppose a real customer interaction reveals a problem version 2 introduced. You move the `production` label back to version 1. You are instantly back to the known-good prompt. Version 2 is not deleted - it is still there to fix and re-promote later. This is the calm, one-line recovery that inline prompts never gave you.
 
-:::note Going deeper (optional): auto-optimizing prompts
+:::note[Going deeper (optional): auto-optimizing prompts]
 MLflow also offers **Prompt Optimization**: give it a prompt plus labeled examples (and a scorer), and it proposes an improved prompt version for you, then you evaluate and, if it wins, promote it like any other version. Think of it as a helpful editor that drafts a better recipe card - you still taste-test it against your evaluation dataset before moving the `production` label. It does not replace evaluation; it feeds it.
 :::
 

@@ -86,7 +86,7 @@ Two consequences follow directly, and they explain almost every quirk you'll mee
 - **Only the plan and the results cross the wire.** Your laptop never holds the full dataset. A `.count()` on a billion rows returns a single number. A `.show(20)` returns twenty rows. A `.collect()` returns *everything* — so be careful with that one.
 - **Your Python driver code runs locally.** The Python that builds the plan — your loops, your `if` statements, your helper functions — runs on your laptop. Only the Spark operations run remotely. This is why the debugger works: you're stepping through *your* code, not the cluster's internals.
 
-:::note Spark Connect vs. the old model
+:::note[Spark Connect vs. the old model]
 Older "Databricks Connect v1" replaced parts of the local Spark installation and was famously fragile about versions. The modern version is built on **Spark Connect**, a thin gRPC client. It's far more robust, but the version-matching rule (below) still matters. If a tutorial talks about editing `spark-defaults` or replacing JARs locally, it's describing the old world — verify against the current docs.
 :::
 
@@ -182,7 +182,7 @@ uv pip install "databricks-connect==15.4.*"
 # pip install "databricks-connect==15.4.*"
 ```
 
-:::warning Do not install plain `pyspark` alongside it
+:::warning[Do not install plain `pyspark` alongside it]
 `databricks-connect` provides its own Spark client. Having a separate `pyspark` in the same environment causes confusing import clashes. Install Connect into a clean venv, and if `pyspark` is already there, remove it first.
 :::
 

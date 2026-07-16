@@ -120,7 +120,7 @@ The model never sees the function body. This is a feature, not a limitation. You
 - Changes are tracked and the object has a history (versioned).
 - Usage is recorded (audited).
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 Under the hood, when a UC function is exposed to an agent, the framework generates a machine-readable tool schema (a JSON description of the name, description, and parameter types) from the function's metadata. That schema is what gets sent to the model alongside your prompt. If you have read the function-calling lesson, this is the same tool schema you saw there — it is just being generated from Unity Catalog metadata instead of hand-written in Python. You do not need to write that JSON yourself; the toolkit does it for you.
 :::
 
@@ -306,7 +306,7 @@ Walking through it:
 
 Now you have the same tool, written in Python, living in the same governed toolbox.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 Which should you pick, SQL or Python? Rule of thumb: if the logic is "read from a table with a query," SQL is simplest and fastest. If you need branching, string manipulation, date math, or a small algorithm, Python is friendlier. Both end up as the same kind of governed UC function tool, so the choice is about comfort, not capability. Avoid `*args`/`**kwargs` in Python UC functions — the tool schema needs concrete, named parameters.
 :::
 
@@ -351,7 +351,7 @@ Step by step:
 
 That is the full loop. Notice that the agent developer wrote no lookup logic at all. They borrowed a tool from the shared toolbox.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 Databricks also offers a **managed MCP endpoint** for UC functions, at a URL shaped like `https://&lt;workspace-hostname&gt;/api/2.0/mcp/functions/{catalog}/{schema}`. Point an MCP-aware agent at it and every function in that schema becomes discoverable as a tool automatically, with authentication handled for you. We cover MCP in a later lesson — for now, just know this path exists and is the recommended way to expose whole schemas of tools. The `UCFunctionToolkit` shown above is the direct-in-Python alternative.
 :::
 

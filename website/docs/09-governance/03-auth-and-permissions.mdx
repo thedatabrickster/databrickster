@@ -57,7 +57,7 @@ Imagine your agent is an assistant walking the halls of Northwind Trust, opening
 
 Neither is "bad." A robot with its own badge is simple and predictable — great when everyone is allowed to see the same data anyway. But at Northwind Trust, where Alice and Bob must see different things, the "carry the visitor's badge" approach is the safe one.
 
-:::tip Keep these two pictures in your head
+:::tip[Keep these two pictures in your head]
 On-behalf-of-user = **the agent carries YOUR badge**, so it can only open doors you can open.
 Service principal = **a robot worker with its own limited badge**, the same for everyone.
 :::
@@ -105,7 +105,7 @@ So service principals are a great fit when:
 
 And they are a **poor** fit when different users must see different slices of data. That is Northwind Trust's exact problem.
 
-:::caution The over-privileged robot
+:::caution[The over-privileged robot]
 The classic mistake is giving the service principal broad access "to be safe," then exposing the agent to many users. Now every user inherits that broad access. A service principal should be granted **only** what the agent genuinely needs — nothing more. We call this **least privilege**, and it is the guiding rule of this whole lesson.
 :::
 
@@ -339,7 +339,7 @@ This whole lesson is a security lesson, so here we simply concentrate the rules:
 - **Audit service-principal grants regularly.** These are the identities most likely to quietly accumulate too much access.
 - **Honor the retrieval golden rule at the data layer.** "Never return what the user cannot see" should be enforced by grants and filters, not by trust in the model.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 Row filters and column masks are part of Unity Catalog's **attribute-based access control**. Combined with on-behalf-of-user auth, they let you express rich rules — "advisors see their own clients, managers see their team's, auditors see masked columns" — entirely in governance, so the agent inherits all of it for free. You do not need this to start; reach for it when your access rules get interesting.
 :::
 

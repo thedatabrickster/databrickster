@@ -69,7 +69,7 @@ Let us name the pieces cleanly.
 
 **Where do traces go?** Traces are attached to an **MLflow experiment**. Think of an experiment as the folder where all your runs are collected. You point tracing at an experiment once, and then every trace lands there for you to browse later.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 A span created by a decorated function can hold **attributes**: little labeled key/value notes you attach, like `customer_tier = "gold"` or `documents_found = 3`. Attributes do not change what your code does. They just make the trace richer and easier to filter later. We will show one in the code examples. You do not need this to get started.
 :::
 
@@ -190,7 +190,7 @@ Let us narrate this.
 
 That is automatic tracing in full. One import, one experiment line, one autolog line. Notice you changed **zero** lines of your actual model-calling code.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 Other libraries have their own autolog calls, for example `mlflow.langchain.autolog()` if your agent is built with LangChain. The idea is identical: one call enables tracing for that library's operations. You can enable more than one if your agent mixes libraries.
 :::
 
@@ -246,7 +246,7 @@ Here is what is happening:
 
 This is the small detail that turns a good trace into a great one. When something goes wrong, `documents_found = 0` on the retrieve span often explains the whole bad answer at a glance.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 If you want a span around a block of code that is **not** a whole function, you can open one manually:
 
 ```python
@@ -294,7 +294,7 @@ Narrating the combined version:
 - Because `answer` calls `retrieve`, which then triggers the OpenAI call, MLflow nests them: `answer` is the parent, `retrieve` and the OpenAI span are its children.
 - One run of this produces one complete trace, top to bottom. That is the full studio session, standard gear plus your labeled checkpoints.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 If you built your agent with the Databricks Agent Framework, you can enable tracing so that every `predict()` run is captured as a trace automatically. Same idea, wired in at the framework level. See the Databricks docs linked below.
 :::
 

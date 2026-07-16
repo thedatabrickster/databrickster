@@ -90,7 +90,7 @@ Filters matter for two very different reasons:
 - **Correctness.** If a policy was replaced last year, you do not want the AI quoting the old one. Filter to `status = 'current'`.
 - **Security.** This is the big one. If user A asks a question, you must **never** retrieve documents that belong to user B. A filter like `client_id = 'A'` enforces that at query time. We'll come back to this in the Security section, because it is the single most important habit to build.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 Under the hood, filtering can happen before or alongside the nearest-neighbor scan depending on the index type and how selective the filter is. You do not need to manage any of that — Databricks handles it. Just know that a filter genuinely restricts *what is eligible* to be returned, not just what is displayed afterward.
 :::
 
@@ -100,7 +100,7 @@ Every result comes back with a **similarity score** — a number that says how c
 
 You will use the score to sanity-check your results. If your top result has a low score, that's a hint the index might not contain a good answer at all, and you may want your app to respond with "I don't have information on that" instead of forcing a weak answer.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 The exact scale of the score depends on the distance metric your index uses (for example, cosine similarity versus L2 distance). Because of that, treat scores as **relative** within one set of results, not as absolute percentages you compare across different indexes. A score of 0.82 in one index is not directly comparable to 0.82 in another.
 :::
 
@@ -219,7 +219,7 @@ Read that twice, because it is doing two jobs at once:
 
 This is the single most important line in the whole lesson. In production, the `client_id` value should come from the authenticated user's session — never from anything the user typed.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 Filter syntax supports more than exact matches. Databricks lets you express conditions like ranges and set membership using operator suffixes on the key (for example `"effective_date >="` with a date value, or an `"IN"`-style list of allowed values). The exact operators evolve, so when you need something fancier than equality, check the current [Vector Search query docs](https://docs.databricks.com/aws/en/generative-ai/vector-search). For most RAG apps, equality filters on a few columns get you most of the way.
 :::
 
@@ -270,7 +270,7 @@ Here's the SQL walkthrough, and notice how familiar it feels.
 
 For your team, this is often the easiest on-ramp: analysts who already live in SQL can retrieve context without touching Python at all.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 For maximum efficiency with very selective filters, some teams prefer to pass filters into the function itself (so the engine narrows candidates as early as possible) rather than only filtering afterward. The `vector_search()` function accepts a filters argument for this; the outer `WHERE` shown above is the simplest correct version. When precision on large indexes matters, review the current [SQL `vector_search()` reference](https://docs.databricks.com/aws/en/generative-ai/vector-search).
 :::
 

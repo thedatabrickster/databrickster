@@ -110,7 +110,7 @@ The strengths above are all about a **single person exploring a single throwaway
 - **Collaboration.** Two engineers editing the same notebook is a recipe for clobbered work. Git's branch-and-merge model, built for source files, is how teams actually work in parallel.
 - **Hidden state / out-of-order execution.** This is the big one. Because you can run cells in any order, the notebook's live memory can hold variables from code you've since edited or deleted. The notebook *looks* consistent but isn't. A colleague opening it and running top-to-bottom may get a different result — or an error. Your "working" demo might not survive a **Restart & Run All**.
 
-:::warning The restart test
+:::warning[The restart test]
 The fastest way to feel the hidden-state problem: in any notebook you trust, hit **Restart Kernel & Run All**. If it doesn't produce the same results — or fails partway — your notebook depended on invisible state, not on the code you can see. Production cannot run on invisible state.
 :::
 
@@ -213,11 +213,11 @@ uv sync       # anyone can reproduce the exact environment
 code notebook_explore.ipynb
 ```
 
-:::tip Best of both worlds
+:::tip[Best of both worlds]
 Opening notebooks inside VS Code means you keep the fast, visual explore loop *and* sit right next to your version-controlled source, your tests, and your git tools. Explore in the notebook cell; promote the keeper into `src/` a folder away. Setting this up is the next lesson.
 :::
 
-:::note Databricks specifics evolve
+:::note[Databricks specifics evolve]
 Exact CLI commands, extension menu names, and lockfile tooling change over time. Where this lesson shows specific commands, confirm the current form in the official Databricks and tool docs before relying on them.
 :::
 

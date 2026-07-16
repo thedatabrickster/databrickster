@@ -134,7 +134,7 @@ Notice three differences:
 2. **The result changes from pass/fail to a score.** An essay does not "pass" or "fail" a single equality check. It earns a grade. GenAI quality is usually a score (like 4 out of 5, or 92%), not a boolean.
 3. **You need many examples, not one.** Because any single answer might be lucky or unlucky, you judge the system across a whole dataset of questions and average the scores. One math quiz question tells you little; a hundred tells you a lot.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 There is a subtle reason a single test is not enough. Many GenAI models are **non-deterministic**: run the same prompt twice and you can get two different (both valid) answers. This is often controlled by a setting called *temperature*. Higher temperature means more variety. So even the same input does not guarantee the same output. This is another reason you evaluate across many examples and look at averages, rather than trusting one run. You do not need to master temperature today. Just know that "same input, same output" is not something you can assume anymore.
 :::
 
@@ -188,7 +188,7 @@ flowchart TB
 
 **3. LLM-as-a-judge.** Here is the clever one. You use a second AI model as the grader. You give it the question, the answer, the rubric, and (if you have one) the ideal answer, and you ask it to score the answer. It is not as good as a careful human, but it is fast and cheap enough to run on thousands of examples. It is the workhorse of modern AI evaluation.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 "A model grading a model" sounds like asking the fox to guard the henhouse. It is a fair worry. The trick is that judging an existing answer against a clear rubric is a much easier task than writing the answer in the first place, so the judge can be reliable even when the original model is not. We calibrate the judge by checking its scores against human scores on a sample. If the judge and the humans mostly agree, we trust the judge to scale up. You will practice this in a later lesson. For now, just hold the concept.
 :::
 

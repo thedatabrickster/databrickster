@@ -317,7 +317,7 @@ Let's walk through it.
 - If no row comes back, we return `"NO_CLIENT_FOUND"`, another honest sentinel that supports the "say I don't know" rule.
 - Otherwise we return the summary string the function produced, for example: *"NW-10432: Jordan Lee, Retirement (IRA), balance 210,400, risk profile Conservative."*
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 
 In production you would more often register `get_client_summary` as a **Unity Catalog function tool** (or expose the tables through **Genie**) so the agent framework calls it directly and governs it for you. We call it explicitly here so you can see every moving part. The mental model is identical either way: the model asks, your governed function answers.
 

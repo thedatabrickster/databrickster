@@ -79,7 +79,7 @@ A **CI/CD pipeline** (for example, GitHub Actions) watches your repository. When
 
 This is the same idea as a failing unit test blocking a merge. You already trust that pattern. We're just making "answer quality" one of the things that can fail the build.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 "Environments" can mean separate **workspaces** (a dev workspace, a staging workspace, a prod workspace) or separate **catalogs** in Unity Catalog within fewer workspaces (a `dev` catalog, a `staging` catalog, a `prod` catalog). DABs supports both through **targets** - named sets of settings you switch between. Beginners can just think "dev / staging / prod" and not worry about which physical shape it takes. The concept is identical.
 :::
 
@@ -150,7 +150,7 @@ What actually happens when the pipeline runs? Let's narrate the machinery in pla
 4. **The CI runner orchestrates the order.** Your GitHub Actions workflow decides *when* to run eval, *when* to deploy, and *whether* to continue based on exit codes. A non-zero exit code from the eval step stops everything after it.
 5. **Model Serving handles the traffic split.** Once a new model version is deployed to an endpoint, the endpoint config says what percentage of requests go to each served version. Changing those percentages is how you canary and how you roll back.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 A **served entity** on a Model Serving endpoint points at one specific model version. An endpoint can host several served entities at once, each with a **traffic percentage**. The percentages must add up to 100. When you "roll back," you're editing those percentages so the old served entity gets 100 again. No new model is built; you're just changing a routing table.
 :::
 
@@ -302,7 +302,7 @@ Let's decode this. The endpoint now hosts **two** versions of the agent at the s
 
 And here's the undo button. To roll back, you send this new `traffic_config` to the endpoint. Version 4 goes back to 100%, version 5 drops to 0%. Every customer is instantly back on the known-good version. You did not rebuild or redeploy anything - version 4 was still there the whole time. This is why versioning (from Lesson 1) is the quiet hero of the whole story.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 If the *only* thing that changed was the prompt, you don't even need a new model version. Because prompts are versioned with **aliases** (Part 8, Lesson 3), rolling back can be as simple as moving the `production` alias from prompt version 5 back to version 4. Same idea - point the friendly name at the last good thing - applied at the prompt layer instead of the model layer.
 :::
 

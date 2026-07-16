@@ -105,7 +105,7 @@ When you run that, Databricks does a lot of quiet work on your behalf. Let's nam
 - **Captures feedback.** A feedback endpoint records those ratings and comments so you can review them later.
 - **Turns on tracing and logging.** Requests and responses are logged to inference tables, and interactions are traced to MLflow, so you can audit and monitor from day one.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 The `deployment` object returned by the call is handy. It carries the endpoint name and a `query_endpoint` helper, and the deploy call surfaces the **Review App URL** you'll share with your experts. You don't have to memorize the object's shape right now, just know the deploy call hands you back the addresses you need.
 :::
 
@@ -263,7 +263,7 @@ This is where deploy quietly does you a big favor.
 - **Least-privilege credentials.** Deploy mints short-lived credentials scoped to only the resources you declared at logging time. The agent can reach its vector index and its SQL function, and nothing else.
 - **Owner verification.** Before issuing those credentials, Databricks checks that the endpoint's owner actually has permission to the underlying resources. You can't accidentally hand the agent access you don't have.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 By default the running agent uses the deployer's (system) authorization to reach its resources. There's also an **on-behalf-of-user** mode, where the agent acts with the *calling user's* permissions instead, so it can only see data that user is allowed to see. That's a powerful governance feature, and we cover it properly in Part 9. For a staging expert-review deploy, the default is fine.
 :::
 

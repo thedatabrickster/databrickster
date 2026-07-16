@@ -115,7 +115,7 @@ All three are queried the same way, through the same front door. That front door
 just as table access is governed by UC grants. If a user cannot query the endpoint, the
 request is refused before it ever reaches a model.
 
-:::note Model names change; the pattern does not
+:::note[Model names change; the pattern does not]
 The exact model names available in your workspace vary by **region** and change over time
 as providers ship new versions and retire old ones. Throughout this lesson we use names
 that are commonly available on Databricks AWS at time of writing — for example
@@ -435,7 +435,7 @@ print(summarize_document(
 ))
 ```
 
-:::tip Retries and rate limits
+:::tip[Retries and rate limits]
 Endpoints enforce rate limits, and network calls occasionally fail transiently. In
 production, always wrap model calls with **retry + exponential backoff** on rate-limit and
 timeout errors, and never retry on genuine client errors (bad request, missing permission).
@@ -507,7 +507,7 @@ deploy_client.create_endpoint(
 #   openai_client.chat.completions.create(model="northwind-anthropic-chat", ...)
 ```
 
-:::note Why bother proxying?
+:::note[Why bother proxying?]
 Calling Anthropic or OpenAI directly from app code scatters API keys, bypasses your
 logging, and gives finance no single place to cap spend. Routing through an external-model
 endpoint gives you **one governed front door** for every model — Databricks-hosted or not.

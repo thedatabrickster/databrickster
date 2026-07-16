@@ -86,7 +86,7 @@ The three jobs you will use most often:
 
 A guardrail's decision is usually one of three: **allow** (let it pass), **block** (refuse the whole thing), or **mask** (let it pass but hide the sensitive parts).
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 Guardrails are typically implemented as small specialized models or pattern detectors that score the text. "Is this toxic?" gets a probability; above a threshold, the guardrail acts. PII detection often blends pattern matching (an email always has an `@`) with a model that understands context (is "Jordan" a person or a country?). You do not need to build these. You choose which to enable and set the thresholds.
 :::
 
@@ -173,7 +173,7 @@ What actually happens on a single request, in order:
 
 Two things worth noticing. First, guardrails add a little time to each request, because scanning is real work (more on that under Performance). Second, guardrail decisions are events you can **log** and later measure, which connects directly to safety judges.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 Guardrails give you a *live* verdict on one request at a time. **Safety judges** (also called scorers, covered in the Evaluation part of this course) give you a *bird's-eye* view: run hundreds of past conversations through a judge and get a score for "how often was the agent unsafe?" Guardrails are the seatbelt worn on every trip; judges are the crash-test rating for the whole car. You want both, and they use similar detection ideas under the hood.
 :::
 

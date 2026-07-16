@@ -93,7 +93,7 @@ Under the hood, the extension leans on two companions you should know by name:
 - **The Databricks CLI** — a command-line tool that talks to the workspace's REST APIs. The extension uses it (and shares its configuration file) to authenticate and manage resources. You can also drive the CLI directly.
 - **Databricks Connect** — a library that lets your *local* Python process open a remote Spark session on a cluster. The extension pairs with it. We tease this in the [next lesson](/agentic-coding/vscode/databricks-connect); for now, just know the extension and Databricks Connect are two halves of a whole. The extension handles connection, sync, and "run the whole file remotely"; Databricks Connect handles "run just this Spark code against the cluster, interactively, from my local interpreter."
 
-:::note Two ways to "run remotely"
+:::note[Two ways to "run remotely"]
 Do not confuse them. **Run on Databricks** (via the extension) uploads your file and runs the *entire* file as a job or on the cluster, then streams results back. **Databricks Connect** runs your local Python locally, but ships the *Spark parts* to the cluster as you go. Same goal — remote compute — different mechanism. This lesson covers the first; the next covers the second.
 :::
 
@@ -131,7 +131,7 @@ There are two common ways to authenticate as a human being:
 
 For Maya at a regulated firm, OAuth (U2M) is the clear default — it inherits Northwind's SSO and MFA, and there is no durable secret sitting in a file on her laptop. PATs are a fallback for environments where the browser flow is awkward, or for automation where a **service principal** (a non-human identity) is more appropriate.
 
-:::warning Tokens are secrets
+:::warning[Tokens are secrets]
 Never commit `~/.databrickscfg` or any PAT to git. Never paste a token into a notebook, a log, or a chat. If a PAT ever appears somewhere it should not, revoke it in the workspace immediately. OAuth avoids this whole class of mistake.
 :::
 

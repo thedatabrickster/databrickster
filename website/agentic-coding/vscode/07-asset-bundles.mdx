@@ -90,7 +90,7 @@ The resources a bundle can declare include, among others:
 - **Model-serving endpoints** — the HTTP endpoints that serve a model or agent for real-time inference.
 - **Registered models and experiments**, apps, and other workspace objects.
 
-:::info Bundles are the deployment layer, not the authoring layer
+:::info[Bundles are the deployment layer, not the authoring layer]
 A bundle does not *write* your agent. You author the agent with the Agent Framework (see [Authoring Agents](/docs/building-agents/authoring-agents) and [Deploying Agents](/docs/llmops/deploy-agents)). The bundle is how you *ship* it — the job that runs it, the endpoint that serves it, the target it lands in.
 :::
 
@@ -99,7 +99,7 @@ The two ideas that make bundles powerful:
 - **Targets** — named deployment destinations (typically `dev` and `prod`), each with its own workspace host, mode, and variable overrides. One file, many destinations.
 - **Modes** — a target runs in `mode: development` or `mode: production`. Development mode **isolates and prefixes** resources per user so many engineers can deploy to the same workspace without colliding. Production mode deploys the resources as declared, for real.
 
-:::note Verify exact schema in the current docs
+:::note[Verify exact schema in the current docs]
 The set of resource types, and the exact field names inside each, evolve with the platform. Treat every YAML key in this lesson as *the shape to recognize*, not gospel to copy. Confirm current schema in the [Asset Bundles documentation](https://docs.databricks.com/aws/en/dev-tools/bundles/).
 :::
 
@@ -238,7 +238,7 @@ databricks bundle run support_agent_job -t dev
 
 Think of these as the deployment analog of `git status` → `git push` → run-the-thing. `validate` is your safety net (run it often and in CI), `deploy` is the state-changing step, and `run` exercises what you deployed. Swap `-t dev` for `-t prod` to act on production — a one-flag promotion.
 
-:::tip Run `validate` in your PR checks
+:::tip[Run `validate` in your PR checks]
 `databricks bundle validate` is cheap and catches most mistakes — bad field names, unresolved variables, broken references — before deploy. Wire it into CI so a malformed bundle can never merge. It is the bundle equivalent of running your linter on every push.
 :::
 
@@ -246,7 +246,7 @@ Think of these as the deployment analog of `git status` → `git push` → run-t
 
 ## Code Examples
 
-:::note Illustrative shape, not exact schema
+:::note[Illustrative shape, not exact schema]
 The YAML below shows the *structure* of a bundle that runs and serves an agent. Field names inside `resources` — especially for model-serving endpoints and any agent-specific resource types — evolve. Confirm current keys in the [Asset Bundles docs](https://docs.databricks.com/aws/en/dev-tools/bundles/) before deploying.
 :::
 
@@ -339,7 +339,7 @@ databricks bundle run support_agent_job -t prod   # optional smoke run
 
 Nothing about the resource definitions changed between these commands. Only the target changed, and the target carried the different host and catalog. That is the whole promotion story, and it is why bundles are the backbone of Databricks CI/CD.
 
-:::info Bundles are the unit of CI/CD
+:::info[Bundles are the unit of CI/CD]
 In a pipeline, the job checks out the repo, runs `bundle validate`, then `bundle deploy -t prod` — often gated behind tests and an approval. See [CI/CD and Rollback](/docs/llmops/cicd-and-rollback) for how promotion, versioning, and rollback fit together, and [Deploying Agents](/docs/llmops/deploy-agents) for the serving side in depth.
 :::
 

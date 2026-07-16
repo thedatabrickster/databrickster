@@ -89,7 +89,7 @@ This is worth calling out on its own because it is so useful. Your agent has alr
 **3. End-user feedback (thumbs up/down).**
 When your agent is deployed to real users, you add a small feedback control to the app, usually a thumbs-up and thumbs-down button. When a user clicks it, your app logs that reaction as feedback attached to that run's trace. It costs the user one click and gives you a continuous stream of real-world signal.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 In the Review App, experts label according to a **labeling schema** you define, so everyone grades the same dimensions the same way (for example, a yes/no "Compliant?" question plus a free-text "Notes" field). Experts work through a **labeling session**, which is just a named batch of traces assigned to reviewers. You do not need these terms to understand the lesson, but you will see them in the Databricks UI.
 :::
 
@@ -236,7 +236,7 @@ def on_user_feedback(trace_id: str, thumbs_up: bool):
 
 Here is the walkthrough. Your app already knows the `trace_id` of the answer it just showed (you captured it when the agent ran). When the user clicks, you call `log_feedback` with a boolean for the thumbs direction. The source is still `HUMAN`, but the `source_id` is a generic `end_user` rather than a named expert, because it is anonymous and lower-authority. One click, one durable signal, attached to the right trace.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 The exact class and function names can shift between MLflow versions, and the Review App handles most logging for you automatically, so you rarely write this by hand for experts. The pattern to remember is constant: an assessment (feedback or expectation) with a value, an optional rationale, and a source, attached to a trace. Check the [Databricks human feedback docs](https://docs.databricks.com/aws/en/mlflow3/genai/human-feedback/) for the current API surface before you build.
 :::
 

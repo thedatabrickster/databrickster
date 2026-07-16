@@ -88,7 +88,7 @@ Heuristic scorers are fast, free, and perfectly consistent. Their weakness is th
 
 The trade-off is the mirror image of heuristics: LLM judges are flexible and understand meaning, but they cost money, take time, and are themselves imperfect. We will come back to that catch honestly at the end.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 The name you will hear in papers and blog posts is **LLM-as-a-judge**. The idea took off because human evaluation is slow and expensive, and simple string metrics miss meaning. A model judge sits in between: cheaper than humans, smarter than string matching. It is not a replacement for human judgment; it is a scalable stand-in that you keep checking against humans.
 :::
 
@@ -167,7 +167,7 @@ What actually happens when a judge runs? No magic, just a few steps.
 
 The key mental model: an LLM judge is just another model call, wrapped in bookkeeping that turns free-form model text into a tidy score you can chart.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 Built-in judges in MLflow are **calibrated and validated against human labels**. In plain terms: the people who built the judge collected examples that humans had already graded, ran the judge on them, and checked how often the judge agreed with the humans. That agreement number is what earns your trust. When you build your *own* judge later, you will want to do the same check.
 :::
 

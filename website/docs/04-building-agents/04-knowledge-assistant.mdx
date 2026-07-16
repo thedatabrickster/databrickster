@@ -99,7 +99,7 @@ Here is the honest one-to-one mapping. This is the heart of the lesson.
 
 If you understand RAG, you already understand Knowledge Assistant. It is the same idea with the tedious parts pre-solved.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 Databricks describes the retrieval here as an "instructed retriever" approach rather than plain textbook RAG. The practical takeaway for a beginner: the retriever pays attention to your instructions when it decides what to fetch and how to answer, which is part of why the quality is good out of the box. You do not need to know the internals to use it well — but it is nice to know it is a bit smarter than a naive retriever.
 :::
 
@@ -254,7 +254,7 @@ SELECT ai_query(
 
 Same assistant, same documents, same citations — just reached from a different chair. This is the payoff of "it is just an endpoint."
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 There is also a Databricks SDK for Python that can create, manage, and query these agents programmatically, and a plain `curl` option if you want to call the endpoint from any language over HTTP. For a beginner, the OpenAI client and `ai_query` cover almost everything you will want to do first.
 :::
 

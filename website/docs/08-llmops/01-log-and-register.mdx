@@ -140,7 +140,7 @@ flowchart TB
 ```
 *Figure 2: Declaring resources is a checklist you write at log time. Databricks reads it at deploy time and wires up the right credentials automatically. Forget to declare a resource, and the deployed agent will not be allowed to call it.*
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 The mechanism here is often called **automatic authentication passthrough** (sometimes "on-behalf-of" authentication). At deploy time Databricks mints short-lived credentials scoped to exactly the resources you declared. This is why declaring resources is a security feature, not just bookkeeping: the deployed agent is granted the *least privilege* it needs. You do not have to understand the token mechanics to use it correctly. Just declare every external thing your agent touches.
 :::
 
@@ -263,7 +263,7 @@ Let us narrate this, because it is the heart of the lesson.
 
 When this finishes, `logged_agent_info` holds a handle to the snapshot, including its address.
 
-:::note Going deeper (optional)
+:::note[Going deeper (optional)]
 If your agent were built with LangChain rather than `ResponsesAgent`, you would use `mlflow.langchain.log_model(...)` with a `lc_model="agent.py"` argument instead of `mlflow.pyfunc.log_model(...)`. The idea is identical, only the flavor-specific function name changes. For `ResponsesAgent`-based agents, `pyfunc` is the common path and the signature is inferred for you.
 :::
 
