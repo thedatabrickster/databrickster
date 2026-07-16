@@ -1,60 +1,92 @@
 import type {ReactNode} from 'react';
 import clsx from 'clsx';
+import Link from '@docusaurus/Link';
 import Heading from '@theme/Heading';
 import styles from './styles.module.css';
 
-type FeatureItem = {
+type Topic = {
   title: string;
-  Svg: React.ComponentType<React.ComponentProps<'svg'>>;
+  status: 'Available' | 'Coming soon';
+  to: string;
+  cta: string;
   description: ReactNode;
 };
 
-const FeatureList: FeatureItem[] = [
+const TopicList: Topic[] = [
   {
-    title: 'Built for Data Engineers',
-    Svg: require('@site/static/img/undraw_docusaurus_mountain.svg').default,
+    title: 'Databricks AI',
+    status: 'Available',
+    to: '/docs/intro',
+    cta: 'Start learning →',
     description: (
       <>
-        Every AI concept is taught using what you already know — Spark, SQL,
-        Delta Lake, ETL, and pipelines. No hand-waving, no unexplained jargon.
-        We define it, explain why it exists, and map it to a familiar idea.
+        From what a token really is to building, evaluating, deploying, and
+        governing production AI agents on Databricks. 13 parts, built for Data
+        Engineers — plus a full AI system design interview prep track.
       </>
     ),
   },
   {
-    title: 'Fundamentals → Production',
-    Svg: require('@site/static/img/undraw_docusaurus_tree.svg').default,
+    title: 'Genie & Business Intelligence',
+    status: 'Coming soon',
+    to: '/genie',
+    cta: 'Preview the plan →',
     description: (
       <>
-        Start from what a token and an embedding actually are, then build up to
-        RAG, agents, evaluation, and enterprise deployment on Databricks —
-        governance, observability, cost, and CI/CD included.
+        Conversational analytics: ask governed data questions in plain English
+        with Genie and AI/BI, and build the trustworthy BI layer around it.
       </>
     ),
   },
   {
-    title: 'Runnable, Real, and Deep',
-    Svg: require('@site/static/img/undraw_docusaurus_react.svg').default,
+    title: 'VS Code for AI Engineers',
+    status: 'Coming soon',
+    to: '/vscode',
+    cta: 'Preview the plan →',
     description: (
       <>
-        Production-quality code on the latest Databricks APIs, extensive
-        diagrams, and realistic enterprise scenarios across banking, insurance,
-        healthcare, and more. Depth over brevity, always.
+        Build AI faster in a real editor — VS Code and Claude Code — with a
+        repo-first, testable, CI-ready workflow for Databricks and beyond.
       </>
     ),
   },
 ];
 
-function Feature({title, Svg, description}: FeatureItem) {
+function TopicCard({title, status, to, cta, description}: Topic) {
+  const available = status === 'Available';
   return (
-    <div className={clsx('col col--4')}>
-      <div className="text--center">
-        <Svg className={styles.featureSvg} role="img" />
-      </div>
-      <div className="text--center padding-horiz--md">
-        <Heading as="h3">{title}</Heading>
-        <p>{description}</p>
-      </div>
+    <div className={clsx('col col--4')} style={{marginBottom: '1.5rem'}}>
+      <Link
+        to={to}
+        style={{textDecoration: 'none', color: 'inherit', display: 'block', height: '100%'}}>
+        <div className="card" style={{height: '100%', padding: '1.5rem'}}>
+          <div
+            className="card__header"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.5rem',
+            }}>
+            <Heading as="h3" style={{marginBottom: 0}}>
+              {title}
+            </Heading>
+            <span
+              className={clsx(
+                'badge',
+                available ? 'badge--success' : 'badge--secondary',
+              )}>
+              {status}
+            </span>
+          </div>
+          <div className="card__body">
+            <p>{description}</p>
+          </div>
+          <div className="card__footer">
+            <span className="button button--primary button--block">{cta}</span>
+          </div>
+        </div>
+      </Link>
     </div>
   );
 }
@@ -63,9 +95,12 @@ export default function HomepageFeatures(): ReactNode {
   return (
     <section className={styles.features}>
       <div className="container">
+        <Heading as="h2" className="text--center" style={{marginBottom: '2rem'}}>
+          Explore the topics
+        </Heading>
         <div className="row">
-          {FeatureList.map((props, idx) => (
-            <Feature key={idx} {...props} />
+          {TopicList.map((props, idx) => (
+            <TopicCard key={idx} {...props} />
           ))}
         </div>
       </div>

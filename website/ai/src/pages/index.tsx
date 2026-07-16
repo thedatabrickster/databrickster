@@ -16,12 +16,15 @@ function HomepageHeader() {
         <Heading as="h1" className="hero__title">
           {siteConfig.title}
         </Heading>
-        <p className="hero__subtitle">{siteConfig.tagline}</p>
+        <p className="hero__subtitle">
+          Free, in-depth courses that turn Data Engineers into AI Engineers —
+          on Databricks and beyond.
+        </p>
         <div className={styles.buttons}>
           <Link
             className="button button--secondary button--lg"
             to="/docs/intro">
-            Start Learning →
+            Start Learning → Databricks AI
           </Link>
         </div>
       </div>
@@ -33,9 +36,8 @@ export default function Home(): ReactNode {
   const {siteConfig} = useDocusaurusContext();
   return (
     <Layout
-      title={`${siteConfig.title} — Learn Databricks AI & Agents`}
-      description="A free, in-depth course teaching experienced Data Engineers how to build production-grade AI Agents on Databricks — from LLM fundamentals to enterprise deployment.">
-
+      title={`${siteConfig.title} — Learn Databricks AI, Genie & more`}
+      description="Free, in-depth courses for Data Engineers becoming AI Engineers: Databricks AI & Agents, Genie & Business Intelligence, and AI engineering in VS Code with Claude Code.">
       <HomepageHeader />
       <main>
         <HomepageFeatures />

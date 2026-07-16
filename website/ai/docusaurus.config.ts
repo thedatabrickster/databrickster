@@ -62,6 +62,30 @@ const config: Config = {
     ],
   ],
 
+  // Each learning "topic" is its own docs instance with its own content folder
+  // and sidebar. The default instance (from the classic preset, path `docs/`,
+  // route `/docs`) is the "Databricks AI" topic. New topics are added here.
+  plugins: [
+    [
+      '@docusaurus/plugin-content-docs',
+      {
+        id: 'genie',
+        path: 'genie',
+        routeBasePath: 'genie',
+        sidebarPath: './sidebarsGenie.ts',
+      },
+    ],
+    [
+      '@docusaurus/plugin-content-docs',
+      {
+        id: 'vscode',
+        path: 'vscode',
+        routeBasePath: 'vscode',
+        sidebarPath: './sidebarsVscode.ts',
+      },
+    ],
+  ],
+
   themeConfig: {
     // TODO(branding): replace with a real social card image.
     image: 'img/docusaurus-social-card.jpg',
@@ -83,7 +107,21 @@ const config: Config = {
           type: 'docSidebar',
           sidebarId: 'curriculumSidebar',
           position: 'left',
-          label: 'Curriculum',
+          label: 'Databricks AI',
+        },
+        {
+          type: 'docSidebar',
+          docsPluginId: 'genie',
+          sidebarId: 'genieSidebar',
+          position: 'left',
+          label: 'Genie & BI',
+        },
+        {
+          type: 'docSidebar',
+          docsPluginId: 'vscode',
+          sidebarId: 'vscodeSidebar',
+          position: 'left',
+          label: 'VS Code for AI',
         },
         {to: '/blog', label: 'Deep Dives', position: 'left'},
         {
@@ -97,15 +135,19 @@ const config: Config = {
       style: 'dark',
       links: [
         {
-          title: 'Learn',
+          title: 'Topics',
           items: [
             {
-              label: 'Start Here',
+              label: 'Databricks AI',
               to: '/docs/intro',
             },
             {
-              label: 'Part 0 — Orientation',
-              to: '/docs/category/part-0-orientation',
+              label: 'Genie & Business Intelligence',
+              to: '/genie',
+            },
+            {
+              label: 'VS Code for AI Engineers',
+              to: '/vscode',
             },
           ],
         },
