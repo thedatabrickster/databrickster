@@ -13,11 +13,6 @@ customer-facing pre-sales and consulting** — specializing in cloud analytics, 
 architecture, and, increasingly, production AI and agents. **Databrickster** is my way of
 giving that back: a free, in-depth place for Data Engineers to grow into AI Engineers.
 
-**Connect:** [GitHub](https://github.com/thedatabrickster) ·
-[Interactive résumé](https://thedatabrickster.streamlit.app/) ·
-📧 [thedatabrickster@gmail.com](mailto:thedatabrickster@gmail.com) ·
-🧱 First Coast Databricks User Group (Jacksonville, FL)
-
 ## At a glance
 
 | | |
