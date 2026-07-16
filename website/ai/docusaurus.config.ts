@@ -43,14 +43,10 @@ const config: Config = {
       {
         docs: {
           sidebarPath: './sidebars.ts',
-          // Assumes the Docusaurus site lives at website/ai/ in the repo.
-          editUrl:
-            'https://github.com/thedatabrickster/databrickster/tree/main/website/ai/',
+          // "Edit this page" links intentionally disabled (no GitHub links on site).
         },
         blog: {
           showReadingTime: true,
-          editUrl:
-            'https://github.com/thedatabrickster/databrickster/tree/main/website/ai/',
           feedOptions: {
             type: ['rss', 'atom'],
             xslt: true,
@@ -93,11 +89,6 @@ const config: Config = {
         {
           href: 'https://docs.databricks.com/aws/en/agents/',
           label: 'Databricks Docs ↗',
-          position: 'right',
-        },
-        {
-          href: 'https://github.com/thedatabrickster/databrickster',
-          label: 'GitHub',
           position: 'right',
         },
       ],
