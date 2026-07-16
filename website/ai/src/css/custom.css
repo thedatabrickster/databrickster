@@ -1,0 +1,44 @@
+/**
+ * Global styles. Infima is bundled by the classic theme.
+ * Databrickster palette: a Databricks-inspired red-orange primary,
+ * tuned for AA contrast on both light and dark backgrounds.
+ */
+
+/* Light mode */
+:root {
+  --ifm-color-primary: #c9391a;
+  --ifm-color-primary-dark: #b53317;
+  --ifm-color-primary-darker: #aa3016;
+  --ifm-color-primary-darkest: #8c2812;
+  --ifm-color-primary-light: #dd4020;
+  --ifm-color-primary-lighter: #e04831;
+  --ifm-color-primary-lightest: #e66450;
+  --ifm-code-font-size: 95%;
+  --ifm-heading-font-weight: 700;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.08);
+}
+
+/* Dark mode — lighter, warmer primary for readability on dark bg. */
+[data-theme='dark'] {
+  --ifm-color-primary: #ff7a5c;
+  --ifm-color-primary-dark: #ff5f3b;
+  --ifm-color-primary-darker: #ff512a;
+  --ifm-color-primary-darkest: #f43a10;
+  --ifm-color-primary-light: #ff957d;
+  --ifm-color-primary-lighter: #ffa38e;
+  --ifm-color-primary-lightest: #ffc5b8;
+  --ifm-background-color: #131516;
+  --docusaurus-highlighted-code-line-bg: rgba(255, 255, 255, 0.1);
+}
+
+/* Callout admonitions and tables read a lot in this curriculum — give
+   tables a little more breathing room. */
+table {
+  display: table;
+  width: 100%;
+}
+
+/* Slightly tighter, more "textbook" measure for long-form lessons. */
+.markdown {
+  --ifm-h1-font-size: 2.2rem;
+}

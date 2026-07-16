@@ -1,0 +1,12 @@
+{
+  "label": "Part 0 · Orientation",
+  "position": 0,
+  "collapsible": true,
+  "collapsed": false,
+  "link": {
+    "type": "generated-index",
+    "slug": "/category/part-0-orientation",
+    "title": "Part 0 · Orientation",
+    "description": "Get the lay of the land before diving in: what generative AI on Databricks actually is, and where every product — Mosaic AI, Agent Bricks, MLflow 3, Model Serving, AI Gateway, AI Search, and Unity Catalog — fits into the picture."
+  }
+}

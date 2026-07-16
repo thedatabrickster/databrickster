@@ -1,0 +1,8 @@
+# macOS
+.DS_Store
+
+# Node (site-level ignores live in website/ai/.gitignore)
+node_modules/
+
+# Logs
+*.log

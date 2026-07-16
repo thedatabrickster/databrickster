@@ -1,0 +1,154 @@
+import {themes as prismThemes} from 'prism-react-renderer';
+import type {Config} from '@docusaurus/types';
+import type * as Preset from '@docusaurus/preset-classic';
+
+// This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
+
+const config: Config = {
+  title: 'Databrickster',
+  tagline: 'Learn Databricks AI & AI Agents — from fundamentals to production, built for Data Engineers',
+  favicon: 'img/favicon.ico',
+
+  // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
+  future: {
+    v4: true, // Improve compatibility with the upcoming Docusaurus v4
+  },
+
+  // Deployed on Render as a static site (served at the domain root).
+  // TODO(branding): update `url` to your real Render URL or custom domain.
+  url: 'https://databrickster.onrender.com',
+  baseUrl: '/',
+
+  // Repo config (used for "edit this page" links and `npm run deploy`).
+  organizationName: 'thedatabrickster',
+  projectName: 'databrickster',
+  trailingSlash: false,
+
+  onBrokenLinks: 'throw',
+
+  // Enable Mermaid diagrams in Markdown (```mermaid fenced code blocks).
+  markdown: {
+    mermaid: true,
+  },
+  themes: ['@docusaurus/theme-mermaid'],
+
+  i18n: {
+    defaultLocale: 'en',
+    locales: ['en'],
+  },
+
+  presets: [
+    [
+      'classic',
+      {
+        docs: {
+          sidebarPath: './sidebars.ts',
+          // Assumes the Docusaurus site lives at website/ai/ in the repo.
+          editUrl:
+            'https://github.com/thedatabrickster/databrickster/tree/main/website/ai/',
+        },
+        blog: {
+          showReadingTime: true,
+          editUrl:
+            'https://github.com/thedatabrickster/databrickster/tree/main/website/ai/',
+          feedOptions: {
+            type: ['rss', 'atom'],
+            xslt: true,
+          },
+          onInlineTags: 'warn',
+          onInlineAuthors: 'warn',
+          onUntruncatedBlogPosts: 'warn',
+        },
+        theme: {
+          customCss: './src/css/custom.css',
+        },
+      } satisfies Preset.Options,
+    ],
+  ],
+
+  themeConfig: {
+    // TODO(branding): replace with a real social card image.
+    image: 'img/docusaurus-social-card.jpg',
+    colorMode: {
+      respectPrefersColorScheme: true,
+    },
+    // Mermaid renders in the site theme (light/dark) automatically.
+    mermaid: {
+      theme: {light: 'neutral', dark: 'dark'},
+    },
+    navbar: {
+      title: 'Databrickster',
+      logo: {
+        alt: 'Databrickster Logo',
+        src: 'img/logo.svg',
+      },
+      items: [
+        {
+          type: 'docSidebar',
+          sidebarId: 'curriculumSidebar',
+          position: 'left',
+          label: 'Curriculum',
+        },
+        {to: '/blog', label: 'Deep Dives', position: 'left'},
+        {
+          href: 'https://docs.databricks.com/aws/en/agents/',
+          label: 'Databricks Docs ↗',
+          position: 'right',
+        },
+        {
+          href: 'https://github.com/thedatabrickster/databrickster',
+          label: 'GitHub',
+          position: 'right',
+        },
+      ],
+    },
+    footer: {
+      style: 'dark',
+      links: [
+        {
+          title: 'Learn',
+          items: [
+            {
+              label: 'Start Here',
+              to: '/docs/intro',
+            },
+            {
+              label: 'Part 0 — Orientation',
+              to: '/docs/category/part-0-orientation',
+            },
+          ],
+        },
+        {
+          title: 'Reference',
+          items: [
+            {
+              label: 'Databricks Agents Docs',
+              href: 'https://docs.databricks.com/aws/en/agents/',
+            },
+            {
+              label: 'MLflow for GenAI',
+              href: 'https://docs.databricks.com/aws/en/mlflow3/genai/',
+            },
+          ],
+        },
+        {
+          title: 'More',
+          items: [
+            {
+              label: 'Deep Dives (Blog)',
+              to: '/blog',
+            },
+          ],
+        },
+      ],
+      copyright: `Copyright © ${new Date().getFullYear()} Databrickster. A free, independent educational project. Not affiliated with Databricks, Inc. Built with Docusaurus.`,
+    },
+    prism: {
+      theme: prismThemes.github,
+      darkTheme: prismThemes.dracula,
+      additionalLanguages: ['python', 'sql', 'bash', 'json'],
+    },
+  } satisfies Preset.ThemeConfig,
+};
+
+export default config;
