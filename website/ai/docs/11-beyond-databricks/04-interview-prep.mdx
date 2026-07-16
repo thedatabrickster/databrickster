@@ -1,0 +1,135 @@
+---
+sidebar_position: 4
+title: "Part 11 · Interview Prep"
+description: "A friendly self-check on why your AI skills travel to any stack, and what a company must own without a unified platform."
+---
+
+# Part 11 · Interview Prep
+
+You made it to the last stop. This page is just a relaxed self-check to prove something to yourself: you can now reason about AI *anywhere*, not only on one platform. Every idea you learned has a home in every ecosystem, and you can talk about it without leaning on a single vendor.
+
+:::tip
+Try to answer each question out loud (or in your head) *before* you open the answer. If you stumble, that is totally fine, just peek, nod, and move on. This is practice, not a test.
+:::
+
+**Covers:** [The Concepts Are Portable](/docs/beyond-databricks/concepts-are-portable) · [Regulated Companies Without a Unified Platform](/docs/beyond-databricks/regulated-without-databricks) · [Building AI Apps Elsewhere](/docs/beyond-databricks/building-ai-elsewhere)
+
+## Section 1 · The skills are portable
+
+**1. Name a handful of AI concepts that work the same no matter which platform you use.**
+
+<details>
+<summary>Show answer</summary>
+
+Pretty much all of them. Tokens, embeddings, similarity search, prompting, sampling, the context window, RAG, chunking, agents, function calling, tracing, evaluation and judges, guardrails, serving, and LLMOps are universal ideas. Learn them once and they follow you everywhere.
+
+</details>
+
+**2. If you join a company that uses a different model provider, how much do you have to relearn?**
+
+<details>
+<summary>Show answer</summary>
+
+Surprisingly little. The mental model is identical: you send a prompt, the model turns tokens into more tokens, you steer with sampling, and you keep an eye on the context window. Providers like OpenAI, Anthropic, Gemini, Llama, Mistral, and Cohere differ in their APIs and pricing, not in the core ideas.
+
+</details>
+
+**3. A recruiter asks, "Do you know vector databases?" You have only used one. Are you stuck?**
+
+<details>
+<summary>Show answer</summary>
+
+Not at all. Pinecone, Weaviate, Qdrant, and pgvector all do the same job: store embeddings and return the nearest neighbors for a query. Once you understand similarity search, switching between them is a matter of syntax, not a matter of concepts.
+
+</details>
+
+**4. Why does it matter that MLflow is open source and MCP is an open standard?**
+
+<details>
+<summary>Show answer</summary>
+
+Because they reduce lock-in. Open, portable pieces mean your experiment tracking and your tool connections are not tied to one vendor. You can carry those skills and even those setups to a different stack.
+
+</details>
+
+## Section 2 · The ecosystem equivalents
+
+**5. Someone mentions "the big cloud AI platforms." Which ones map to the same role?**
+
+<details>
+<summary>Show answer</summary>
+
+Bedrock, Azure AI Foundry, and Vertex AI all play the same role: a managed home for hosting models and serving them. Different names, same job.
+
+</details>
+
+**6. Can you match the orchestration and workflow tools to what they do?**
+
+<details>
+<summary>Show answer</summary>
+
+LangChain, LlamaIndex, LangGraph, and DSPy all help you wire prompts, tools, and data into an application. They differ in style and strengths, but each one is glue between your model and your app logic.
+
+</details>
+
+**7. What about tracing and evaluation tools, what family do those belong to?**
+
+<details>
+<summary>Show answer</summary>
+
+For tracing, you will hear LangSmith, Langfuse, and Phoenix. For evaluation, Ragas and TruLens come up a lot. They are the observability and quality layer: see what the app did, then measure whether it was any good.
+
+</details>
+
+**8. If an interviewer lists five tools you have never touched, how do you keep your cool?**
+
+<details>
+<summary>Show answer</summary>
+
+You slot each one into a category you already know: model, cloud host, vector DB, orchestration, tracing, or eval. Once you name the family, you can reason about the tool even without having used it. That is the whole point of learning the concepts first.
+
+</details>
+
+## Section 3 · Life without a unified platform
+
+**9. A regulated company has no single unified platform. What do they suddenly have to assemble and operate themselves?**
+
+<details>
+<summary>Show answer</summary>
+
+Quite a list: unified governance over both data *and* AI, end-to-end lineage, a central policy and cost choke point, one identity and access model, a governed boundary that keeps regulated data inside it, and audit plus inference logging. A platform bundles these; without one, the team builds and runs the bundle.
+
+</details>
+
+**10. Why is end-to-end lineage such a big deal for a regulated shop?**
+
+<details>
+<summary>Show answer</summary>
+
+Because auditors and regulators want to trace an answer back to its sources: which data, which model, which prompt, which version. Lineage is how you prove where an output came from, and without a unified platform you have to stitch that trail together across tools yourself.
+
+</details>
+
+**11. What is a "central policy and cost choke point," and why would a company want one?**
+
+<details>
+<summary>Show answer</summary>
+
+It is a single place every AI request flows through, so you can enforce access rules, keep regulated data inside a governed boundary, and watch spend, all in one spot. One choke point beats trying to police a dozen separate integrations.
+
+</details>
+
+**12. Is the honest takeaway "use Databricks or you will fail"?**
+
+<details>
+<summary>Show answer</summary>
+
+No, and that is important to say clearly. It is a build-versus-buy, own-the-seams trade-off. Plenty of regulated companies succeed without a unified platform by assembling and operating those capabilities themselves. Non-Databricks teams follow the *same* lifecycle with different tools; they just do more of the integration and operations work on their own.
+
+</details>
+
+## You finished the whole course
+
+That is genuinely worth celebrating. You started as a data engineer who was brand new to AI, and now you can name the concepts, map any vendor's tools to a family you understand, and reason about what it takes to run AI responsibly with or without a unified platform. That is a durable, portable skill set, and no single platform owns it.
+
+Whenever you want to revisit anything or share it with a teammate, head back to [Start Here](/docs/intro). Nicely done.
