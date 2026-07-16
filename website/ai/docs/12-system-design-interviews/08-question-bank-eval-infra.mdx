@@ -25,6 +25,19 @@ Every answer below is just the [The AI System Design Interview Playbook](/docs/s
 
 **Approach:** Decompose the fuzzy goal into named dimensions (correctness, faithfulness, relevance, tone, safety). For each, define a concrete scorer: exact match, a rubric score from 1 to 5, or a pass/fail check. Build a golden set of representative inputs with expected outputs or acceptance criteria. Score candidate outputs against it and aggregate per dimension.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  DS["Golden dataset<br/>Delta + Unity Catalog"] --> EV["mlflow.genai.evaluate"]
+  SC["Per-dimension scorers<br/>LLM judges + heuristics"] --> EV
+  EV --> RES["Eval results + traces<br/>MLflow"]
+  RES --> RA["Review App<br/>human calibration"]
+  RA -.labels.-> DS
+```
+
+Each named dimension becomes a scorer passed to mlflow.genai.evaluate over a Unity Catalog dataset, and the Review App calibrates scores against human labels.
+
 **Key decisions:** Which dimensions matter most, and their weights. Deterministic checks versus graded judgments. Golden-set size and how you source it.
 
 **Evaluation:** The eval is the deliverable, but validate it too - do its scores correlate with human judgment on a sample?
@@ -43,6 +56,20 @@ Every answer below is just the [The AI System Design Interview Playbook](/docs/s
 **Clarify:** What are we judging - a single answer's quality, or A-versus-B preference? How many items per day, and what latency and budget can we spend on judging?
 
 **Approach:** Write a precise rubric with concrete anchors for each score. Feed the judge model the input, the candidate output, and (when available) reference material, then have it return a score plus a short rationale. Run it as a batch job over logged traffic and over your golden set.
+
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  TR["Logged traces<br/>MLflow Tracing"] --> EV["mlflow.genai.evaluate"]
+  GS["Golden set<br/>Delta + Unity Catalog"] --> EV
+  JUDGE["LLM judge scorer<br/>Foundation Model API"] --> EV
+  EV --> OUT["Scores + rationales<br/>MLflow"]
+  OUT --> RA["Review App<br/>human agreement check"]
+  JOB["Jobs / Asset Bundles"] -.schedule.-> EV
+```
+
+The judge is a custom scorer calling a Foundation Model API, run by a scheduled Job over traces and the golden set, with the Review App measuring judge-versus-human agreement.
 
 **Key decisions:** Pairwise comparison versus absolute scoring. Whether the judge sees a reference answer. Using a strong model as judge even when a cheaper model serves production.
 
@@ -63,6 +90,20 @@ Every answer below is just the [The AI System Design Interview Playbook](/docs/s
 
 **Approach:** Source examples from three places: real production traffic (sampled and de-identified), hand-authored edge cases, and past incidents. Label with expected outputs or acceptance criteria, ideally with human review. Stratify so each important segment is represented. Store it versioned, so every eval run pins a dataset version.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  PROD["Production traces<br/>MLflow Tracing"] --> CUR["Curation job<br/>sample + de-identify"]
+  EDGE["Hand-authored edges<br/>+ past incidents"] --> CUR
+  CUR --> RA["Review App<br/>human labeling"]
+  RA --> DS["Evaluation dataset<br/>Delta table (versioned)"]
+  DS --- UC["Unity Catalog<br/>lineage + versions"]
+  DS --> EV["mlflow.genai.evaluate"]
+```
+
+Curated traffic and authored cases are labeled in the Review App and stored as a versioned Delta table under Unity Catalog, so every eval run pins a dataset version.
+
 **Key decisions:** Sizing - enough per segment for a stable signal, often hundreds to low thousands. Freezing a canonical set versus continuously growing it. How to prevent train/test contamination.
 
 **Evaluation:** Track coverage per segment and label quality via re-labeling agreement.
@@ -81,6 +122,20 @@ Every answer below is just the [The AI System Design Interview Playbook](/docs/s
 **Clarify:** What triggers the suite - every prompt change, model swap, or nightly? What is the ship gate, and who owns overrides?
 
 **Approach:** On each change, run the candidate against the versioned golden set, score per dimension, and compare to the last known-good baseline. Gate the merge on thresholds. Because outputs are non-deterministic, run multiple samples per item and compare distributions, not single values, using a tolerance band rather than exact match.
+
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  PR["Prompt / model change<br/>Git PR"] --> DAB["Databricks Asset Bundles<br/>CI pipeline"]
+  DAB --> JOB["Eval Job"]
+  GS["Golden set<br/>Delta + Unity Catalog"] --> JOB
+  JOB --> EV["mlflow.genai.evaluate"]
+  EV --> CMP["Compare vs baseline run<br/>MLflow"]
+  CMP --> GATE["Ship gate<br/>pass or block merge"]
+```
+
+Databricks Asset Bundles run the eval Job in CI on each change, and MLflow compares the candidate run to the baseline to gate the merge.
 
 **Key decisions:** Absolute thresholds versus relative-to-baseline deltas. Sample count per item to tame variance. Blocking failures versus warnings.
 
@@ -101,6 +156,19 @@ Every answer below is just the [The AI System Design Interview Playbook](/docs/s
 
 **Approach:** Use offline eval (golden set plus LLM judge) as the cheap, fast pre-ship gate. Use online eval to measure real impact: an A/B test splits traffic between variants and compares outcome metrics; interleaving mixes results from both variants in one session and measures which the user prefers, giving a more sensitive signal with less traffic.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  GS["Golden set + judge<br/>mlflow.genai.evaluate"] --> GATE["Offline gate"]
+  GATE --> MS["Model Serving<br/>A/B traffic split"]
+  MS --> IT["Inference tables (Delta)<br/>variant + outcomes"]
+  IT --> MON["Lakehouse Monitoring<br/>online metrics"]
+  MON -.compare.-> GS
+```
+
+Offline mlflow.genai.evaluate gates the ship, then Model Serving splits live traffic and Lakehouse Monitoring reads inference tables to confirm offline wins predict online wins.
+
 **Key decisions:** A/B versus interleaving. Guardrail metrics (latency, cost, safety) alongside the primary metric. Sample size and run duration for significance.
 
 **Evaluation:** Confirm offline wins actually predict online wins; when they diverge, trust online for the ship decision.
@@ -119,6 +187,20 @@ Every answer below is just the [The AI System Design Interview Playbook](/docs/s
 **Clarify:** Are we debugging retrieval, generation, or end-to-end quality? Do we have labeled query-to-relevant-document pairs, or must we build them?
 
 **Approach:** Evaluate the two stages separately, then together. For retrieval, measure recall at k, precision at k, and mean reciprocal rank against known relevant chunks. For generation, measure faithfulness (is the answer grounded in retrieved context?), answer relevance, and correctness against references. End-to-end, score the final answer with a rubric or judge.
+
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  DS["RAG eval set<br/>Delta + Unity Catalog"] --> EV["mlflow.genai.evaluate"]
+  TR["RAG traces<br/>retrieved chunks + answer"] --> EV
+  RSC["Retrieval scorers<br/>recall + precision at k"] --> EV
+  GSC["Generation scorers<br/>faithfulness + relevance"] --> EV
+  EV --> RES["Per-stage results<br/>MLflow"]
+  RES --> RA["Review App<br/>attribute failures"]
+```
+
+MLflow Tracing captures the retrieved chunks alongside the answer so retrieval and generation scorers in mlflow.genai.evaluate can attribute each failure to the right stage.
 
 **Key decisions:** Where to spend labeling effort. Faithfulness scoring - claim-level checking versus a holistic judge. Chunk-level versus document-level relevance labels.
 
@@ -139,6 +221,20 @@ Every answer below is just the [The AI System Design Interview Playbook](/docs/s
 
 **Approach:** Score two layers. Outcome: did the agent achieve the goal, verified by checking end state (row created, ticket closed) rather than parsing prose. Trajectory: were the right tools called, in a sensible order, with valid arguments, and no wasteful or destructive steps? Run against a suite of tasks in a sandbox with seeded state.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  TASKS["Task suite<br/>Delta + Unity Catalog"] --> JOB["Eval Job<br/>sandbox seeded state"]
+  JOB --> AGENT["Agent under test"]
+  AGENT --> TR["Agent traces<br/>MLflow Tracing spans"]
+  TR --> EV["mlflow.genai.evaluate"]
+  OSC["Outcome + trajectory scorers"] --> EV
+  EV --> RES["Success + step metrics<br/>MLflow"]
+```
+
+MLflow Tracing records each tool-call span so outcome and trajectory scorers in mlflow.genai.evaluate grade both the end state and the path taken over a seeded sandbox suite.
+
 **Key decisions:** Outcome-only versus trajectory scoring. Sandbox versus mocked tools. Step-count and cost budgets as guardrail metrics.
 
 **Evaluation:** Report task success rate, average steps, tool-error rate, and recovery rate after a failed call.
@@ -157,6 +253,20 @@ Every answer below is just the [The AI System Design Interview Playbook](/docs/s
 **Clarify:** What quality signals matter live, and what latency can we tolerate for detection? Do we have ground truth in production, or only proxies?
 
 **Approach:** Trace every request end to end - input, retrieved context, prompt, output, tokens, latency, cost. Layer online quality proxies: user feedback (thumbs, edits, regenerations), automated safety and faithfulness checks, and a sampled LLM judge on live traffic. Watch input distributions and output-score distributions for drift, and alert on shifts.
+
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  APP["Production app"] --> MS["Model Serving"]
+  MS --> TR["MLflow Tracing<br/>input + output + cost"]
+  TR --> IT["Inference tables (Delta)"]
+  JUDGE["Sampled LLM judge + feedback"] --> IT
+  IT --> MON["Lakehouse Monitoring<br/>drift + score alerts"]
+  MON -.sample.-> RA["Review App<br/>human spot-check"]
+```
+
+MLflow Tracing lands every request in Delta inference tables, and Lakehouse Monitoring watches input and score distributions for drift, alerting on shifts.
 
 **Key decisions:** Sampling rate for expensive judging. Which proxy metrics stand in for true quality. Alert thresholds versus baselines.
 
@@ -179,6 +289,19 @@ Every answer below is just the [The AI System Design Interview Playbook](/docs/s
 
 **Approach:** Batch multiple requests per GPU to keep it saturated, since a single request underuses the hardware. Use continuous (in-flight) batching, adding and retiring sequences each decoding step rather than waiting for a fixed batch. Manage the KV cache carefully - it stores per-token attention state and grows with sequence length and batch size, and it usually dominates GPU memory.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  APP["Client apps"] --> GW["AI Gateway<br/>route + rate limits"]
+  GW --> MS["Model Serving<br/>autoscaling GPU endpoint"]
+  MS --> FT["Provisioned throughput<br/>continuous batching + KV cache"]
+  MS -.log.-> IT["Inference tables (Delta)"]
+  FT --- UC["Unity Catalog<br/>registered model"]
+```
+
+Model Serving with provisioned throughput manages the continuous batching and KV-cache packing for you, so you size throughput units instead of hand-tuning batch size on raw GPUs.
+
 **Key decisions:** Max batch size, bounded by KV-cache memory. Continuous versus static batching. Paged KV-cache allocation to cut fragmentation.
 
 **Evaluation:** Track tokens per second, time-to-first-token, GPU utilization, and queue wait time.
@@ -197,6 +320,19 @@ Every answer below is just the [The AI System Design Interview Playbook](/docs/s
 **Clarify:** Is 100K RPS requests or tokens? What is the output-length distribution? What latency SLO per request?
 
 **Approach:** Reframe the load in tokens per second, because generation cost scales with tokens, not requests - a request emitting 500 tokens is far heavier than one emitting 5. Size the fleet from aggregate tokens per second divided by per-GPU throughput at your target batch size. Front it with a queue and admission control, and shard across many GPU replicas behind a load balancer.
+
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  APP["Client apps<br/>100K RPS"] --> GW["AI Gateway<br/>rate limits + admission"]
+  GW --> MS["Model Serving<br/>autoscaling replicas"]
+  MS --> FT["Provisioned throughput<br/>sized in tokens per second"]
+  MS -.usage.-> IT["Inference tables (Delta)<br/>token accounting"]
+  FT --- UC["Unity Catalog"]
+```
+
+Provisioned throughput lets you buy capacity in tokens per second while Model Serving load-balances and autoscales replicas, and the AI Gateway does admission control and rate limiting.
 
 **Key decisions:** Tokens-per-second capacity planning over raw RPS. Per-GPU batch size trading latency for throughput. Autoscaling on queue depth and GPU saturation.
 
@@ -217,6 +353,21 @@ Every answer below is just the [The AI System Design Interview Playbook](/docs/s
 
 **Approach:** Put a gateway in front of an autoscaling pool of GPU inference replicas. Version models explicitly so you can roll out gradually and roll back fast. Cache aggressively - identical prompts and common prefixes can serve from a result cache. Autoscale GPU replicas on saturation, with warm capacity for spikes.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  APP["Millions of users"] --> GW["AI Gateway<br/>routing + caching"]
+  GW --> MS["Model Serving<br/>autoscaling GPU pool"]
+  MS --> V1["Model v1<br/>current"]
+  MS --> V2["Model v2<br/>canary split"]
+  V1 --- UC["Unity Catalog<br/>versioned models"]
+  V2 --- UC
+  GW -.log.-> IT["Inference tables (Delta)"]
+```
+
+Model Serving autoscales the GPU pool and holds warm capacity, while Unity Catalog model versions plus AI Gateway traffic splitting drive canary rollout and instant rollback.
+
 **Key decisions:** Model versioning and traffic-splitting for rollout. Cache key design and time-to-live. GPU autoscaling signals and headroom.
 
 **Evaluation:** Track availability, p99 latency, cache-hit rate, cost per request, and GPU utilization.
@@ -235,6 +386,20 @@ Every answer below is just the [The AI System Design Interview Playbook](/docs/s
 **Clarify:** How many tenants, and must they be isolated? What routing logic - by cost, capability, or availability? Is fallback required?
 
 **Approach:** A single entry point that authenticates per-tenant keys, enforces rate limits and quotas, then routes each request to a model by policy (a cheap model for easy prompts, a stronger one for hard ones). Add semantic caching so near-duplicate prompts reuse answers. On provider error or timeout, fall back to an alternate model. Log tokens and cost per tenant.
+
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  APP["Tenant apps"] --> GW["Unity AI Gateway<br/>auth + limits + budgets"]
+  GW --> CACHE["Semantic cache"]
+  GW --> RT["Route by policy"]
+  RT --> CHEAP["Small model<br/>Foundation Model API"]
+  RT --> STRONG["Frontier model<br/>fallback target"]
+  GW -.per-tenant.-> IT["Inference tables (Delta)<br/>tokens + cost"]
+```
+
+The Unity AI Gateway is exactly this router - per-tenant keys, rate limits and budgets, model routing with fallbacks, semantic caching, and usage/inference tables for cost accounting.
 
 **Key decisions:** Routing policy - static rules versus a difficulty classifier. Semantic-cache similarity threshold. Per-tenant isolation of keys, quotas, and logs.
 
@@ -255,6 +420,21 @@ Every answer below is just the [The AI System Design Interview Playbook](/docs/s
 
 **Approach:** Attack cost on several axes. Model tiering: route easy queries to a small cheap model, reserve the frontier model for hard ones. Caching: exact and semantic caches remove repeat work. Token discipline: trim prompts, retrieve fewer chunks, and cap output length. Prompt caching for shared long prefixes cuts repeated input cost.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  APP["Queries<br/>1M+ per day"] --> GW["AI Gateway<br/>budgets + caching"]
+  GW --> CACHE["Semantic cache<br/>remove repeat work"]
+  GW --> RT["Tiered routing"]
+  RT --> PPT["Small model<br/>pay-per-token"]
+  RT --> PT["Frontier model<br/>provisioned throughput"]
+  GW -.cost.-> IT["Inference tables (Delta)"]
+  IT --> MON["Lakehouse Monitoring<br/>cost + quality guardrail"]
+```
+
+The AI Gateway combines semantic caching, tiered routing between pay-per-token and provisioned-throughput endpoints, and budgets, while inference tables feed cost-versus-quality tracking in Lakehouse Monitoring.
+
 **Key decisions:** Tiering policy and how to classify difficulty. Cache scope and freshness. Output-length caps per use case.
 
 **Evaluation:** Track cost per query, per-tier traffic share, cache-hit rate, and the quality of downgraded traffic - savings must not tank quality.
@@ -273,6 +453,19 @@ Every answer below is just the [The AI System Design Interview Playbook](/docs/s
 **Clarify:** What is the latency ceiling - genuinely sub-second, per keystroke? How long are completions? How much context surrounds the cursor?
 
 **Approach:** Optimize relentlessly for time-to-first-token. Use a small fast model. Apply speculative decoding, where a cheap draft model proposes tokens the main model verifies in parallel, cutting latency. Cache by context prefix so common situations return instantly. Debounce input and cancel in-flight requests when the user keeps typing.
+
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  EDITOR["Editor client<br/>debounce + cancel"] --> GW["AI Gateway<br/>semantic cache"]
+  GW --> MS["Model Serving<br/>scale-to-zero small model"]
+  MS --> PT["Provisioned throughput<br/>low time-to-first-token"]
+  MS -.log.-> IT["Inference tables (Delta)"]
+  IT --> MON["Lakehouse Monitoring<br/>latency + acceptance"]
+```
+
+A small model on Model Serving with provisioned throughput holds down time-to-first-token, the AI Gateway caches by prefix, and Databricks abstracts the raw GPU and batching underneath.
 
 **Key decisions:** Model size versus quality. Speculative decoding and draft-model choice. Prefix-cache design and debounce interval.
 
@@ -293,6 +486,19 @@ Every answer below is just the [The AI System Design Interview Playbook](/docs/s
 
 **Approach:** A central scheduler assigns queued jobs to a pool of GPU workers by priority and resource fit. Because jobs run long, support checkpointing so a preempted or crashed job resumes from its last saved state rather than restarting. Higher-priority jobs preempt lower-priority ones, which checkpoint and requeue. Enforce fair-share quotas per team.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  SUB["Team submissions<br/>Asset Bundles"] --> JOBS["Databricks Jobs<br/>queue + priorities"]
+  JOBS --> POOL["GPU compute pool<br/>AI Runtime clusters"]
+  POOL --> CKPT["Checkpoints<br/>Delta / volumes"]
+  CKPT -.resume.-> POOL
+  POOL --- UC["Unity Catalog<br/>quotas + governance"]
+```
+
+Databricks Jobs provide the queue, priorities, and retries over autoscaling GPU compute, and checkpoints written to volumes let long AI Runtime jobs resume after preemption.
+
 **Key decisions:** Priority and fair-share policy. Checkpoint frequency, trading overhead against lost work. Gang scheduling for multi-GPU jobs that need all workers at once.
 
 **Evaluation:** Track queue wait time, GPU utilization, preemption rate, and wasted compute from lost work.
@@ -312,6 +518,19 @@ Every answer below is just the [The AI System Design Interview Playbook](/docs/s
 
 **Approach:** Serving many-gigabyte files from one origin to thousands of nodes saturates the source. Instead, use peer-to-peer distribution: nodes that already have chunks share them with peers, so bandwidth scales with the fleet rather than bottlenecking on the origin. Layer regional caches so most transfers stay local, and verify each file by checksum.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  UC["Unity Catalog<br/>model weights + versions"] --> VOL["Governed volumes<br/>cloud object store"]
+  VOL --> MS["Model Serving<br/>replica image pull"]
+  VOL --> POOL["GPU compute pool<br/>AI Runtime nodes"]
+  MS -.pin.-> UC
+  POOL -.pin.-> UC
+```
+
+Databricks abstracts the raw peer-to-peer fan-out: weights live as Unity Catalog versioned artifacts in cloud-backed volumes, and Model Serving and AI Runtime nodes pull the pinned version with integrity and version skew handled by the platform.
+
 **Key decisions:** Peer-to-peer versus a tiered cache hierarchy versus both. Chunk size for parallel transfer. Version pinning so every node runs the intended weights.
 
 **Evaluation:** Track time to full rollout, origin bandwidth, per-node download time, and integrity-check failures.
@@ -330,6 +549,20 @@ Every answer below is just the [The AI System Design Interview Playbook](/docs/s
 **Clarify:** How fresh must retrieval be - seconds, hours, or days? What is the update volume, and how costly is re-embedding?
 
 **Approach:** Match the update path to the freshness need. Batch re-indexing on a schedule is cheap and simple and fits slowly changing data. For data that must be fresh now, a streaming path embeds and upserts changes into the index as they arrive. A hybrid is common: nightly full rebuilds for correctness, plus a real-time stream for recent changes.
+
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  SRC["Source Delta tables"] --> BATCH["Scheduled Job<br/>nightly rebuild"]
+  SRC --> STREAM["Structured Streaming<br/>hot changes"]
+  BATCH --> VS["Vector Search index"]
+  STREAM --> VS["Vector Search index<br/>Delta sync"]
+  VS --- UC["Unity Catalog"]
+  VS --> MS["Model Serving<br/>retrieval"]
+```
+
+Databricks Vector Search syncs directly from Delta, so a scheduled Job handles bulk rebuilds while Structured Streaming upserts the hot segment for near-real-time freshness.
 
 **Key decisions:** Batch versus streaming versus hybrid. Incremental upserts versus periodic full rebuilds. Which data segments justify real-time cost.
 

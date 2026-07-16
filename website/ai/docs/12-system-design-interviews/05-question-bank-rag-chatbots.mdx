@@ -35,6 +35,22 @@ Every answer below follows the same spine, and you should too: (1) clarify → (
 - Store metadata for filtering (recency, source, permissions).
 - Return citations so users can verify.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  W["Wiki pages"] -->|"Auto Loader"| DLT["Lakeflow DLT<br/>parse + chunk"]
+  DLT --> D[("Delta tables<br/>Unity Catalog")]
+  D --> VS["Vector Search index"]
+  U["User"] --> AG["Agent Framework<br/>ResponsesAgent"]
+  AG -->|"retrieve"| VS
+  AG -->|"generate"| FM["Foundation Model API"]
+  AG -.trace.-> ML["MLflow Tracing"]
+  AG --- GW["AI Gateway<br/>guardrails"]
+```
+
+Event-driven DLT ingestion keeps the Vector Search index fresh while the agent retrieves, generates, and stays governed by Unity Catalog and the AI Gateway.
+
 **Evaluation:** Offline retrieval metrics (recall@k, MRR) plus an LLM-judge or human panel for answer faithfulness and helpfulness; track deflection and thumbs-up rate online.
 
 **Trade-offs / pitfalls:** Stale index is the top failure mode; over-large chunks dilute retrieval relevance.
@@ -61,6 +77,21 @@ Every answer below follows the same spine, and you should too: (1) clarify → (
 - Chunk size and overlap tuned to document structure; keep parent-child links so you can expand context.
 - Embedding model choice (domain fit vs cost); dimension affects storage.
 - Vector store selection (managed like Databricks Vector Search, or self-hosted) based on scale and ops appetite.
+
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  F["PDF / DOCX"] -->|"ai_parse_document"| DLT["Lakeflow DLT<br/>chunk + offsets"]
+  DLT --> D[("Delta<br/>Unity Catalog")]
+  D --> VS["Vector Search index"]
+  U["User"] --> APP["Databricks App<br/>chat UI"]
+  APP --> AG["Agent Framework"]
+  AG -->|"retrieve spans"| VS
+  AG -->|"generate + cite"| FM["Foundation Model API"]
+```
+
+Layout-aware parsing via ai_parse_document preserves span offsets in Delta so the agent can return exact, verifiable citations back through the Databricks App.
 
 **Evaluation:** Citation accuracy (does the cited span support the claim?), answer correctness on a labeled Q&A set, and latency percentiles.
 
@@ -89,6 +120,21 @@ Every answer below follows the same spine, and you should too: (1) clarify → (
 - Require citations; block answers that cite nothing.
 - Optional second-pass verifier that checks the answer against retrieved evidence.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  U["User"] --> AG["Agent Framework<br/>ResponsesAgent"]
+  D[("Delta KB<br/>Unity Catalog")] --> VS["Vector Search index"]
+  AG -->|"retrieve + score"| VS
+  VS -->|"below threshold"| HO["Human handoff"]
+  AG -->|"grounded answer"| FM["Foundation Model API"]
+  FM --> VER["ai_query verifier<br/>groundedness"]
+  AG --- GW["AI Gateway<br/>guardrails"]
+```
+
+The agent gates on retrieval scores and a post-generation ai_query groundedness check, abstaining to human handoff when evidence is weak.
+
 **Evaluation:** Track precision of answered questions, abstention rate, and hallucination rate; optimize for high precision even at some recall cost.
 
 **Trade-offs / pitfalls:** Too-eager abstention frustrates users; too-loose thresholds leak hallucinations.
@@ -116,6 +162,21 @@ Every answer below follows the same spine, and you should too: (1) clarify → (
 - Freshness through event-driven re-indexing when policies change.
 - Handoff to HR for sensitive or personal-case questions.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  U["Employee"] --> SL["Slack<br/>OAuth identity"]
+  SL --> AG["Agent Framework"]
+  D[("Policy docs<br/>Delta")] --> VS["Vector Search index"]
+  AG -->|"filtered retrieve"| VS
+  UC["Unity Catalog<br/>row filters"] --- VS
+  AG -->|"generate"| FM["Foundation Model API"]
+  AG --- GW["AI Gateway<br/>PII redaction + limits"]
+```
+
+Unity Catalog row filters keyed to the authenticated Slack identity restrict retrieval, while the AI Gateway handles PII redaction and rate limits.
+
 **Evaluation:** Correctness on policy Q&A, plus an access-control audit (can user A ever retrieve user B's restricted policy?).
 
 **Trade-offs / pitfalls:** Leaking a restricted policy is a serious incident; PII in logs is a compliance risk.
@@ -141,6 +202,20 @@ Every answer below follows the same spine, and you should too: (1) clarify → (
 - Candidate counts: retrieve maybe 50 to 100, rerank down to 5 to 8 to control reranker cost.
 - Run lexical and dense retrieval concurrently to hide latency.
 - Cache embeddings and frequent-query results.
+
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  U["User"] --> AG["Agent Framework"]
+  D[("Delta corpus")] --> VS["Vector Search<br/>hybrid BM25 + dense"]
+  AG -->|"retrieve 50-100"| VS
+  VS --> RR["Reranker<br/>Model Serving endpoint"]
+  RR -->|"top 5-8"| FM["Foundation Model API<br/>provisioned throughput"]
+  AG -.latency trace.-> ML["MLflow Tracing"]
+```
+
+Vector Search runs hybrid retrieval, a served cross-encoder reranks down to a small set, and MLflow Tracing profiles each stage against the latency budget.
 
 **Evaluation:** Recall@k before rerank, nDCG after rerank, and answer faithfulness; profile each stage's latency contribution.
 
@@ -168,6 +243,20 @@ Every answer below follows the same spine, and you should too: (1) clarify → (
 - Different prompt templates: extract-and-cite vs synthesize-and-organize.
 - Different context budgets: summarization needs more.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  U["User"] --> AG["Agent Framework<br/>intent router"]
+  D[("Delta docs")] --> VS["Vector Search index"]
+  AG -->|"QA: precise top-k"| VS
+  AG -->|"summarize: MMR diverse"| VS
+  VS --> FM["Foundation Model API"]
+  AG -.eval.-> ML["MLflow eval<br/>LLM judges"]
+```
+
+The agent routes by intent to task-specific retrieval configs over one Vector Search index, and MLflow judges score QA and summarization separately.
+
 **Evaluation:** QA on exact-match and faithfulness; summarization on coverage, redundancy, and consistency with retrieved evidence (no facts absent from sources).
 
 **Trade-offs / pitfalls:** Diverse retrieval can pull in loosely relevant chunks that hurt QA precision; the same retrieval config rarely serves both tasks well.
@@ -194,6 +283,21 @@ Every answer below follows the same spine, and you should too: (1) clarify → (
 - Enforce citation-per-claim, not just per-answer.
 - Add a verification pass as a guardrail before returning.
 - Abstain when no chunk supports the question.
+
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  U["User"] --> AG["Agent Framework"]
+  D[("Proprietary docs<br/>Delta")] --> VS["Vector Search index"]
+  AG -->|"retrieve"| VS
+  AG -->|"answer from context only"| FM["Foundation Model API"]
+  FM --> CHK["ai_query verifier<br/>claim entailment"]
+  CHK -->|"unsupported: drop"| AG
+  AG -.trace.-> ML["MLflow judges"]
+```
+
+A per-claim ai_query entailment pass acts as a guardrail, dropping or flagging any sentence not supported by a retrieved chunk before the answer returns.
 
 **Evaluation:** Faithfulness / groundedness rate measured by human or LLM-judge on a sample; count unsupported-claim escapes.
 
@@ -224,6 +328,20 @@ Every answer below follows the same spine, and you should too: (1) clarify → (
 - Stateless app tier with state in a fast store (for example Redis) for horizontal scaling.
 - Model gateway/router for load balancing and fallback.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  U["User"] --> APP["Databricks App<br/>chat UI"]
+  APP --> AG["Agent Framework<br/>ResponsesAgent"]
+  AG -->|"stream tokens"| FM["Foundation Model API<br/>provisioned throughput"]
+  H[("Session + summary<br/>Delta")] --- AG
+  AG --- GW["AI Gateway<br/>rate limits + budgets"]
+  AG -.trace.-> ML["MLflow Tracing"]
+```
+
+A stateless agent tier streams from a provisioned-throughput endpoint while session history and rolling summaries live in Delta so any worker can serve a turn.
+
 **Evaluation:** Response quality (human/LLM-judge), time-to-first-token, and turn completion rate.
 
 **Trade-offs / pitfalls:** Unbounded history blows the context window and cost; sticky sessions hurt scaling if state lives in-process.
@@ -249,6 +367,20 @@ Every answer below follows the same spine, and you should too: (1) clarify → (
 - WebSocket for bidirectional, low-latency streaming; SSE if you only push server → client and want simpler infra.
 - Context stored externally so any worker can serve a reconnecting client.
 - Backpressure and timeouts on slow generations.
+
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  C["Client<br/>WebSocket / SSE"] --> APP["Databricks App<br/>streaming API"]
+  APP --> MS["Model Serving endpoint"]
+  MS --> FM["Foundation Model API"]
+  S[("Session state<br/>Delta")] --- APP
+  APP --- GW["AI Gateway<br/>timeouts + limits"]
+  MS -.trace.-> ML["MLflow Tracing"]
+```
+
+The Databricks App streams tokens over WebSocket or SSE from a Model Serving endpoint, with session state in Delta so reconnecting clients resume on any worker.
 
 **Evaluation:** Time-to-first-token, inter-token latency, connection stability, and reconnect success rate.
 
@@ -277,6 +409,21 @@ Every answer below follows the same spine, and you should too: (1) clarify → (
 - Retrieval-based injection so you only surface relevant memories, not all of them.
 - Deletion must hard-remove memory records and their embeddings.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  U["User"] --> AG["Agent Framework"]
+  AG -->|"extract memories"| FM["Foundation Model API"]
+  FM --> MEM[("Memory records<br/>Delta")]
+  MEM --> VS["Vector Search index"]
+  AG -->|"retrieve relevant"| VS
+  DASH["Databricks App<br/>memory dashboard"] --- MEM
+  UC["Unity Catalog<br/>delete + governance"] --- MEM
+```
+
+Salient facts are extracted into per-user Delta records and indexed for relevance-based recall, with a Databricks App dashboard and Unity Catalog enforcing view, edit, and hard-delete.
+
 **Evaluation:** Memory precision/recall (is the right thing recalled?), user-reported usefulness, and a privacy audit of deletion.
 
 **Trade-offs / pitfalls:** Storing too much is a privacy liability and pollutes context; stale memories mislead.
@@ -303,6 +450,20 @@ Every answer below follows the same spine, and you should too: (1) clarify → (
 - Model routing: cheap/small model for easy turns, larger model only when needed.
 - Prompt/context trimming to control per-call token cost.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  U["1M users"] --> APP["Databricks App<br/>stateless tier"]
+  APP --> GW["AI Gateway<br/>routing + budgets"]
+  GW -->|"easy turns"| SM["Small model<br/>pay-per-token"]
+  GW -->|"hard turns"| LG["Large model<br/>provisioned throughput"]
+  CACHE[("Semantic cache<br/>Vector Search")] --- APP
+  GW -.inference tables.-> LM["Lakehouse Monitoring"]
+```
+
+The AI Gateway routes easy turns to a cheap model and hard turns to a provisioned endpoint, a semantic cache cuts calls, and inference tables feed Lakehouse Monitoring for cost and load.
+
 **Evaluation:** Cost per conversation, latency percentiles under peak load, GPU utilization, and cache hit rate.
 
 **Trade-offs / pitfalls:** Inference GPU cost dominates the bill; aggressive caching risks stale or slightly-off answers.
@@ -328,6 +489,21 @@ Every answer below follows the same spine, and you should too: (1) clarify → (
 
 - Changing facts → RAG; stable style/skill → fine-tune.
 - Weigh fine-tuning's data-collection and retraining cost vs RAG's retrieval infra.
+
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  U["User"] --> AG["Agent Framework"]
+  D[("Delta docs")] --> VS["Vector Search index"]
+  AG -->|"RAG: fresh facts"| VS
+  VS --> GEN["Model Serving<br/>fine-tuned for style"]
+  AG -->|"generate"| GEN
+  GEN --- FM["Foundation Model API<br/>base or provisioned"]
+  AG -.A/B eval.-> ML["MLflow eval<br/>LLM judges"]
+```
+
+The hybrid pattern combines Vector Search for changing facts with a fine-tuned served model for behavior, and MLflow eval A/B tests RAG, fine-tune, and hybrid on the same metrics.
 
 **Evaluation:** A/B the two (and the hybrid) on task success, faithfulness, and cost; let metrics decide.
 
@@ -356,6 +532,21 @@ Every answer below follows the same spine, and you should too: (1) clarify → (
 - Access control enforced at retrieval per authenticated user.
 - Federated retrieval across sources with unified ranking.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  U["User"] --> AG["Agent Framework<br/>query rewrite"]
+  H[("Conversation state<br/>Delta")] --- AG
+  D1[("Source A")] --> VS["Vector Search index"]
+  D2[("Source B")] --> VS
+  AG -->|"per-user filter"| VS
+  UC["Unity Catalog<br/>permissions"] --- VS
+  AG -->|"generate + cite"| FM["Foundation Model API"]
+```
+
+The agent condenses follow-ups using Delta-persisted state, retrieves across federated sources under Unity Catalog per-user permissions, then generates a cited answer.
+
 **Evaluation:** Multi-turn task success, retrieval relevance on rewritten queries, and an access-control audit.
 
 **Trade-offs / pitfalls:** Skipping query rewriting breaks follow-ups; merging sources with different trust/permissions is easy to get wrong.
@@ -382,6 +573,20 @@ Every answer below follows the same spine, and you should too: (1) clarify → (
 - Adapter layer per provider so the frontend stays model-agnostic.
 - State: save prompt versions and runs for comparison and sharing.
 - Rate limiting and API-key management per provider.
+
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  U["User"] --> APP["Databricks App<br/>prompt editor"]
+  APP --> GW["AI Gateway<br/>provider-agnostic"]
+  GW --> FM["Foundation Model APIs"]
+  GW --> EXT["External Models<br/>OpenAI / others"]
+  RUNS[("Prompt versions + runs<br/>Delta")] --- APP
+  GW -.tokens + cost.-> ML["MLflow Tracing<br/>+ LLM judge"]
+```
+
+The AI Gateway fronts both Foundation Model APIs and External Models as one interface, while Delta stores prompt versions and runs and MLflow captures per-run tokens, cost, and judge scores.
 
 **Evaluation:** For the tool: usability and correct cost/latency reporting. For prompts under test: let users score outputs, optionally with an LLM-judge for batch comparison.
 

@@ -25,6 +25,20 @@ Every answer here follows the same **8-step framework** from [The AI System Desi
 
 **Approach:** Split work two ways. **Data parallelism** replicates the model across workers, each processes a different batch shard, and gradients are averaged (all-reduce) each step. **Model parallelism** (tensor and pipeline) splits a model too large for one device across several. Most large runs combine both. A scheduler places jobs on GPU nodes and packs them for high utilization.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  DATA["Delta training data<br/>in Unity Catalog"] --> JOB["Databricks Jobs<br/>orchestrate run"]
+  JOB --> GPU["Multi-node GPU compute<br/>data + model parallel"]
+  GPU --> CKPT["Checkpoints to<br/>object storage"]
+  GPU --> ML["MLflow tracking<br/>loss + throughput"]
+  ML --> REG["Unity Catalog<br/>model registry"]
+  ML --> MON["Lakehouse Monitoring<br/>GPU util + cost"]
+```
+
+The training data lives in Delta, Jobs schedules the distributed run on GPU clusters that checkpoint to object storage, and MLflow tracks metrics and registers the result to Unity Catalog.
+
 **Key decisions:** Choose an all-reduce topology that matches your interconnect. Checkpoint frequently to object storage so a crashed node does not cost hours. Use mixed precision to fit larger batches.
 
 **Evaluation:** Track GPU utilization, throughput (tokens or samples per second), loss curves, and cost per epoch. Hold out a validation set to catch overfitting.
@@ -43,6 +57,20 @@ Every answer here follows the same **8-step framework** from [The AI System Desi
 **Clarify:** What are the data sources and formats? Batch, streaming, or both? What is the volume per day and the freshness requirement? Who consumes the output, training jobs, feature stores, or a retrieval index?
 
 **Approach:** Build in layered stages. **Ingestion** pulls from sources (databases, event streams, files) into a raw landing zone. **Processing** cleans, deduplicates, validates, and transforms, often in a medallion pattern (raw to refined to curated). **Storage** lands curated data in a lakehouse table format for cheap, queryable, versioned access. Downstream, embeddings or features are derived on a schedule or on arrival.
+
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  SRC["Sources<br/>DBs, events, files"] --> AL["Auto Loader<br/>ingest"]
+  AL --> DLT["Lakeflow / DLT<br/>medallion + quality"]
+  DLT --> DELTA["Curated Delta<br/>in Unity Catalog"]
+  DELTA --> FE["Feature Engineering<br/>in Unity Catalog"]
+  DELTA --> VS["Vector Search<br/>embeddings index"]
+  DELTA --> TR["Databricks Jobs<br/>training consumers"]
+```
+
+Auto Loader ingests raw sources, Lakeflow DLT applies medallion transforms and quality checks into governed Delta tables, and downstream features, embeddings, and training jobs read from the curated layer.
 
 **Key decisions:** Separate raw from curated so you can reprocess without re-ingesting. Enforce a schema and quality checks at the boundary. Partition storage by time or key for throughput. Make each stage idempotent so retries are safe. See [Databricks documentation](https://docs.databricks.com/aws/en/) for lakehouse patterns.
 
@@ -63,6 +91,21 @@ Every answer here follows the same **8-step framework** from [The AI System Desi
 
 **Approach:** Start with data curation, the part that decides success. Collect domain examples, deduplicate, filter for quality, and split into train, validation, and test. Choose a technique: lightweight adapter tuning (such as LoRA) is cheaper and easier to roll back than full fine-tuning. Run the tuning job, then evaluate before promoting. Version everything: the base model, the dataset snapshot, the training config, and the resulting adapter.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  RAW["Domain examples"] --> DLT["Lakeflow / DLT<br/>curate + dedup"]
+  DLT --> DELTA["Versioned Delta<br/>train / val / test"]
+  DELTA --> FT["Databricks Jobs + GPU<br/>LoRA fine-tune"]
+  FT --> ML["MLflow track + eval<br/>vs base + RAG"]
+  ML --> REG["Unity Catalog<br/>register adapter"]
+  REG --> MS["Model Serving"]
+  MS --> MON["Lakehouse Monitoring"]
+```
+
+Curated, versioned Delta datasets feed a GPU fine-tuning job, MLflow evaluates the adapter against the base model before registration to Unity Catalog, and only a promoted version reaches Model Serving.
+
 **Key decisions:** Prefer parameter-efficient tuning first, it is faster and reversible. Keep a frozen evaluation set the model never trains on. Register each model version so you can compare and roll back.
 
 **Evaluation:** Measure task-specific quality against the held-out set, compare to the base model and to a retrieval-only baseline, and check for regressions on general tasks.
@@ -81,6 +124,23 @@ Every answer here follows the same **8-step framework** from [The AI System Desi
 **Clarify:** What is being ranked and by what signal (clicks, conversions)? What is the latency budget at serving time? How fresh must features be, seconds or hours? What is the training cadence?
 
 **Approach:** A **feature store** computes features once and serves them consistently to both training and serving, which is the whole point, it kills training-serving skew. Events stream in and update features continuously. An **offline store** holds historical values for training; an **online store** holds the latest values for low-latency lookup at request time. A scheduled job trains the ranking model on offline features with point-in-time-correct joins, then the model is registered and deployed behind a serving endpoint.
+
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  EV["Event stream"] --> LF["Lakeflow<br/>continuous ingest"]
+  LF --> FE["Feature Engineering<br/>in Unity Catalog"]
+  FE --> OFF["Offline features<br/>point-in-time joins"]
+  FE --> ON["Online store<br/>low-latency lookup"]
+  OFF --> TR["Databricks Jobs<br/>train ranking model"]
+  TR --> REG["MLflow + Unity Catalog"]
+  REG --> MS["Model Serving"]
+  ON --> MS
+  MS --> MON["Lakehouse Monitoring<br/>drift + freshness"]
+```
+
+One Feature Engineering layer in Unity Catalog feeds both offline training with point-in-time joins and the online store queried at serving time, guaranteeing the same feature logic on both paths.
 
 **Key decisions:** Guarantee the same feature logic offline and online. Use point-in-time joins so training never sees future data (no label leakage). Keep the online store fast (key-value lookup).
 
@@ -103,6 +163,21 @@ Every answer here follows the same **8-step framework** from [The AI System Desi
 
 **Approach:** The magic is **context assembly**. Gather the current file, nearby open files, cursor position, imports, and relevant symbols retrieved from the repository, then send a tight prompt to a code-tuned model. Stream the response so the first tokens appear fast. For debugging, feed the error message, stack trace, and the failing code as grounding.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  IDE["IDE plugin"] --> APP["Databricks Apps<br/>context assembly"]
+  APP --> VS["Vector Search<br/>repo symbols"]
+  APP --> GW["AI Gateway<br/>rate + audit"]
+  GW --> FM["Foundation Model APIs<br/>code-tuned, streaming"]
+  VS --> GW
+  FM --> APP
+  APP --> MON["MLflow eval<br/>accept rate + latency"]
+```
+
+The IDE hits a Databricks App that assembles repo context via Vector Search and calls a streaming code model through the AI Gateway, with MLflow tracking acceptance rate and latency.
+
 **Key decisions:** Use a smaller, faster model for inline completion and a larger one for chat and debugging. Cache and prefetch context. Rank retrieved snippets by relevance to the cursor, not just recency.
 
 **Evaluation:** Suggestion acceptance rate, latency percentiles (p50 and p99), and whether accepted code is later kept or reverted.
@@ -121,6 +196,21 @@ Every answer here follows the same **8-step framework** from [The AI System Desi
 **Clarify:** Who is the user, a lawyer reviewing output or an end client acting on it? Which jurisdictions? Is the assistant drafting, reviewing, or answering questions? What is the worst-case harm from a wrong clause?
 
 **Approach:** Ground everything in a curated, versioned library of approved clauses and precedents using retrieval, so the model assembles from vetted language rather than inventing it. Generate a draft, cite every clause back to its source, and route the output to a **human lawyer for review** before it is used. Log every generation for audit.
+
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  LIB["Approved clauses<br/>versioned in Delta"] --> VS["Vector Search<br/>clause retrieval"]
+  VS --> AG["Agent Framework<br/>draft + cite sources"]
+  AG --> GW["AI Gateway<br/>PII + audit log"]
+  GW --> FM["Foundation Model APIs"]
+  AG --> REV["Human lawyer review<br/>via Databricks Apps"]
+  UC["Unity Catalog governance"] -.-> VS
+  UC -.-> AG
+```
+
+The agent retrieves only vetted clauses from a governed library, drafts with citations through the AI Gateway audit path, and routes every output to a human lawyer in a Databricks App before use.
 
 **Key decisions:** Never let generated legal text reach a client without human sign-off, this is the catastrophic-failure guard. Constrain generation to approved templates where possible. Track clause provenance so review is fast.
 
@@ -141,6 +231,20 @@ Every answer here follows the same **8-step framework** from [The AI System Desi
 
 **Approach:** Host an open-weights model **inside the VPC** so no data leaves. Answer strictly from retrieval over approved internal sources, and instruct the model to say "I do not know" and escalate when retrieval returns nothing relevant. Add a grounding check that verifies the answer is supported by the retrieved passages before it is shown. For anything involving money movement, hand off to authenticated, deterministic backend systems, never the model.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  DOCS["Approved internal docs<br/>Delta in Unity Catalog"] --> VS["Vector Search"]
+  VS --> AG["Agent Framework<br/>grounding check"]
+  AG --> MS["Self-hosted model<br/>provisioned throughput in VPC"]
+  AG --> GW["AI Gateway<br/>guardrails + audit"]
+  AG --> TOOL["UC function tools<br/>authenticated backends"]
+  AG --> APP["Databricks Apps<br/>chat UI"]
+```
+
+An open-weights model runs on provisioned throughput inside the VPC so no data leaves, answers are grounded and guardrailed through the AI Gateway, and money movement goes only through authenticated Unity Catalog function tools, never the model.
+
 **Key decisions:** Self-host for data residency. Ground answers and cite sources. Refuse rather than guess. Keep the LLM out of the transaction path.
 
 **Evaluation:** Groundedness and citation accuracy, refusal correctness (does it decline when it should?), and zero-tolerance red-teaming for fabricated account facts.
@@ -159,6 +263,20 @@ Every answer here follows the same **8-step framework** from [The AI System Desi
 **Clarify:** Is this for clinicians or patients? Is it informational only, or does it influence care decisions? What is the escalation path to a human? What is the tolerance for a wrong answer (near zero)?
 
 **Approach:** Ground every answer in vetted medical sources through retrieval, and require citations the user can check. Add a verification layer that confirms claims are supported before display. Detect emergency or high-risk intents (chest pain, self-harm) and **escalate immediately** to a human or emergency guidance rather than answering. Constrain scope: the bot answers general information and explicitly refuses diagnosis.
+
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  SRC["Vetted medical sources<br/>Delta in Unity Catalog"] --> VS["Vector Search"]
+  VS --> AG["Agent Framework<br/>grounding check + citations"]
+  AG --> GW["AI Gateway<br/>guardrails"]
+  GW --> FM["Foundation Model APIs"]
+  AG --> ESC["High-risk intent<br/>escalate to human"]
+  AG --> MON["MLflow eval + monitoring<br/>groundedness + recall"]
+```
+
+Answers are grounded in vetted sources with citations and verified before display, high-risk intents escalate to a human instead of answering, and MLflow monitors groundedness and escalation recall.
 
 **Key decisions:** Retrieval-grounded answers with citations. A confidence and groundedness gate that triggers "I cannot answer this safely, please consult a professional." Clear, prominent escalation.
 
@@ -179,6 +297,22 @@ Every answer here follows the same **8-step framework** from [The AI System Desi
 
 **Approach:** Score each event inline with a fast model fed by an online feature store, using precomputed features (recent velocity, device history, location) that are ready in milliseconds. High-confidence fraud is blocked automatically; ambiguous cases go to step-up verification or a human review queue. A slower, richer offline pipeline retrains models and catches patterns the fast path missed.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  TX["Transaction stream"] --> LF["Lakeflow<br/>streaming features"]
+  LF --> FE["Feature Engineering in UC<br/>online store"]
+  FE --> MS["Model Serving<br/>low-latency score"]
+  MS --> DEC["Block / step-up /<br/>review queue"]
+  DEC --> DELTA["Delta labels"]
+  DELTA --> TR["Databricks Jobs<br/>retrain offline"]
+  TR --> MS
+  MS --> MON["Lakehouse Monitoring<br/>drift + precision"]
+```
+
+Streaming features land in the Unity Catalog online store for millisecond lookup, Model Serving scores each transaction inline, and a slower offline retrain loop plus Lakehouse Monitoring keeps up with shifting fraud patterns.
+
 **Key decisions:** Split into a fast inline path and a slower analytical path. Precompute features so inference is a quick lookup plus scoring. Tune the decision threshold to the business cost of each error type.
 
 **Evaluation:** Precision and recall on labeled fraud, dollars saved versus false-positive friction, and latency percentiles. Watch for drift as fraud tactics change.
@@ -197,6 +331,21 @@ Every answer here follows the same **8-step framework** from [The AI System Desi
 **Clarify:** What can it actually do, answer questions, or also take actions like issuing a refund? What channels? What is the escalation policy? What is the tone and brand requirement?
 
 **Approach:** Ground answers in the support knowledge base via retrieval so responses stay factual and current. Give the agent a small set of **tools** for real actions (look up an order, start a return) behind authenticated, permissioned APIs. Add an orchestration loop: retrieve, decide whether a tool is needed, act, and respond. Detect frustration, low confidence, or out-of-scope requests and **escalate to a human** with the full conversation context.
+
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  KB["Support KB<br/>Delta in Unity Catalog"] --> VS["Vector Search"]
+  VS --> AG["Agent Framework<br/>orchestration loop"]
+  AG --> TOOL["UC function tools<br/>order lookup, returns"]
+  AG --> GW["AI Gateway<br/>on-behalf-of-user auth"]
+  GW --> FM["Foundation Model APIs"]
+  AG --> ESC["Escalate to human<br/>with context"]
+  AG --> APP["Databricks Apps<br/>chat channels"]
+```
+
+The agent grounds answers via Vector Search, takes real actions through permissioned Unity Catalog function tools with on-behalf-of-user auth, and escalates low-confidence or sensitive cases to a human with full context.
 
 **Key decisions:** Retrieval for facts, tools for actions, humans for the hard cases. Gate any state-changing tool behind confirmation and authorization. Preserve context on handoff.
 
@@ -217,6 +366,20 @@ Every answer here follows the same **8-step framework** from [The AI System Desi
 
 **Approach:** Index all articles into a vector store for semantic search, combined with keyword search (hybrid retrieval) for precision on names and exact terms. At query time, retrieve candidates from both, merge and rerank the top results, then either return the ranked list or feed the top passages to an LLM to synthesize a grounded answer with citations. Precompute embeddings in a batch pipeline and update the index incrementally as articles change.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  ART["10M+ articles<br/>Delta in Unity Catalog"] --> LF["Lakeflow<br/>incremental embed"]
+  LF --> VS["Vector Search<br/>hybrid index"]
+  VS --> AG["Agent Framework<br/>merge + rerank"]
+  AG --> FM["Foundation Model APIs<br/>synthesize + cite"]
+  AG --> APP["Databricks Apps<br/>search UI"]
+  AG --> MON["MLflow eval<br/>recall + groundedness"]
+```
+
+Articles are embedded incrementally into a hybrid Vector Search index, and at query time the agent merges, reranks, and optionally synthesizes a cited answer, with MLflow tracking retrieval recall and groundedness.
+
 **Key decisions:** Hybrid retrieval beats pure vector or pure keyword. Add a reranking stage for relevance. Keep indexing incremental so 10M+ documents stay fresh without full rebuilds.
 
 **Evaluation:** Retrieval recall and precision at k, reranked relevance judged by humans, latency percentiles, and, if synthesizing, groundedness and citation accuracy.
@@ -235,6 +398,20 @@ Every answer here follows the same **8-step framework** from [The AI System Desi
 **Clarify:** Is this a decision-support tool for clinicians, not an autonomous diagnostician? Which conditions and data (labs, imaging, notes)? What are the regulatory and liability constraints? What must the clinician be able to see to trust it?
 
 **Approach:** Position the system as **decision support**, it surfaces evidence and suggestions, the clinician decides. Ground outputs in patient data and vetted medical guidelines through retrieval, and make every suggestion **explainable**: show which inputs and sources drove it. Require a human clinician in the loop for any recommendation. Log everything for audit and regulatory review, and monitor for bias across patient populations.
+
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  DATA["Patient data + guidelines<br/>Delta in Unity Catalog"] --> VS["Vector Search"]
+  VS --> AG["Agent Framework<br/>evidence + explanation"]
+  AG --> GW["AI Gateway<br/>PII + audit log"]
+  GW --> FM["Self-hosted model<br/>provisioned throughput"]
+  AG --> CLIN["Clinician review<br/>via Databricks Apps"]
+  AG --> MON["MLflow eval<br/>calibration + fairness"]
+```
+
+Every suggestion is grounded in the patient record and guidelines with an explanation, passes through the audited AI Gateway to a governed model, and reaches a clinician for confirmation while MLflow monitors calibration and fairness.
 
 **Key decisions:** Never autonomous, always clinician-confirmed. Explainability is a requirement, not a nicety, an unexplained suggestion will not be trusted or defensible. Ground in the patient record and guidelines.
 

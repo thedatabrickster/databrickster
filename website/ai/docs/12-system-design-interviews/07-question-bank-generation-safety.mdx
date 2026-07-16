@@ -23,6 +23,20 @@ Every answer below follows the same 8-step framework from [The AI System Design 
 
 **Approach:** Ingest and chunk documents, then use map-reduce or refine summarization for long inputs. Prompt the model to summarize only from provided text and to cite source spans. Keep the source alongside every summary so claims are traceable.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  DOC["Documents in Delta"] --> CHUNK["Chunk + prep<br/>on Jobs"]
+  CHUNK --> SUM["ai_summarize / ai_query<br/>grounded prompt"]
+  SUM --> OUT["Summaries in Delta<br/>with source spans"]
+  OUT --- UC["Unity Catalog"]
+  OUT -.factuality judge.-> ML["MLflow eval"]
+  ML -.metrics.-> MON["Lakehouse Monitoring"]
+```
+
+Batch AI Functions summarize chunked documents while keeping every claim traceable to its source span, and MLflow entailment judges track hallucination rate as a governed metric.
+
 **Key decisions:** Extractive-plus-abstractive hybrid over pure generation; grounding every sentence to a source chunk; a "say you do not know" instruction rather than guessing.
 
 **Evaluation:** Factual consistency scoring (entailment or an LLM judge comparing summary claims against source), plus human spot-checks. Track hallucination rate as a first-class metric, not just ROUGE.
@@ -41,6 +55,21 @@ Every answer below follows the same 8-step framework from [The AI System Design 
 **Clarify:** Live rolling summary during the meeting, or a final one at the end? Do we have speaker labels? How many participants? What latency does "real-time" mean here?
 
 **Approach:** Stream transcript segments in, maintain a running buffer, and produce incremental summaries on a sliding window. Preserve speaker attribution so action items map to people. At the end, run a consolidation pass over the full transcript for a clean final summary plus decisions and action items.
+
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  STR["Transcript segments"] --> DLT["Streaming ingest<br/>Delta Live Tables"]
+  DLT --> WIN["ai_query<br/>windowed summary"]
+  WIN --> STATE["Running-state Delta"]
+  DLT --> FIN["ai_summarize<br/>final consolidation"]
+  STATE --> FIN
+  FIN --> OUT["Minutes + action items"]
+  OUT --- UC["Unity Catalog"]
+```
+
+Structured Streaming into Delta feeds windowed ai_query calls for the rolling summary, with a final ai_summarize consolidation pass producing governed minutes and action items.
 
 **Key decisions:** Incremental windowed summarization versus reprocessing the whole transcript each tick; carrying a compact running-state summary forward to hold earlier context; separating "notes so far" from "final minutes."
 
@@ -61,6 +90,21 @@ Every answer below follows the same 8-step framework from [The AI System Design 
 
 **Approach:** Extract text (OCR if scanned), then classify. Start with embeddings plus a lightweight classifier for known, stable categories; use an LLM with a clear label taxonomy for nuanced or few-shot cases. Route by predicted label, and send low-confidence documents to a human queue.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  IN["Incoming docs in Delta"] --> PARSE["ai_parse_document<br/>text extract"]
+  PARSE --> CLS["ai_classify<br/>label taxonomy"]
+  CLS -->|"high confidence"| ROUTE["Route to team"]
+  CLS -->|"low confidence"| HUMAN["Human review queue"]
+  CLS --> OUT["Labeled Delta table"]
+  OUT --- UC["Unity Catalog"]
+  OUT -.drift.-> MON["Lakehouse Monitoring"]
+```
+
+Jobs run ai_parse_document then ai_classify against a governed label taxonomy, routing confident predictions and queuing the rest for human review while Lakehouse Monitoring watches for drift.
+
 **Key decisions:** Embeddings-plus-classifier versus LLM zero-shot (cost and stability versus flexibility); a confidence threshold that triggers human review; an "other/unknown" bucket so the system never forces a bad label.
 
 **Evaluation:** Precision and recall per class, confusion matrix to spot systematic misroutes, and routing accuracy end to end. Monitor drift as document mix changes.
@@ -79,6 +123,21 @@ Every answer below follows the same 8-step framework from [The AI System Design 
 **Clarify:** Which document types and fields? What counts as "invalid" versus "inconsistent"? Sync or async for the user? Regulatory constraints on storing IDs?
 
 **Approach:** Validate file type and quality on upload (reject corrupt, blurry, or wrong-format files early). Run OCR or a document-understanding model to extract structured fields, then apply validation rules and cross-field consistency checks (for example, name on ID versus name on payslip). Queue work asynchronously so spikes and slow providers do not block users.
+
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  UP["Uploads in Delta"] --> VAL["Quality gate<br/>reject invalid"]
+  VAL --> IDP["Agent Bricks IDP<br/>extract fields"]
+  IDP --> RULES["Cross-field checks<br/>on Jobs"]
+  RULES --> OUT["Structured Delta"]
+  RULES -->|"low confidence"| HUMAN["Human review"]
+  IDP -.retry + fallback.-> DLQ["Retry queue"]
+  OUT --- UC["Unity Catalog"]
+```
+
+Agent Bricks Intelligent Document Processing extracts fields inside async Jobs with a quality gate up front, cross-field consistency checks after, and a retry queue plus fallback so provider downtime never loses an upload.
 
 **Key decisions:** A managed extraction provider versus self-hosted models; a queue with retries and a dead-letter path; confidence thresholds sending questionable extractions to human review.
 
@@ -99,6 +158,20 @@ Every answer below follows the same 8-step framework from [The AI System Design 
 
 **Approach:** Extract clinical entities from free-text notes, map them to the required coding scheme, and emit a validated structured record. Ground every extracted code to the note span that justifies it. Route anything below a confidence threshold to a certified human coder for review before submission.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  NOTE["Patient notes in Delta"] --> EXT["ai_extract<br/>clinical entities"]
+  EXT --> MAP["Map to codes<br/>schema validation"]
+  MAP -->|"below threshold"| CODER["Certified coder review"]
+  MAP -->|"validated"| CLAIM["Billing record to insurer"]
+  MAP --> AUDIT["Audit trail Delta<br/>code to source span"]
+  AUDIT --- UC["Unity Catalog"]
+```
+
+ai_extract pulls clinical entities grounded to note spans, strict schema validation gates submission, and low-confidence records go to a human coder with a full Unity Catalog audit trail linking each code to source text.
+
 **Key decisions:** Human-in-the-loop by default given the stakes; strict schema validation before anything reaches an insurer; full audit trail linking each code back to source text.
 
 **Evaluation:** Code-level precision and recall against coder-labeled ground truth, claim acceptance rate, and rate of downstream denials attributable to extraction.
@@ -117,6 +190,20 @@ Every answer below follows the same 8-step framework from [The AI System Design 
 **Clarify:** How many products, and how often refreshed? What structured attributes exist (size, material, features)? Brand-voice and legal constraints? Languages and channels?
 
 **Approach:** Feed structured product attributes into a templated, constrained prompt so generation stays grounded in real facts rather than invented ones. Enforce brand voice with style instructions and examples. Batch-generate offline, run automated checks (banned claims, required disclaimers, attribute coverage), and store outputs for reuse and A/B testing.
+
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  ATTR["Product attributes in Delta"] --> GEN["ai_query batch<br/>attribute-grounded prompt"]
+  GEN --> CHK["ai_query checks<br/>banned claims + coverage"]
+  CHK --> OUT["Approved copy in Delta"]
+  CHK -->|"fails"| REV["Regenerate or review"]
+  OUT --- UC["Unity Catalog"]
+  OUT -.brand-voice judge.-> ML["MLflow eval"]
+```
+
+A Jobs batch runs ai_query with attribute-grounded prompts across the catalog, a second ai_query pass validates banned claims and attribute coverage, and MLflow judges score brand-voice adherence before copy is published.
 
 **Key decisions:** Attribute-grounded prompting to prevent fabricated specs; template plus free-generation balance for consistency versus variety; offline batch generation for cost and throughput.
 
@@ -139,6 +226,20 @@ Every answer below follows the same 8-step framework from [The AI System Design 
 
 **Approach:** Accept requests through an API, place them on a queue, and serve them from an autoscaling pool of GPU workers running the diffusion model. Return results asynchronously (poll or webhook). Cache and deduplicate identical prompts, and apply a content-safety filter on both prompt and output.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  REQ["Requests in Delta queue"] --> GATE["AI Gateway<br/>prompt safety filter"]
+  GATE --> SERVE["Model Serving<br/>GPU diffusion endpoint"]
+  SERVE --> SAFE["Output safety filter"]
+  SAFE --> OUT["Images in Delta + storage"]
+  REQ -.dedup cache.-> SERVE
+  OUT --- UC["Unity Catalog"]
+```
+
+A Delta-backed queue feeds a GPU Model Serving endpoint that autoscales on depth, with AI Gateway safety filters on prompt and output and dedup caching to cut cost per image.
+
 **Key decisions:** Asynchronous queue plus worker pool over synchronous serving; autoscaling on queue depth; batching requests on the GPU for throughput; a spot or reserved capacity mix for cost.
 
 **Evaluation:** Latency percentiles, queue wait time, GPU utilization and cost per image, and a safety-filter catch rate.
@@ -157,6 +258,21 @@ Every answer below follows the same 8-step framework from [The AI System Design 
 **Clarify:** Clip length and resolution? How long does one job run (minutes)? How many concurrent jobs? Is a progress signal expected, or just a final result?
 
 **Approach:** Treat each generation as a long-running async job. Submit to a queue, schedule onto GPU workers, and track job state (queued, running, done, failed). Because jobs are long and opaque, expose status and estimated wait, checkpoint where possible, and support cancellation. Store outputs in object storage and notify on completion.
+
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  SUB["Job submissions in Delta"] --> SCHED["Jobs scheduler<br/>priority + fair-share"]
+  SCHED --> GPU["GPU compute pool<br/>AI Runtime workers"]
+  GPU --> CKPT["Checkpoints in Delta"]
+  GPU --> OUT["Video in object storage"]
+  SCHED --> STATE["Job-state table"]
+  STATE --- UC["Unity Catalog"]
+  OUT -.safety review.-> SAFE["Vision safety check"]
+```
+
+Databricks Jobs schedule long-running generation onto a GPU AI Runtime pool with fair-share priorities, checkpointing state to Delta so a worker crash resumes rather than restarts, and outputs land in governed object storage after a vision safety review.
 
 **Key decisions:** A job scheduler with priorities and fair-share over first-come-first-served; checkpointing to survive worker failure; per-user quotas to protect shared GPU capacity; safety review of generated video.
 
@@ -177,6 +293,21 @@ Every answer below follows the same 8-step framework from [The AI System Design 
 
 **Approach:** Capture audio, run domain-adapted speech-to-text tuned for medical vocabulary and noisy wards, then process intent with an LLM grounded in approved clinical data. Speak or display results. Keep the pipeline streaming so responses feel immediate, and keep PHI inside a compliant boundary.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  AUD["Audio stream"] --> ASR["Model Serving<br/>medical-tuned ASR"]
+  ASR --> LLM["ai_query<br/>intent + grounding"]
+  LLM --> CLIN["Approved clinical Delta"]
+  CLIN --> LLM
+  LLM --> OUT["Spoken / displayed result"]
+  ASR -.PII masking.-> GATE["AI Gateway"]
+  CLIN --- UC["Unity Catalog<br/>access + audit"]
+```
+
+Medical-tuned ASR on Model Serving streams into ai_query grounded on approved clinical Delta tables, with AI Gateway masking PHI and Unity Catalog enforcing role-based access and audit inside a compliant boundary.
+
 **Key decisions:** A medical-tuned ASR model over a generic one; streaming recognition for low latency; strict access controls and audit logging; a confirmation step before any consequential action.
 
 **Evaluation:** Word error rate on medical terms in noisy conditions, task success rate, latency, and safety of any actions taken.
@@ -196,6 +327,21 @@ Every answer below follows the same 8-step framework from [The AI System Design 
 
 **Approach:** Embed all content into a shared multimodal vector space so text and images land in the same coordinate system. Index embeddings in a vector store. At query time, embed the query (text, image, or both) and retrieve nearest neighbors, then optionally rerank. For video, embed representative frames or segments.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  CONTENT["Images + video frames in Delta"] --> EMB["Model Serving<br/>cross-modal embeddings"]
+  EMB --> VS["Vector Search index"]
+  QRY["Text or image query"] --> QEMB["Query embedding"]
+  QEMB --> VS
+  VS --> RERANK["Rerank"]
+  RERANK --> RESULTS["Results"]
+  VS --- UC["Unity Catalog"]
+```
+
+A shared cross-modal embedding model on Model Serving embeds images and sampled video frames into Databricks Vector Search, so a text or image query retrieves across modalities and a rerank stage sharpens precision.
+
 **Key decisions:** A shared cross-modal embedding model so a text query can retrieve images directly; approximate nearest-neighbor indexing for scale; a reranking stage for precision; frame or segment strategy for video.
 
 **Evaluation:** Retrieval quality (recall at k, mean reciprocal rank) on labeled query-result pairs, latency, and human relevance judgments.
@@ -214,6 +360,20 @@ Every answer below follows the same 8-step framework from [The AI System Design 
 **Clarify:** Document types and layouts (forms, tables, free text)? Scan quality? Which fields must be extracted, and how accurate? Volume and languages?
 
 **Approach:** Preprocess images (deskew, denoise, enhance), run OCR to recover text with position, then apply layout-aware understanding to map text into structured fields. Use a document-understanding model that combines text and layout for forms and tables. Validate extracted fields and route low-confidence results to human review.
+
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  SCAN["Scanned docs in Delta"] --> PREP["Deskew + denoise<br/>on Jobs"]
+  PREP --> IDP["Agent Bricks IDP<br/>layout-aware parse"]
+  IDP --> FIELDS["Structured fields<br/>with bounding boxes"]
+  FIELDS -->|"low confidence"| HUMAN["Human review"]
+  FIELDS --> OUT["Delta table"]
+  OUT --- UC["Unity Catalog"]
+```
+
+Jobs preprocess scans and Agent Bricks IDP runs layout-aware parsing that maps text and tables into structured fields, preserving bounding boxes for traceability and gating low-confidence extractions to human review.
 
 **Key decisions:** Layout-aware extraction over plain OCR-plus-regex for structured forms; confidence scores that gate human review; preserving bounding boxes for traceability and correction.
 
@@ -236,6 +396,22 @@ Every answer below follows the same 8-step framework from [The AI System Design 
 
 **Approach:** Run classifiers at both the input (user-submitted content) and output (model-generated content) stages. Use category-specific moderation models for text and vision. Take graded action by severity: block, flag for review, or allow. Route borderline cases to human moderators, and log decisions for appeals and auditing.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  IN["User content"] --> ICLS["Input classifiers<br/>Model Serving text + vision"]
+  ICLS --> GATE["AI Gateway<br/>safety filters"]
+  GATE --> LLM["Model Serving endpoint"]
+  LLM --> OCLS["Output classifiers"]
+  OCLS -->|"severity tiers"| ACT["Block / flag / allow"]
+  ACT -->|"borderline"| HUMAN["Moderator queue"]
+  ACT --> LOG["Inference tables<br/>audit + appeals"]
+  LOG --- UC["Unity Catalog"]
+```
+
+Category-specific classifiers on Model Serving screen input and output for text and vision, AI Gateway applies graded safety filters, and inference tables log every decision for appeals and audit.
+
 **Key decisions:** Layered input and output checks; severity tiers rather than a single block-or-allow switch; a human-review queue for ambiguous cases; separate models per modality.
 
 **Evaluation:** Precision and recall per policy category, false-positive rate (over-blocking harms users), and reviewer agreement. Continuously test against evolving harmful content.
@@ -254,6 +430,20 @@ Every answer below follows the same 8-step framework from [The AI System Design 
 **Clarify:** Does the system read untrusted content (web pages, documents, emails)? Does it have tools or actions that could cause damage? What is the worst-case if it is manipulated?
 
 **Approach:** Assume no single defense is sufficient and layer several. Separate trusted instructions from untrusted data in the prompt. Screen inputs for injection patterns. Constrain what the model can do, so tools require authorization and dangerous actions need confirmation. Screen outputs before they act. Apply least privilege to every tool and data source.
+
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  UNTRUST["Untrusted content"] --> GATE["AI Gateway<br/>injection screen + guardrails"]
+  GATE --> LLM["Model Serving endpoint"]
+  LLM --> OGATE["Output screen<br/>before tools act"]
+  OGATE --> TOOLS["Gated tools<br/>UC least privilege"]
+  TOOLS --- UC["Unity Catalog<br/>authorization"]
+  LLM -.traces.-> TR["MLflow Tracing"]
+```
+
+AI Gateway screens untrusted input for injection and guardrails the model, output is checked before any tool fires, and Unity Catalog enforces least-privilege authorization on every gated tool with MLflow Tracing for forensics.
 
 **Key decisions:** Treat all external content as untrusted; keep the system prompt privileged and clearly delimited; gate high-impact tool calls behind explicit checks; sandbox execution.
 
@@ -274,6 +464,22 @@ Every answer below follows the same 8-step framework from [The AI System Design 
 
 **Approach:** Place guardrails on both sides. On input, detect and redact PII and screen for disallowed requests. On output, scan for PII, leaked internal data, and toxicity before returning anything to the user. If an output fails, retry with a corrective instruction; if it fails again, fall back to a safe canned response rather than serving unsafe text.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  IN["User input"] --> IMASK["ai_mask + AI Gateway<br/>input guardrails"]
+  IMASK --> LLM["Model Serving endpoint"]
+  LLM --> OGUARD["Output guardrails<br/>PII + toxicity scan"]
+  OGUARD -->|"pass"| USER["Return to user"]
+  OGUARD -->|"fail, capped retry"| LLM
+  OGUARD -->|"fail again"| FALL["Safe fallback"]
+  OGUARD --> LOG["Inference tables"]
+  LOG --- UC["Unity Catalog"]
+```
+
+ai_mask and AI Gateway guardrails redact PII on input, output is scanned for PII, leaks, and toxicity, and a capped retry-on-unsafe loop falls back to a safe response with everything logged to inference tables.
+
 **Key decisions:** Input and output guardrails as separate layers; redaction versus hard block per data type; a bounded retry-on-unsafe loop with a safe fallback; logging for audit.
 
 **Evaluation:** PII-detection recall (missing PII is the costly error), false-positive rate, toxicity-catch rate, and added latency.
@@ -293,6 +499,21 @@ Every answer below follows the same 8-step framework from [The AI System Design 
 
 **Approach:** Ground answers in retrieved sources and require citations. Add a verification step that checks whether each claim is supported by the retrieved context, using an entailment model or an LLM judge. If a claim is unsupported, drop it, ask the model to revise, or return "I do not have enough information." Surface citations so users can check.
 
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  QRY["Query"] --> VS["Vector Search<br/>retrieve sources"]
+  VS --> LLM["Model Serving<br/>answer + citations"]
+  LLM --> VERIFY["ai_query judge<br/>claim entailment"]
+  VERIFY -->|"supported"| OUT["Answer with citations"]
+  VERIFY -->|"unsupported"| ABSTAIN["Revise or abstain"]
+  LLM -.traces.-> ML["MLflow eval<br/>groundedness"]
+  OUT --- UC["Unity Catalog"]
+```
+
+Answers are grounded on Vector Search with mandatory citations, an ai_query judge verifies each claim is entailed by the retrieved context, and MLflow groundedness scores track how often the system correctly abstains.
+
 **Key decisions:** Grounding with mandatory citations; a post-generation faithfulness check; a graceful abstention path over guessing; showing sources for user verification.
 
 **Evaluation:** Faithfulness or groundedness score (claims entailed by sources), hallucination rate, and citation accuracy. Track how often the system correctly abstains.
@@ -311,6 +532,21 @@ Every answer below follows the same 8-step framework from [The AI System Design 
 **Clarify:** What are we protecting against (harmful content, jailbreaks, injection, PII leakage, bias)? Is this a one-time launch gate or continuous? Who acts on findings?
 
 **Approach:** Build a red-team suite that probes the system with adversarial inputs across each risk category. Combine human red-teamers with automated attack generation, where one model tries to break another at scale. Log every failure as a reproducible test case, feed fixes back into guardrails or training, and re-run the suite as a regression gate on every change.
+
+**Databricks build:**
+
+```mermaid
+flowchart LR
+  ATK["Attack suite in Delta"] --> GEN["ai_query<br/>automated attack gen"]
+  GEN --> TARGET["Model Serving<br/>system under test"]
+  TARGET --> JUDGE["MLflow eval<br/>safety judges"]
+  JUDGE --> FAIL["Failures as test cases"]
+  FAIL --> GATE["AI Gateway guardrails"]
+  FAIL --> ATK
+  JUDGE --- UC["Unity Catalog"]
+```
+
+An ai_query attacker generates adversarial inputs at scale against the Model Serving endpoint, MLflow safety judges score outcomes, and every failure becomes a versioned Delta test case that feeds guardrails and runs as a regression gate.
 
 **Key decisions:** Continuous red-teaming over a one-off exercise; automated attack generation to scale coverage; a growing regression suite so old vulnerabilities stay fixed; clear ownership of findings.
 
