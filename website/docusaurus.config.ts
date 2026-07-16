@@ -140,6 +140,7 @@ const config: Config = {
           label: 'Agentic Coding',
         },
         {to: '/blog', label: 'Deep Dives', position: 'left'},
+        {to: '/about', label: 'About', position: 'right'},
         {
           href: 'https://docs.databricks.com/aws/en/agents/',
           label: 'Databricks Docs ↗',
