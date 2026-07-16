@@ -27,26 +27,38 @@ const TopicList: Topic[] = [
     ),
   },
   {
-    title: 'Genie & Business Intelligence',
+    title: 'Genie',
     status: 'Coming soon',
     to: '/genie',
     cta: 'Preview the plan →',
     description: (
       <>
-        Conversational analytics: ask governed data questions in plain English
-        with Genie and AI/BI, and build the trustworthy BI layer around it.
+        Ask governed data questions in plain English — Genie writes and runs the
+        SQL, and shows its work. Conversational analytics you can trust.
       </>
     ),
   },
   {
-    title: 'VS Code for AI Engineers',
+    title: 'Business Intelligence',
     status: 'Coming soon',
-    to: '/vscode',
+    to: '/business-intelligence',
     cta: 'Preview the plan →',
     description: (
       <>
-        Build AI faster in a real editor — VS Code and Claude Code — with a
-        repo-first, testable, CI-ready workflow for Databricks and beyond.
+        AI-era BI on the lakehouse: dashboards, a trustworthy metrics layer, and
+        AI/BI in the flow of work — governed end to end.
+      </>
+    ),
+  },
+  {
+    title: 'Agentic Coding',
+    status: 'Coming soon',
+    to: '/agentic-coding',
+    cta: 'Preview the plan →',
+    description: (
+      <>
+        Ship AI software faster with AI coding agents. Two subtopics: VS Code and
+        Claude Code — a repo-first, testable workflow for Databricks and beyond.
       </>
     ),
   },
@@ -55,7 +67,7 @@ const TopicList: Topic[] = [
 function TopicCard({title, status, to, cta, description}: Topic) {
   const available = status === 'Available';
   return (
-    <div className={clsx('col col--4')} style={{marginBottom: '1.5rem'}}>
+    <div className={clsx('col col--6')} style={{marginBottom: '1.5rem'}}>
       <Link
         to={to}
         style={{textDecoration: 'none', color: 'inherit', display: 'block', height: '100%'}}>
