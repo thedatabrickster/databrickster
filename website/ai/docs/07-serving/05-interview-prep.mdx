@@ -1,0 +1,180 @@
+---
+sidebar_position: 5
+title: "Part 7 · Interview Prep"
+description: A friendly self-check to see how well the ideas about serving models have settled in.
+---
+
+# Part 7 · Interview Prep
+
+Welcome to the review page for Part 7. This is not a graded exam, just a relaxed way to notice what already clicks and what might want one more read. Serving is where your model finally meets real users, and there are a few new words here. If any of them make you pause, that is completely normal. Every question you sit with is progress.
+
+:::tip
+Try to answer out loud or in your head before you open the answer. That small moment of effort, even when you are unsure, is what makes the idea stick. Then peek and enjoy the little "oh, right!" moment.
+:::
+
+**Covers:** [Mosaic AI Model Serving](/docs/serving/model-serving), [Foundation Model APIs in Depth](/docs/serving/foundation-model-apis), [External and Custom Models](/docs/serving/external-and-custom-models), [Performance and Cost Tuning](/docs/serving/performance-and-cost)
+
+## Section 1 · What Model Serving is
+
+Let's start with the big picture: what does the serving layer actually do for you?
+
+**1. In plain terms, what does Mosaic AI Model Serving give you?**
+
+<details>
+<summary>Show answer</summary>
+
+It hosts your models as scalable REST endpoints so applications can call them over the network. You do not manage servers yourself; you point at a model and get back a live URL that answers requests. It handles the infrastructure so you can focus on using the model.
+
+</details>
+
+**2. What kinds of things can you serve on it?**
+
+<details>
+<summary>Show answer</summary>
+
+Four flavors, all on the same serving layer:
+
+- Foundation Model APIs, the ready-to-use large language models Databricks hosts for you.
+- External models, third-party providers reached through Databricks.
+- Custom models, your own models that you logged with MLflow.
+- Agents, multi-step apps that call models and tools.
+
+</details>
+
+**3. What does "a unified, OpenAI-compatible interface" mean, and why is it a relief?**
+
+<details>
+<summary>Show answer</summary>
+
+It means all of these endpoints speak the same request-and-response format, one that matches the widely used OpenAI style. So your calling code looks almost identical whether you are hitting a Databricks-hosted model, a third-party provider, or your own custom model. You learn one shape and reuse it everywhere.
+
+</details>
+
+**4. What are autoscaling and scale-to-zero, and what is the tradeoff?**
+
+<details>
+<summary>Show answer</summary>
+
+Autoscaling means the endpoint automatically adds or removes capacity as traffic rises and falls, so you are not paying for a fixed fleet. Scale-to-zero goes one step further: when nothing is calling the endpoint, it spins all the way down so you pay nothing while idle.
+
+The tradeoff is the cold start. When the first request arrives after the endpoint has scaled to zero, it has to warm back up, so that request waits longer. Great for saving money on quiet or spiky workloads, less ideal when you need every request to be instant.
+
+</details>
+
+**5. How does governance fit into serving?**
+
+<details>
+<summary>Show answer</summary>
+
+Two pieces work together. Unity Catalog governs who can access what, applying the same permissions story you already use for data. The AI Gateway sits in front of endpoints to add controls like rate limits, usage tracking, and safety guardrails. So serving is not a wild-west open door; it is governed like the rest of your platform.
+
+</details>
+
+## Section 2 · Billing modes and where models come from
+
+Now the practical choices: how you pay, and how to reach models you did not build.
+
+**6. What is pay-per-token billing, and when does it shine?**
+
+<details>
+<summary>Show answer</summary>
+
+You are metered on the tokens you actually use, with no charge while the endpoint sits idle. That makes it perfect for prototyping, low volume, or spiky, unpredictable traffic. You only pay for what you consume, so an idle weekend costs nothing.
+
+</details>
+
+**7. What is provisioned throughput, and what does "throughput units" mean?**
+
+<details>
+<summary>Show answer</summary>
+
+Provisioned throughput reserves dedicated capacity just for you. You size it in throughput units, which you can think of as roughly a guaranteed number of tokens per second. Because the capacity is reserved and dedicated, you get predictable, steady latency instead of sharing with everyone else.
+
+</details>
+
+**8. How would you reason about choosing between the two?**
+
+<details>
+<summary>Show answer</summary>
+
+Ask about volume and predictability.
+
+- Low, spiky, or experimental traffic leans toward pay-per-token, since you avoid paying for idle capacity.
+- Steady, high volume leans toward provisioned throughput, which is cheaper at scale and gives predictable latency.
+- Provisioned throughput is also required in some cases, such as serving fine-tuned models or meeting a strict latency SLA.
+
+The mental model: pay-per-token trades predictability for zero idle cost; provisioned throughput trades some flexibility for reserved, reliable capacity.
+
+</details>
+
+**9. What is an external model, and what problem does it solve?**
+
+<details>
+<summary>Show answer</summary>
+
+An external model is a third-party provider's model that you reach through Databricks, which acts as a proxy in front of it. Your provider keys live safely in secrets rather than scattered in code, and the AI Gateway governs the calls just like any other endpoint. Because everything goes through one unified interface, you can swap one provider for another without rewriting your application code.
+
+</details>
+
+**10. What is a custom model in this context?**
+
+<details>
+<summary>Show answer</summary>
+
+It is your own model, the one you trained or fine-tuned and logged with MLflow, deployed onto the very same serving layer. You get the same REST endpoint, autoscaling, and governance as the hosted models, except the brains inside are yours.
+
+</details>
+
+## Section 3 · Latency and cost tuning
+
+The finishing touch: making serving fast enough and affordable.
+
+**11. What actually makes up the latency of a language model response?**
+
+<details>
+<summary>Show answer</summary>
+
+Two parts. First, the time-to-first-token, how long you wait before any output appears. Second, the per-token streaming rate, how quickly the rest of the words come out after that. Total time is roughly the wait for the first token plus the time to stream all the rest.
+
+</details>
+
+**12. Why does the length of the output matter so much for latency?**
+
+<details>
+<summary>Show answer</summary>
+
+Because tokens are generated one after another, in sequence, not all at once. Each new token depends on the ones before it, so a longer answer simply takes more steps to produce. Output length tends to dominate the total time, which is why trimming how much the model writes is one of the biggest speed levers you have.
+
+</details>
+
+**13. If output length is fixed by the task, how can streaming still help?**
+
+<details>
+<summary>Show answer</summary>
+
+Streaming sends tokens to the user as they are produced instead of waiting for the whole answer. The total time is about the same, but the user sees words appearing right away, so it feels much faster. It improves perceived speed even when actual speed is unchanged.
+
+</details>
+
+**14. What are the main levers for controlling serving cost?**
+
+<details>
+<summary>Show answer</summary>
+
+Cost scales with tokens, so most levers reduce tokens or waste:
+
+- Shorter prompts, so you send fewer input tokens.
+- A tight `max_tokens` limit, so the model does not ramble.
+- Right-sizing the model, using a smaller one when it is good enough.
+- Caching, so you do not pay twice for the same answer.
+- Batching many inputs together with `ai_query`.
+- Choosing the correct billing mode for your traffic pattern.
+- Scale-to-zero, so idle endpoints cost nothing.
+
+</details>
+
+## You made it
+
+That is a real stack of new ideas, endpoints, billing modes, latency, cost levers, and you worked through all of it. Whether every answer came easily or a few needed a second look, you now have a solid mental model for how a model actually reaches users quickly, safely, and without surprise bills. That is exactly the foundation you need.
+
+Next up is Part 8 · Production LLMOps, where we go from "it works" to "it keeps working," deploying, monitoring, and improving AI systems over time. Take a breath, and come find me there when you're ready.

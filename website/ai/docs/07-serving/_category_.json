@@ -1,0 +1,12 @@
+{
+  "label": "Part 7 · Serving & Inference",
+  "position": 7,
+  "collapsible": true,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "slug": "/category/part-7-serving",
+    "title": "Part 7 · Serving & Inference Deep Dive",
+    "description": "How models and agents are actually hosted and paid for: Mosaic AI Model Serving, Foundation Model APIs (pay-per-token vs provisioned throughput), external and custom models, and tuning for latency, throughput, and cost."
+  }
+}
