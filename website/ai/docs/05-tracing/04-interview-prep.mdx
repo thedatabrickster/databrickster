@@ -1,0 +1,153 @@
+---
+sidebar_position: 4
+title: "Part 5 · Interview Prep"
+description: A friendly self-check to review everything you learned about observability and tracing for AI agents on Databricks.
+---
+
+# Part 5 · Interview Prep
+
+You made it through Part 5. This was the part where you learned how to see inside your agent instead of guessing at what it is doing. That is a genuinely powerful skill, and it clicks in a really satisfying way once it lands. This page is just a gentle way to check what stuck.
+
+Read each question, answer it in your head (or out loud), and only then open the hidden answer to compare. There are no grades here. If something feels fuzzy, that is completely normal on a first pass. Take a breath and enjoy seeing how much you already know.
+
+:::tip
+Try to answer before you peek. Even a rough, half-formed answer helps the idea stick far better than reading the solution first. Guessing is part of learning, not a mistake.
+:::
+
+**Covers:** [Why Observability Matters for AI](/docs/tracing/why-observability) · [MLflow Tracing](/docs/tracing/mlflow-tracing) · [Instrumenting Your Agent](/docs/tracing/instrumenting-agents)
+
+---
+
+## Section A · Why Observability Matters
+
+You already trust logs and the Spark UI to tell you what a pipeline actually did. Agents need that same kind of visibility, just for a different reason. These questions revisit why.
+
+**1. Why is observability so important for AI agents specifically?**
+
+<details>
+<summary>Show answer</summary>
+
+Because agents are nondeterministic and multi-step. The same question can produce different answers, and a single run may involve several hidden steps (retrieving documents, calling a model, using a tool). Without a way to see each step, you simply cannot tell what happened or why. Observability gives you that visibility.
+
+</details>
+
+**2. What is a good mental model for tracing, coming from a data engineering background?**
+
+<details>
+<summary>Show answer</summary>
+
+Think of it like logs or the Spark UI, but for AI. When a Spark job is slow or wrong, you open the Spark UI to see each stage. Tracing does the same thing for an agent: it shows you every step of a run so you can find where things went sideways.
+
+</details>
+
+**3. Why is "just read the final answer" not enough when debugging an agent?**
+
+<details>
+<summary>Show answer</summary>
+
+The final answer only tells you the outcome, not the story behind it. A wrong answer could come from a bad document being retrieved, a tool returning junk, or the model misreading good input. You need to see the intermediate steps to know which one it was. That is exactly what a trace gives you.
+
+</details>
+
+---
+
+## Section B · Traces, Spans, and MLflow
+
+This section is about the core building blocks. Once you have the vocabulary here, the rest of tracing feels easy.
+
+**4. What is a trace, and what is a span?**
+
+<details>
+<summary>Show answer</summary>
+
+A trace is the record of one whole run of your agent, from the request in to the answer out. A span is a single step inside that trace, like one model call or one document lookup. Spans nest inside each other, so a trace is really a tree of spans that shows the full shape of the run.
+
+</details>
+
+**5. What kind of detail does each span capture?**
+
+<details>
+<summary>Show answer</summary>
+
+Each span records its inputs, its outputs, how long it took (timing), and often the token usage for model calls. So for any single step you can see exactly what went in, what came out, how slow it was, and how many tokens it cost.
+
+</details>
+
+**6. Can you name the common span types?**
+
+<details>
+<summary>Show answer</summary>
+
+The main ones are LLM (a model call), RETRIEVER (a document or search lookup), TOOL (calling an external function or API), and CHAIN (a step that groups other steps together). Labeling spans by type makes a trace much easier to read at a glance.
+
+</details>
+
+**7. Where do traces actually live once they are recorded?**
+
+<details>
+<summary>Show answer</summary>
+
+They show up in the MLflow UI, tied to an experiment, just like the metrics and models you already log there. So the traces from a given agent are grouped together in one place you can open and browse.
+
+</details>
+
+**8. Walk through how you would use a trace to diagnose a bad answer.**
+
+<details>
+<summary>Show answer</summary>
+
+You open the trace and read it top to bottom, step by step. Say the agent gave a wrong answer: you might look at the RETRIEVER span and notice it pulled back the wrong document. Now you know the problem is retrieval, not the model, so you fix the retrieval step instead of guessing. The trace turns "it is broken somewhere" into "it broke right here."
+
+</details>
+
+---
+
+## Section C · Automatic and Manual Tracing
+
+Last stretch. This section is about how you actually turn tracing on in your own agent. You are almost at the finish line.
+
+**9. What is automatic tracing, and how little effort does it take?**
+
+<details>
+<summary>Show answer</summary>
+
+Automatic tracing (autolog) instruments supported libraries with a single line of code, for example `mlflow.openai.autolog()`. After that one line, calls to that library get traced for you, with no extra work. It is the fastest way to start seeing traces.
+
+</details>
+
+**10. What is manual tracing, and when would you reach for it?**
+
+<details>
+<summary>Show answer</summary>
+
+Manual tracing is where you mark up your own code. You add the `@mlflow.trace` decorator to a function to trace it, and you can use a span context to attach your own attributes (extra details you want recorded). You reach for it when you want to trace custom logic that autolog does not cover, or add context that only you know is useful.
+
+</details>
+
+**11. Do you have to choose between automatic and manual tracing?**
+
+<details>
+<summary>Show answer</summary>
+
+No, and this is the happy answer: combining both is best. Let autolog capture the library calls for free, and add manual tracing on top for your own functions and custom attributes. Together they give you a complete, readable picture of a run.
+
+</details>
+
+**12. Why is tracing described as the foundation for what comes next?**
+
+<details>
+<summary>Show answer</summary>
+
+Because you cannot improve what you cannot see. Tracing produces the detailed record that evaluation uses to judge quality, and that production monitoring uses to catch problems over time. Get tracing in place first, and the later steps have something solid to build on.
+
+</details>
+
+---
+
+## Nicely done
+
+That is Part 5 in the bag. You now understand why agents need observability, what traces and spans are, where to find them, and how to switch tracing on with both automatic and manual approaches. That is a real, practical skill.
+
+Whatever you got right, celebrate it. Whatever felt shaky, a quick reread of that lesson will lock it in. Either way, you are moving forward.
+
+Next up is **Part 6: Evaluation and Quality**, where you will learn how to measure whether your agent is actually any good, using the very traces you just learned to capture. It is where all this visibility starts paying off. See you there.

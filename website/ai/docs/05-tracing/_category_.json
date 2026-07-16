@@ -1,0 +1,12 @@
+{
+  "label": "Part 5 · Observability & Tracing",
+  "position": 5,
+  "collapsible": true,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "slug": "/category/part-5-tracing",
+    "title": "Part 5 · Observability: Tracing Agents",
+    "description": "Because AI systems are nondeterministic and multi-step, you cannot debug them by guessing. Learn why observability matters, how MLflow Tracing records every step of an agent run, and how to instrument your own agents automatically and manually."
+  }
+}
