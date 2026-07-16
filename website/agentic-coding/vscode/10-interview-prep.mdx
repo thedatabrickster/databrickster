@@ -1,0 +1,255 @@
+---
+sidebar_position: 10
+title: "Interview Prep: VS Code & Agentic Coding"
+description: "Friendly, active-recall review of the whole VS Code subtopic — notebooks vs. the IDE, the Databricks extension, Databricks Connect, repo-first projects, Asset Bundles, local debugging & testing, and AI assistants with MCP."
+---
+
+# Interview Prep: VS Code & Agentic Coding
+
+Take a breath — you covered a lot of ground. You went from *"notebooks are where I live"*
+to *"I can set up a real editor, connect it to Databricks, structure an agent as a repo,
+deploy it as code, debug and test it locally, and pair with an AI assistant that uses
+governed tools."* That is a genuine engineering skill set, and it is exactly what
+separates someone who *tinkers* with AI from someone who *ships* it.
+
+This page is your relaxed checkpoint. Read each question, answer it out loud in your own
+words, then peek. The goal is not to memorize — it is to be able to *explain* these ideas
+to an interviewer (or a teammate) with calm confidence.
+
+:::tip One gentle rule
+Try to answer *before* you open the toggle. A shaky answer from memory teaches you far
+more than a polished one you just re-read. If a question won't come, hop back to the
+lesson — that's studying, not failing.
+:::
+
+**Covers:**
+[Notebooks vs. the IDE](/agentic-coding/vscode/why-vscode-over-notebooks) ·
+[Setting Up VS Code](/agentic-coding/vscode/setup-vscode-for-ai) ·
+[The Databricks Extension](/agentic-coding/vscode/databricks-extension) ·
+[Databricks Connect](/agentic-coding/vscode/databricks-connect) ·
+[Repo-First Projects](/agentic-coding/vscode/repo-first-project) ·
+[Asset Bundles](/agentic-coding/vscode/asset-bundles) ·
+[Debugging & Testing](/agentic-coding/vscode/debugging-and-testing) ·
+[AI Assistants & MCP](/agentic-coding/vscode/ai-assistants-and-mcp)
+
+---
+
+## Section A — Notebooks, the IDE, and setup
+
+**A1. When do notebooks stop being the right tool, and why move to VS Code?**
+
+<details>
+<summary>Show answer</summary>
+
+Notebooks are excellent for *exploration* — quick iteration, inline output, visualization.
+They start to hurt when the work becomes real *software*: reusing code across many files,
+writing unit and eval tests, reviewing diffs, pinning dependencies, running CI/CD, and
+collaborating. Notebooks also suffer from hidden state and out-of-order execution. VS Code
+gives you a versioned, testable, reviewable codebase — while still letting you run
+notebooks when exploration is what you need. You don't abandon notebooks; you graduate the
+*hardened* parts into a repo.
+
+</details>
+
+**A2. What's the difference between a virtual environment and just installing packages globally, and why does it matter for AI work?**
+
+<details>
+<summary>Show answer</summary>
+
+A virtual environment isolates a project's dependencies so they don't collide with other
+projects or the system Python. It matters because AI projects pin specific library
+versions (and, for Databricks Connect, a version that *matches the cluster runtime*).
+Isolation makes the project reproducible — the same idea as a reproducible cluster
+environment — so "works on my machine" also works in CI and in the workspace.
+
+</details>
+
+**A3. Name a few extensions worth installing for Databricks + AI work, and one setting that improves quality.**
+
+<details>
+<summary>Show answer</summary>
+
+Python + Pylance, Jupyter, the Databricks extension, a linter/formatter like Ruff,
+GitLens, and YAML. A high-value setting is **format on save** (plus lint on save), which
+keeps the codebase consistent without anyone thinking about it. Committing a
+`.vscode/extensions.json` lets a whole team share the same recommended setup.
+
+</details>
+
+## Section B — Connecting to Databricks
+
+**B1. What does the Databricks extension for VS Code let you do, and how do you authenticate?**
+
+<details>
+<summary>Show answer</summary>
+
+It connects VS Code to a Databricks workspace so you can browse Unity Catalog/DBFS/Workspace,
+sync code, and run files or notebooks on remote compute — even run them as a job — without
+leaving the editor. You authenticate with a **configuration profile** (in `~/.databrickscfg`),
+typically via **OAuth (U2M)** or a **personal access token**, selecting the workspace host.
+Everything runs under your workspace identity, so Unity Catalog permissions still apply.
+
+</details>
+
+**B2. Explain Databricks Connect in one or two sentences. How is it different from running a file via the extension?**
+
+<details>
+<summary>Show answer</summary>
+
+Databricks Connect is a client library that turns your local `spark` into a **remote
+session** on Databricks compute (a cluster or serverless): you write Spark/DataFrame code
+locally, it executes remotely, and results come back to your machine — with full local
+tooling like the debugger and tests. Running a file *via the extension* uploads and runs
+the whole script on the cluster; Databricks Connect instead lets your *local process* drive
+remote Spark interactively, which is what makes local breakpoints and unit tests over
+cluster-scale data possible.
+
+</details>
+
+**B3. Why must the `databricks-connect` package version match the cluster's runtime, and what's a common pitfall?**
+
+<details>
+<summary>Show answer</summary>
+
+The client and the remote runtime speak a versioned protocol and API surface; mismatched
+versions can fail or behave subtly differently. A common pitfall is installing the latest
+`databricks-connect` against an older cluster runtime (or vice versa). Match the
+major/minor to the cluster's Databricks Runtime, and keep it in your pinned dependencies.
+
+</details>
+
+## Section C — Repo, deploy, and CI/CD
+
+**C1. Sketch a sensible repo layout for an AI agent project and say why agent logic shouldn't live only in a notebook.**
+
+<details>
+<summary>Show answer</summary>
+
+Something like: `src/` (the importable agent package — tools, prompts, agent logic),
+`tests/`, `notebooks/` (exploration only), `configs/`, `databricks.yml`, `pyproject.toml`
+or `requirements.txt`, `README.md`, `.gitignore`, and a local `.env` (never committed).
+Agent logic belongs in an importable module so it can be **unit-tested, reviewed, reused,
+and deployed** — a notebook can then import and demo it, but the source of truth is code.
+
+</details>
+
+**C2. What is a Databricks Asset Bundle, and what does the validate → deploy → run workflow do?**
+
+<details>
+<summary>Show answer</summary>
+
+A bundle is **infrastructure-as-code** for Databricks: a `databricks.yml` that declares
+resources (jobs, pipelines, model-serving endpoints, agents), variables, and deployment
+**targets** (e.g. dev and prod). `validate` checks the config, `deploy` pushes the declared
+resources to a target workspace, and `run` executes a resource (like a job). It replaces
+click-ops with something reproducible and reviewable, and it's the natural unit to promote
+through CI/CD.
+
+</details>
+
+**C3. What's the point of dev vs. prod targets (and `mode: development` vs `production`)?**
+
+<details>
+<summary>Show answer</summary>
+
+Targets let the *same* bundle deploy to different workspaces/environments with different
+settings. `mode: development` typically isolates and name-prefixes resources per user (so
+many engineers can deploy safely without clobbering each other), while `production` deploys
+the real, shared resources. This is how you promote the identical definition from dev to
+prod with confidence.
+
+</details>
+
+## Section D — Debugging, testing, and AI assistants
+
+**D1. Why are agents hard to debug, and how do the VS Code debugger and local tracing help?**
+
+<details>
+<summary>Show answer</summary>
+
+Agents are nondeterministic: the model decides which tools to call and when, prompts are
+often hidden, and the same input can take different paths. The **debugger** lets you set
+breakpoints and step through the agent's own logic (tool selection, argument building,
+result handling) to see exactly what happened. **Local MLflow tracing** records each
+step — the model's decisions, tool calls, and results — so you can inspect a run like a
+timeline instead of guessing.
+
+</details>
+
+**D2. What's the difference between a unit test and an eval test for an agent, and how do you keep unit tests fast?**
+
+<details>
+<summary>Show answer</summary>
+
+A **unit test** checks deterministic pieces — a tool function, parsing, a prompt builder —
+with exact expected outputs. An **eval test** measures the agent's *quality* on a dataset of
+inputs, often scored by LLM judges, because there's no single "correct" string. You keep
+unit tests fast and repeatable by **mocking/stubbing the LLM call** so tests don't hit a
+real model, aren't slow, and don't flake.
+
+</details>
+
+**D3. How does connecting an editor AI assistant to Databricks over MCP stay safe?**
+
+<details>
+<summary>Show answer</summary>
+
+MCP standardizes *how* the assistant discovers and calls tools (Unity Catalog functions,
+Vector Search, Genie), but **Unity Catalog still governs whether it may** — the assistant
+runs under an identity and only gets the access that identity permits, checked per call.
+Add human-in-the-loop review of the assistant's diffs and actions, and you get leverage
+without handing over the keys to everything.
+
+</details>
+
+**D4. Someone says "just let the AI assistant write and deploy the whole agent." What's your measured response?**
+
+<details>
+<summary>Show answer</summary>
+
+Great for *leverage*, not a substitute for engineering judgment. Let it scaffold, refactor,
+write tests, and drive multi-step changes — but keep a human reviewing diffs, keep the code
+in a repo with tests and CI, deploy through Asset Bundles (not click-ops), and scope its
+tool access with Unity Catalog. Speed with guardrails, not speed instead of them.
+
+</details>
+
+## A tiny scenario to tie it together
+
+**Q. Maya at Northwind Trust prototyped a support agent in a notebook. Walk through how you'd turn it into something production-ready using this subtopic.**
+
+<details>
+<summary>Show answer</summary>
+
+1. **Graduate from the notebook**: move the agent logic into an importable `src/` package,
+   keep the notebook for exploration only.
+2. **Set up the editor**: VS Code with a virtual environment, pinned dependencies, and the
+   key extensions; commit `.vscode/extensions.json` for the team.
+3. **Connect to Databricks**: install the Databricks extension (OAuth profile) to browse
+   Unity Catalog and run on remote compute; use **Databricks Connect** for local,
+   debuggable runs against a cluster.
+4. **Make it a repo**: tests, config, secrets via `.env`/secret scopes, git branches and PRs.
+5. **Debug & test**: breakpoints and pytest with mocked LLM calls for unit tests; a small
+   local eval set for quality; MLflow tracing to inspect runs.
+6. **Deploy as code**: a `databricks.yml` Asset Bundle declaring the job and serving
+   endpoint; `validate → deploy → run` to a dev target, then promote to prod via CI/CD.
+7. **Accelerate with an assistant**: pair with an AI coding assistant connected over MCP to
+   the governed tools, reviewing its diffs before merging.
+
+That's the whole arc: explore → harden → connect → structure → verify → deploy → accelerate.
+
+</details>
+
+## Where to go next
+
+You've finished the **VS Code** subtopic. Two natural directions:
+
+- **[Claude Code](/agentic-coding/claude-code/intro)** — the sibling subtopic on using an
+  agentic coding assistant to build AI software faster.
+- **[Databricks AI](/docs/intro)** — the track that teaches *what* you're building: LLM
+  foundations, RAG, agents, evaluation, and production LLMOps. This subtopic taught the
+  *how*; that track is the *what*. They pair naturally — see also
+  [Beyond Databricks](/docs/beyond-databricks/concepts-are-portable), since a good
+  editor-plus-agent workflow travels with you across any AI stack.
+
+Nicely done. Go build something and ship it. 🚀

@@ -4,9 +4,7 @@
   "collapsible": true,
   "collapsed": true,
   "link": {
-    "type": "generated-index",
-    "slug": "/vscode",
-    "title": "VS Code for Databricks & AI",
-    "description": "Set up VS Code as a professional environment for Databricks and AI engineering. Coming soon."
+    "type": "doc",
+    "id": "vscode/intro"
   }
 }
