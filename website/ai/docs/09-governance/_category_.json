@@ -1,0 +1,12 @@
+{
+  "label": "Part 9 · Governance, Security & Cost",
+  "position": 9,
+  "collapsible": true,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "slug": "/category/part-9-governance",
+    "title": "Part 9 · Governance, Security & Cost (Enterprise)",
+    "description": "Make AI safe to run at an enterprise: the Unity AI Gateway as the governed front door, guardrails and PII safety, authentication and permissions (including on-behalf-of-user), and controlling cost with rate limits, budgets, and usage tracking."
+  }
+}

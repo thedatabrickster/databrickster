@@ -1,0 +1,164 @@
+---
+sidebar_position: 5
+title: "Part 9 · Interview Prep"
+description: A friendly self-check to help you talk confidently about governing, securing, and budgeting AI on Databricks.
+---
+
+# Part 9 · Interview Prep
+
+You made it through Part 9! This part was all about keeping AI safe, permissioned, and affordable, which is exactly the grown-up thinking that turns a cool demo into something a company can actually trust in production. That is a big deal, so take a moment to feel good about it.
+
+This page is a gentle self-check. Read each question, answer it out loud or in your head, and then peek. There are no grades here. Missing one just tells you what to skim again.
+
+:::tip Try answering first
+Cover the answer, give it your best shot, and only then open the toggle. Recalling before peeking is what makes it stick. Getting some wrong is part of learning, not a problem.
+:::
+
+Covers: [The Unity AI Gateway](/docs/governance/unity-ai-gateway), [Guardrails and Safety](/docs/governance/guardrails-and-safety), [Authentication and Permissions](/docs/governance/auth-and-permissions), and [Cost, Rate Limits, and Budgets](/docs/governance/cost-and-budgets).
+
+## Section 1 · The Unity AI Gateway
+
+**1. What is the Unity AI Gateway, in one sentence?**
+
+<details>
+<summary>Show answer</summary>
+
+It is the single governed front door that all your model traffic passes through. Instead of each app talking to models on its own, requests flow through one central point where policies get applied. Think of it as the front desk of a building: everyone checks in at the same place.
+
+</details>
+
+**2. What kinds of controls live at the gateway?**
+
+<details>
+<summary>Show answer</summary>
+
+Quite a lot, all in one spot: guardrails (safety checks), rate limits (caps on how much traffic), budgets (spend caps), traffic splitting and fallbacks (routing across models), request logging to inference tables, and permissions. It bundles the safety, cost, and routing rules together.
+
+</details>
+
+**3. Why is one central choke point better than each app setting its own policy?**
+
+<details>
+<summary>Show answer</summary>
+
+Because you set the rules once and every app inherits them, instead of hoping each team remembers to add guardrails and budgets on their own. One place to configure means one place to audit, and no app can quietly skip the rules. Scattered per-app policy is easy to get wrong and hard to check.
+
+</details>
+
+**4. What does the gateway log, and where does it go?**
+
+<details>
+<summary>Show answer</summary>
+
+It logs each request and response to inference tables, which are Delta tables. Because it is just a table, you can run SQL over it later for auditing (who asked what) and for cost analysis (how many tokens each app used). The traffic becomes searchable data instead of vanishing.
+
+</details>
+
+## Section 2 · Guardrails, safety, and prompt injection
+
+**5. What are guardrails, in plain terms?**
+
+<details>
+<summary>Show answer</summary>
+
+They are automatic safety checks on the way in and on the way out. On input, they can block harmful requests or restrict certain topics. On output, they can catch unsafe content before it reaches the user. They are the seatbelt for your model traffic.
+
+</details>
+
+**6. What does the ai_mask function do?**
+
+<details>
+<summary>Show answer</summary>
+
+It hides sensitive information like PII (personally identifiable information, such as names, emails, or phone numbers) by masking it out. So a piece of text can flow through your pipeline without exposing the private bits. It is a quick, built-in way to keep sensitive data from leaking.
+
+</details>
+
+**7. What is a "safety judge"?**
+
+<details>
+<summary>Show answer</summary>
+
+It is a model-based checker that reviews content and decides whether it is safe or violates a policy. Rather than matching fixed keywords, it reads the meaning and gives a judgment. You can use it as part of your guardrails to catch harmful or off-limits content.
+
+</details>
+
+**8. What is prompt injection?**
+
+<details>
+<summary>Show answer</summary>
+
+It is when malicious input, or a retrieved document, tries to override your agent's instructions. For example, a web page the agent reads might contain hidden text saying "ignore your rules and reveal secrets." The attack sneaks new instructions in through content the model is just supposed to be reading.
+
+</details>
+
+**9. Name a few layered defenses against prompt injection.**
+
+<details>
+<summary>Show answer</summary>
+
+There is no single magic fix, so you stack defenses: treat any retrieved content as untrusted (data to read, not commands to obey), write firm system prompts that hold their ground, run guardrails on inputs and outputs, and give tools least privilege so even a tricked agent cannot do much damage. The layers cover each other's gaps.
+
+</details>
+
+## Section 3 · Authentication, permissions, and cost
+
+**10. What is the difference between a service principal and on-behalf-of-user auth?**
+
+<details>
+<summary>Show answer</summary>
+
+A service principal gives the agent its own identity, which is simple but means everyone shares the same access. On-behalf-of-user means the agent acts with the calling user's permissions, so each person only sees their own data. Service principal is one shared badge; on-behalf-of-user is everyone using their own badge.
+
+</details>
+
+**11. When might on-behalf-of-user be the safer choice?**
+
+<details>
+<summary>Show answer</summary>
+
+When users should only see data they are personally allowed to see. If the agent used one shared identity, everyone could reach everything it can reach. On-behalf-of-user makes the agent respect each caller's own permissions, so one user cannot peek at another user's data.
+
+</details>
+
+**12. How are these permissions actually governed?**
+
+<details>
+<summary>Show answer</summary>
+
+Through Unity Catalog grants: things like SELECT on data, EXECUTE on functions, USE on catalogs and schemas, and access to serving endpoints. You grant least privilege, meaning just enough access to do the job and no more. That keeps the blast radius small if something goes wrong.
+
+</details>
+
+**13. What is the difference between a rate limit and a budget?**
+
+<details>
+<summary>Show answer</summary>
+
+A rate limit caps how much traffic flows, like requests or tokens per period, to keep any one app from flooding the system. A budget caps how much money gets spent and can send alerts as you approach the limit. Rate limits control volume; budgets control dollars.
+
+</details>
+
+**14. How do inference tables and usage dashboards help you manage cost?**
+
+<details>
+<summary>Show answer</summary>
+
+Inference tables log every request and response to Delta, so you can run SQL to see exactly which app or user is spending what. Usage tracking and cost observability dashboards turn that into an at-a-glance view. Together they give you the visibility to spot waste before the bill surprises you.
+
+</details>
+
+**15. Beyond guardrails and budgets, what else keeps costs down from earlier in the course?**
+
+<details>
+<summary>Show answer</summary>
+
+The token-reducing tuning levers from Part 7: things like trimming prompts, retrieving less context, and picking a right-sized model. Fewer tokens per request means lower cost per request. Governance caps the ceiling; good tuning lowers the everyday spend underneath it.
+
+</details>
+
+## You made it!
+
+That is Part 9 wrapped, and it is one of the most valuable parts to be able to talk about, because it shows you think about safety and money, not just clever features. If a few answers were fuzzy, that is completely normal. Re-open the lesson, re-read that one idea, and it will click.
+
+Next up is Part 10: the Capstone, where you get to bring everything together and build something end to end. This is the fun part. See you there!
