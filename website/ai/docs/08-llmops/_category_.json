@@ -1,0 +1,12 @@
+{
+  "label": "Part 8 · Production LLMOps",
+  "position": 8,
+  "collapsible": true,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "slug": "/category/part-8-llmops",
+    "title": "Part 8 · Deploying to Production (LLMOps)",
+    "description": "Ship agents like real software: log and register agents to Unity Catalog, deploy them as endpoints, version and optimize prompts with the Prompt Registry, and run CI/CD with safe rollout and rollback."
+  }
+}

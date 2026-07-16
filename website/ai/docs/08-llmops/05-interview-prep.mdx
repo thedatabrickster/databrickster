@@ -1,0 +1,164 @@
+---
+sidebar_position: 5
+title: "Part 8 · Interview Prep"
+description: A friendly self-check to help you talk confidently about logging, deploying, and safely rolling back AI agents on Databricks.
+---
+
+# Part 8 · Interview Prep
+
+Nice work reaching the end of Part 8! You just learned how AI agents get shipped like real software: logged, registered, deployed, and rolled back when something goes wrong. That is a big step, so take a breath and be proud.
+
+This page is a gentle self-check. Read each question, say your answer out loud (or in your head), and then peek. There are no grades here. If you miss one, that just tells you what to skim again.
+
+:::tip Try answering first
+Cover the answer, give it your best shot, and only then open the toggle. Recalling before peeking is what makes it stick. Getting some wrong is part of learning, not a problem.
+:::
+
+Covers: [Logging and Registering Agents](/docs/llmops/log-and-register), [Deploying Agents](/docs/llmops/deploy-agents), [Prompt Registry](/docs/llmops/prompt-registry), and [CI/CD and Rollback for Agents](/docs/llmops/cicd-and-rollback).
+
+## Section 1 · Logging and registering agents
+
+**1. What does it mean to "log" an agent as an MLflow model?**
+
+<details>
+<summary>Show answer</summary>
+
+You capture everything needed to reproduce the agent in one bundle: its code, its dependencies (the libraries and versions it needs), and its signature (the shape of the inputs and outputs). Think of it as packing the agent into a sealed box so it runs the same way anywhere.
+
+</details>
+
+**2. Logging saves the agent. What does registering add on top of that?**
+
+<details>
+<summary>Show answer</summary>
+
+Registering puts the logged model into Unity Catalog, where it becomes a named, versioned, and governed asset. "Named and versioned" means every update gets its own tracked version, and "governed" means access and permissions are managed centrally. Logging is packing the box; registering is putting it on a labeled shelf everyone can find.
+
+</details>
+
+**3. Why does declaring the resources an agent needs matter so much?**
+
+<details>
+<summary>Show answer</summary>
+
+When you declare the resources an agent uses (like the model endpoints or data it calls), Databricks can wire up the right credentials automatically at deploy time. That means the deployed agent has permission to reach what it needs without you hand-managing secrets. Forget to declare a resource, and the agent may work in your notebook but fail once deployed.
+
+</details>
+
+**4. A teammate says "I logged it, so it is ready for the team to use." What would you gently add?**
+
+<details>
+<summary>Show answer</summary>
+
+Logging is a great first step, but the team usually wants it registered to Unity Catalog too. That is what gives it a name, versions, and governance so others can find it, track changes, and control who can use it. Logging alone is more like a private draft.
+
+</details>
+
+## Section 2 · Deploying agents and the Prompt Registry
+
+**5. What is the one-liner used to deploy a registered agent?**
+
+<details>
+<summary>Show answer</summary>
+
+You call agents.deploy with the model's name and version, for example agents.deploy(name, version). You point it at the exact registered version you want live.
+
+</details>
+
+**6. What does that deploy step actually create for you?**
+
+<details>
+<summary>Show answer</summary>
+
+Quite a lot, all at once: a Model Serving endpoint (so the agent is reachable as a live service), a review app (a simple UI where people can try the agent), and feedback capture (so their responses get recorded). It sets up the whole path from "model" to "something people can use and rate."
+
+</details>
+
+**7. What is "scale-to-zero," and why is it friendly to your budget?**
+
+<details>
+<summary>Show answer</summary>
+
+Scale-to-zero means the serving endpoint can shrink down to using no compute when nobody is calling it, then spin back up when a request arrives. You are not paying for idle time. It is like a light that turns itself off when the room is empty.
+
+</details>
+
+**8. What is the Prompt Registry, in plain terms?**
+
+<details>
+<summary>Show answer</summary>
+
+It is a place to store your prompts as versioned, governed assets, just like you store models. Instead of a prompt being buried inside your code, it lives in the registry with a history of versions and clear ownership.
+
+</details>
+
+**9. What is a prompt alias like "production," and why is it handy?**
+
+<details>
+<summary>Show answer</summary>
+
+An alias is a friendly label that points to a specific prompt version, for example "production" pointing at version 5. Your code loads the prompt by name plus alias rather than by a hard-coded version number. So you can move the "production" alias to a new version and your app picks it up automatically.
+
+</details>
+
+**10. Because of aliases, what can you change without a code deploy?**
+
+<details>
+<summary>Show answer</summary>
+
+The prompt itself. Since the app loads the prompt by name and alias, you can publish a new prompt version or point the alias at a different version, and the running app uses it right away. No rebuild, no redeploy of code. That also means rolling a prompt back is fast: just move the alias to the previous good version.
+
+</details>
+
+**11. The Prompt Registry also helps you improve prompts. How?**
+
+<details>
+<summary>Show answer</summary>
+
+It supports prompt evaluation (scoring how well a prompt performs against examples) and auto-optimization (letting the tooling suggest improved versions of a prompt). So you are not just storing prompts, you are measuring and refining them over time.
+
+</details>
+
+## Section 3 · CI/CD and safe rollback
+
+**12. What are Databricks Asset Bundles doing in a CI/CD pipeline for agents?**
+
+<details>
+<summary>Show answer</summary>
+
+They package your project (code, config, resources) so it can be promoted through environments in a repeatable way, moving from dev to staging to prod. Instead of hand-copying things between workspaces, the bundle defines what ships where, so each environment gets a consistent, reviewed version.
+
+</details>
+
+**13. Why would you gate promotion on an offline evaluation?**
+
+<details>
+<summary>Show answer</summary>
+
+Before letting a new version move up (say from staging to prod), you run it against a test set offline and check that it clears a quality bar. If it does not pass, promotion stops. This catches regressions before real users ever see them, so a weaker version does not slip into production.
+
+</details>
+
+**14. What is a canary or traffic-splitting rollout, and what is a fallback?**
+
+<details>
+<summary>Show answer</summary>
+
+A canary rollout sends only a small slice of traffic to the new version at first, so you can watch how it behaves before trusting it with everything. Traffic-splitting is the general idea of dividing requests across versions. A fallback is a safety net: if the new version misbehaves, requests can be routed to a known-good option instead.
+
+</details>
+
+**15. Something is wrong in production. How do you roll back an agent, and what makes that possible?**
+
+<details>
+<summary>Show answer</summary>
+
+You route traffic back to the last good model version, or, if the problem is the prompt, move the prompt alias back to its previous version. This works because you have versioned models plus versioned prompts plus monitoring: versioning gives you a known-good state to return to, and monitoring tells you when to pull the trigger. Rollback becomes a calm, reversible action instead of a panic.
+
+</details>
+
+## You made it!
+
+That is Part 8 done, and it is a meaty one. If a few answers were fuzzy, that is completely normal. Re-open the lesson, re-read that one idea, and it will click. You now know how agents get shipped and, just as importantly, how to walk them back safely.
+
+Next up is Part 9: Governance, Security & Cost, where you will learn how to keep all of this safe, permissioned, and affordable. See you there!
