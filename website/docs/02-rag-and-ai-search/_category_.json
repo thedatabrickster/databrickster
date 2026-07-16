@@ -7,6 +7,6 @@
     "type": "generated-index",
     "slug": "/category/part-2-rag-and-ai-search",
     "title": "Part 2 · Grounding LLMs in Your Data (RAG & AI Search)",
-    "description": "Teach a model to answer from YOUR documents instead of guessing: what RAG is, how to chunk documents, how to build and query a Databricks Vector Search index, and how to assemble and improve an end-to-end RAG pipeline."
+    "description": "Teach a model to answer from YOUR documents instead of guessing: what RAG is, how to chunk documents, how to build and query a Databricks Vector Search index, how to assemble and improve an end-to-end RAG pipeline, and what it all costs (and how to spend less)."
   }
 }

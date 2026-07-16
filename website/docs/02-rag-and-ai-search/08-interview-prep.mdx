@@ -1,7 +1,7 @@
 ---
-sidebar_position: 7
+sidebar_position: 8
 title: "Part 2 · Interview Prep"
-description: Friendly, active-recall review covering all of Part 2 — RAG, chunking, Vector Search indexes, retrieval, the end-to-end pipeline, and improving quality.
+description: Friendly, active-recall review covering all of Part 2 — RAG, chunking, Vector Search indexes, retrieval, the end-to-end pipeline, improving quality, and cost & storage.
 ---
 
 # Part 2 · Interview Prep
@@ -22,7 +22,8 @@ not failing.
 [Vector Search Index](/docs/rag-and-ai-search/vector-search-index) ·
 [Retrieval](/docs/rag-and-ai-search/retrieval) ·
 [RAG Pipeline](/docs/rag-and-ai-search/rag-pipeline) ·
-[RAG Quality](/docs/rag-and-ai-search/rag-quality)
+[RAG Quality](/docs/rag-and-ai-search/rag-quality) ·
+[Cost & Storage](/docs/rag-and-ai-search/cost-and-storage)
 
 ---
 
@@ -133,6 +134,40 @@ First: look at the *retrieved chunks* and ask whether the needed info is even in
 <details>
 
 Hybrid search blends keyword (exact-term) and semantic (meaning) scoring so exact codes/acronyms and paraphrases both match — it improves the *candidates*. Reranking is a second, careful pass that re-scores the top candidates by reading each one together with the question and keeps the best few — it improves the *ordering*. "Retrieve wide → rerank → answer narrow."
+
+</details>
+
+## Section D — Cost & storage
+
+**D1. Name the four cost centers of a RAG system, and which is paid per question.**
+
+<details>
+
+Embedding the corpus (once, then on refreshes), storage, the Vector Search endpoint (compute while it's up), and the generation call. The **query embedding** and the **generation call** are paid **per question**; generation is usually the largest per-query cost.
+
+</details>
+
+**D2. Costs jumped but traffic was flat. Where do you look first?**
+
+<details>
+
+Index-time costs — most likely a **full re-embed** of the whole corpus (e.g. a nightly rebuild) instead of incremental re-embedding of only changed chunks. Also check for a `CONTINUOUS` or idle endpoint left running.
+
+</details>
+
+**D3. How does `top_k` show up on the bill?**
+
+<details>
+
+Every retrieved chunk becomes input tokens in the generation prompt, billed per token on **every** query. Higher `k` = bigger prompt = more cost and latency (and sometimes worse answers). Retrieve fewer, better chunks (rerank) to keep it down.
+
+</details>
+
+**D4. Estimate storage for 3 million 1024-dim vectors, and say what else adds to it.**
+
+<details>
+
+1024 × 4 bytes ≈ 4 KB each → ~12 GB for vectors alone. Budget ~2–3× more for the source text, metadata, index overhead, and retained Delta history (until you `VACUUM`).
 
 </details>
 
