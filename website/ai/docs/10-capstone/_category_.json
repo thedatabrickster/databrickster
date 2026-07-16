@@ -1,0 +1,12 @@
+{
+  "label": "Part 10 · Capstone",
+  "position": 10,
+  "collapsible": true,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "slug": "/category/part-10-capstone",
+    "title": "Part 10 · Capstone: An End-to-End Enterprise Agent",
+    "description": "Put it all together. Design, build, evaluate, deploy, and govern one complete enterprise AI agent for a fictional firm — using every skill from Parts 0 through 9."
+  }
+}
