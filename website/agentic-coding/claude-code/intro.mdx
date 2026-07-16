@@ -21,7 +21,8 @@ runs, and verifies — with a human in the loop.
 The centerpiece is a hands-on walkthrough: **building a Databricks App with Claude Code**,
 using the official **[Databricks AI Dev Kit](https://github.com/databricks-solutions/ai-dev-kit)**
 to give the assistant governed Databricks tools over MCP. By the end you'll have shipped a
-chat UI in front of an agent — mostly by describing what you want.
+chat UI in front of an agent — mostly by describing what you want — and you'll know how to
+debug, test, and drive larger changes with the assistant safely.
 
 :::note Dual audience by design
 Claude Code is not a Databricks product — it's a general coding agent that works on any
@@ -32,25 +33,39 @@ too.
 
 ## What this subtopic covers
 
-A focused, three-page deep dive. Go in order the first time.
+A full end-to-end track, nine pages, built around one flagship: shipping a Databricks App.
+Go in order the first time.
 
 ```mermaid
 flowchart TD
-    L1["1 · This page<br/>what Claude Code is, why it fits"]
-    L2["2 · Setup<br/>Claude Code + the AI Dev Kit (MCP + skills)"]
-    L3["3 · Build a Databricks App<br/>end-to-end, hands-on flagship"]
+    L1["1 · This page<br/>overview & why it fits"]
+    L2["2 · What Claude Code Is<br/>the agentic loop, tools, modes"]
+    L3["3 · Setup<br/>Claude Code + the AI Dev Kit"]
+    L4["4 · MCP & Tools<br/>the Databricks toolset, governed"]
+    L5["5 · Build a Databricks App<br/>end-to-end flagship"]
+    L6["6 · Debugging & Testing<br/>bugs, tests, traces"]
+    L7["7 · Safe Multi-Step Changes<br/>plan mode, diffs, guardrails"]
+    L8["8 · Good Habits<br/>prompting, verifying, trust"]
+    L9["9 · Interview Prep<br/>active-recall review"]
 
-    L1 --> L2 --> L3
+    L1 --> L2 --> L3 --> L4 --> L5 --> L6 --> L7 --> L8 --> L9
 ```
 
-*The Claude Code subtopic. Each page uses the same running example — Maya, an engineer at
-"Northwind Trust," shipping a governed chat App on Databricks with Claude Code as her pair.*
+*The Claude Code subtopic, end to end. Each page uses the same running example — Maya, an
+engineer at "Northwind Trust," shipping a governed chat App on Databricks with Claude Code
+as her pair.*
 
 ## Pages
 
-1. **This overview** — what Claude Code is, the agentic loop, and why it pairs so well with Databricks work.
-2. **[Setup: Claude Code + the Databricks AI Dev Kit](/agentic-coding/claude-code/setup-ai-dev-kit)** — install Claude Code, install the AI Dev Kit, and connect the MCP server and skills so the assistant can use governed Databricks tools.
-3. **[Build a Databricks App with Claude Code](/agentic-coding/claude-code/build-a-databricks-app)** — the flagship: go from an empty folder to a deployed, governed chat App in front of an agent, driving Claude Code step by step.
+1. **This overview** — what the track covers and why Claude Code pairs so well with Databricks work.
+2. **[What Claude Code Is (and How It Works)](/agentic-coding/claude-code/what-is-claude-code)** — the agentic loop, the tools it uses, its modes and permissions, and the "leverage, not autopilot" framing.
+3. **[Setup: Claude Code + the Databricks AI Dev Kit](/agentic-coding/claude-code/setup-ai-dev-kit)** — install Claude Code and the AI Dev Kit, and connect the MCP server and skills so the assistant can use governed Databricks tools.
+4. **[MCP & the AI Dev Kit's Databricks Tools](/agentic-coding/claude-code/mcp-and-tools)** — how the assistant discovers and calls the 50+ Databricks tools, how skills shape its patterns, and how Unity Catalog keeps every call governed.
+5. **[Build a Databricks App with Claude Code](/agentic-coding/claude-code/build-a-databricks-app)** — the flagship: from an empty folder to a deployed, governed chat App in front of an agent, driving Claude Code step by step.
+6. **[Debugging & Testing with Claude Code](/agentic-coding/claude-code/debugging-and-testing)** — reproduce bugs, write unit and eval tests, mock the LLM, and read traces, with you reviewing every diff.
+7. **[Driving Multi-Step Changes Safely](/agentic-coding/claude-code/safe-multi-step-changes)** — plan mode, diff review, the permission and allow/deny model, checkpoints, subagents, and `CLAUDE.md` guardrails.
+8. **[Good Habits for Agentic Coding](/agentic-coding/claude-code/good-habits)** — how to prompt, how to verify, how to manage context, and when to trust vs. check the agent.
+9. **[Interview Prep: Claude Code & Agentic Coding](/agentic-coding/claude-code/interview-prep)** — a relaxed, active-recall review of the whole track.
 
 ## What Claude Code actually is
 
@@ -99,7 +114,7 @@ reach the platform safely. The **AI Dev Kit** makes that possible:
 - Builds on **[Databricks AI](/docs/intro)** — especially [Authoring Agents](/docs/building-agents/authoring-agents) and [Shipping a Chat UI with Databricks Apps](/docs/building-agents/databricks-apps), which the flagship walkthrough brings to life with an assistant.
 - The habits are portable — see [Beyond Databricks](/docs/beyond-databricks/concepts-are-portable).
 
-Ready? Start with **[Setup: Claude Code + the Databricks AI Dev Kit](/agentic-coding/claude-code/setup-ai-dev-kit)**.
+Ready? Start with **[What Claude Code Is (and How It Works)](/agentic-coding/claude-code/what-is-claude-code)**.
 
 :::info Independent project
 Databrickster is a free, independent educational resource. It is **not affiliated with,

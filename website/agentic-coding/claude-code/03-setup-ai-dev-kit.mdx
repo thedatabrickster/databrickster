@@ -1,5 +1,5 @@
 ---
-sidebar_position: 2
+sidebar_position: 3
 title: "Setup: Claude Code + the Databricks AI Dev Kit"
 description: "Install Claude Code, authenticate the Databricks CLI, and install the official AI Dev Kit so the assistant gains a governed Databricks MCP server (50+ tools) and skills — turning a general coding agent into a Databricks-aware one."
 ---
@@ -14,8 +14,8 @@ description: "Install Claude Code, authenticate the Databricks CLI, and install 
 
 This page gets you from nothing to a working setup: Claude Code installed, the Databricks
 CLI authenticated, and the [AI Dev Kit](https://github.com/databricks-solutions/ai-dev-kit)
-installed so the assistant can reach your workspace over MCP. The next page uses this
-setup to build a real Databricks App.
+installed so the assistant can reach your workspace over MCP. The next pages use this
+setup — first to understand the tools the assistant gains, then to build a real Databricks App.
 
 Take a breath — it's a handful of one-time commands. Once it's done, you rarely touch it
 again.
@@ -37,7 +37,7 @@ Before this page, it helps to have:
 
 - A **Databricks workspace** you can log into, with permission to create catalogs/schemas, jobs, and Apps (or a dev workspace where that's fine).
 - Comfort with a terminal and a Python virtual environment — see [Setting Up VS Code for AI Engineering](/agentic-coding/vscode/setup-vscode-for-ai).
-- Read the [Claude Code overview](/agentic-coding/claude-code/intro) so the agentic-loop mental model is fresh.
+- Read [What Claude Code Is](/agentic-coding/claude-code/what-is-claude-code) so the agentic-loop mental model is fresh.
 
 You do **not** need deep Databricks CLI experience — we'll set it up here.
 
@@ -369,7 +369,7 @@ what you want.
 
 ## Next Lesson
 
-Your assistant can now reach Databricks, governed and as you. Time to put it to work and
-ship something real.
+Your assistant can now reach Databricks, governed and as you. Before we build with it,
+let's see exactly what tools it just gained and how it decides to use them.
 
-➡️ [Build a Databricks App with Claude Code](/agentic-coding/claude-code/build-a-databricks-app)
+➡️ [MCP & the AI Dev Kit's Databricks Tools](/agentic-coding/claude-code/mcp-and-tools)

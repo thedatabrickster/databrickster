@@ -1,5 +1,5 @@
 ---
-sidebar_position: 3
+sidebar_position: 5
 title: "Build a Databricks App with Claude Code"
 description: "An end-to-end, hands-on walkthrough: use Claude Code and the Databricks AI Dev Kit to go from an empty folder to a deployed, governed chat App in front of an agent endpoint — driving the assistant with plain-English prompts and reviewing every step."
 ---
@@ -40,6 +40,7 @@ By the end of this page, you will be able to:
 You need the setup from the previous page working:
 
 - [Claude Code + the AI Dev Kit installed](/agentic-coding/claude-code/setup-ai-dev-kit), with `claude mcp list` showing the Databricks server.
+- A feel for [the tools the assistant gained](/agentic-coding/claude-code/mcp-and-tools) — this walkthrough puts several of them to work.
 - An authenticated **Databricks CLI** profile (we'll call it `northwind-dev`).
 - A **deployed agent serving endpoint** to point the App at — from [Authoring an Agent](/docs/building-agents/authoring-agents) / [Deploying Agents](/docs/llmops/deploy-agents). We'll use one named `northwind-advisor`. (No endpoint yet? You can still follow along and have the assistant stub the call, then swap in a real endpoint later.)
 
@@ -447,14 +448,19 @@ you ship more, and you still know exactly what shipped.
 - [Claude Code documentation](https://docs.claude.com/en/docs/claude-code) — plan mode, permissions, models, and MCP.
 - Our own [Shipping a Chat UI with Databricks Apps](/docs/building-agents/databricks-apps) — the same App, built by hand, for a deeper look at the code.
 
-## Where to go next
+You've now used Claude Code to ship a governed Databricks App end to end. Nicely done —
+you drove an agent to build an app that fronts another agent. That's agentic coding on
+Databricks. 🚀
 
-You've now used Claude Code to ship a governed Databricks App end to end. From here:
+Related paths worth a detour: make deploys reproducible with
+[Asset Bundles](/agentic-coding/vscode/asset-bundles), revisit the sibling
+[VS Code](/agentic-coding/vscode/intro) subtopic (the AI Dev Kit works with its assistants
+too — [AI Assistants & MCP](/agentic-coding/vscode/ai-assistants-and-mcp)), or go deeper on
+*what* you're building in the [Databricks AI](/docs/intro) track.
 
-- Fold this into a **repo-first, tested** workflow — see [Debugging & Testing Agents Locally](/agentic-coding/vscode/debugging-and-testing) and [A Repo-First AI Project](/agentic-coding/vscode/repo-first-project).
-- Make deploys reproducible with [Asset Bundles](/agentic-coding/vscode/asset-bundles).
-- Revisit the sibling [VS Code](/agentic-coding/vscode/intro) subtopic — the AI Dev Kit works with VS Code's assistants too ([AI Assistants & MCP](/agentic-coding/vscode/ai-assistants-and-mcp)).
-- Go deeper on *what* you're building in the [Databricks AI](/docs/intro) track.
+## Next Lesson
 
-Nicely done — you drove an agent to build an app that fronts another agent. That's agentic
-coding on Databricks. 🚀
+Shipping is the fun part — but real work means bugs and tests. Next, put Claude Code to
+work on the unglamorous, high-value stuff.
+
+➡️ [Debugging & Testing with Claude Code](/agentic-coding/claude-code/debugging-and-testing)

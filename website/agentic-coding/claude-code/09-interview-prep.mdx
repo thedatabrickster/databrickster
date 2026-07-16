@@ -1,0 +1,394 @@
+---
+sidebar_position: 9
+title: "Interview Prep: Claude Code & Agentic Coding"
+description: "Friendly, active-recall review of the whole Claude Code subtopic — what agentic coding assistants are, MCP + the AI Dev Kit, building and deploying a Databricks App, debugging & testing, safe multi-step changes, and good habits."
+---
+
+# Interview Prep: Claude Code & Agentic Coding
+
+Take a breath — you covered a lot of ground. You went from *"an AI can autocomplete a
+line"* to *"I can pair with an agentic assistant that reads my repo, plans a change, edits
+files, calls governed Databricks tools, runs my tests, and helps me ship a real App — all
+while I stay in the driver's seat."* That is exactly the skill set that separates someone
+who *tinkers* with AI from someone who *ships* it responsibly.
+
+This page is your relaxed checkpoint. Read each question, answer it out loud in your own
+words, then peek. The goal is not to memorize commands (those evolve — always verify in the
+docs) — it is to be able to *explain* these ideas to an interviewer, or a nervous teammate,
+with calm confidence.
+
+:::tip One gentle rule
+Try to answer *before* you open the toggle. A shaky answer from memory teaches you far
+more than a polished one you just re-read. If a question won't come, hop back to the
+lesson — that's studying, not failing.
+:::
+
+**Covers:**
+[What Is Claude Code?](/agentic-coding/claude-code/what-is-claude-code) ·
+[Set Up the AI Dev Kit](/agentic-coding/claude-code/setup-ai-dev-kit) ·
+[MCP & Tools](/agentic-coding/claude-code/mcp-and-tools) ·
+[Build a Databricks App](/agentic-coding/claude-code/build-a-databricks-app) ·
+[Debugging & Testing](/agentic-coding/claude-code/debugging-and-testing) ·
+[Safe Multi-Step Changes](/agentic-coding/claude-code/safe-multi-step-changes) ·
+[Good Habits](/agentic-coding/claude-code/good-habits)
+
+---
+
+## Section A — What Claude Code is, and the agentic loop
+
+**A1. In one or two sentences, what is Claude Code?**
+
+<details>
+<summary>Show answer</summary>
+
+Claude Code is Anthropic's agentic *command-line* coding assistant: it runs in your
+terminal, reads your actual repo, and works in a loop — gathering context, editing files,
+running commands, and checking the results — under your direction. It's **not** a Databricks
+product; it's a general coding agent. The **AI Dev Kit** is what makes it Databricks-aware.
+
+</details>
+
+**A2. Describe the agentic loop Claude Code runs.**
+
+<details>
+<summary>Show answer</summary>
+
+**Gather context** (read, grep, glob files to understand the code) → **act** (edit files,
+run bash commands) → **verify** (run tests, read the output, lint) → **repeat** until the
+task is done. It's the same reason/act/observe idea behind any agent, applied to your
+codebase. The crucial part: *you* supply the intent and review the work — the loop doesn't
+replace your judgment, it accelerates it.
+
+</details>
+
+**A3. What does "leverage, not autopilot" mean, and why insist on it?**
+
+<details>
+<summary>Show answer</summary>
+
+Claude Code multiplies what you can do — scaffolding, refactors, tests, wiring up
+integrations — but you stay responsible for the outcome. Autopilot means merging code you
+never read; leverage means letting it draft and drive while you review diffs, run the
+tests, and make the calls that need judgment. In a governed shop like a bank, that's not
+optional — someone accountable has to understand what shipped.
+
+</details>
+
+**A4. How is this different from plain autocomplete or a chat window you paste code into?**
+
+<details>
+<summary>Show answer</summary>
+
+Autocomplete predicts the next token; a chat window is blind to your repo unless you paste.
+Claude Code is *agentic and repo-aware*: it can open the files it needs, run your test
+suite, see the error, and fix it — a multi-step loop against your real project, not a
+one-shot suggestion. It closes its own feedback loop instead of handing you a snippet to go
+integrate by hand.
+
+</details>
+
+## Section B — The AI Dev Kit, MCP, and governance
+
+**B1. What is the AI Dev Kit, and what does it add to Claude Code?**
+
+<details>
+<summary>Show answer</summary>
+
+It's Databricks' open-source kit that makes a general coding agent **Databricks-aware**. It
+provides an **MCP server** exposing Databricks capabilities as tools (Unity Catalog
+functions, Vector Search, Genie, jobs, and more) plus **skills** — packaged, on-demand
+instructions (`SKILL.md` files) that teach Claude Code how to do Databricks-specific tasks
+the right way. Together they turn "a smart terminal agent" into "a smart terminal agent that
+knows your workspace."
+
+</details>
+
+**B2. What are skills, and how do they get used?**
+
+<details>
+<summary>Show answer</summary>
+
+Skills are `SKILL.md` files (under `.claude/skills/<name>/`) that bundle instructions for a
+particular kind of task — a deploy procedure, a review checklist, a repo-specific workflow.
+They load **on demand**: Claude Code auto-invokes one when it's relevant, or you run it
+manually as a slash command. Because they only load when used, they keep the base context
+lean while still giving expert guidance exactly when it's needed.
+
+</details>
+
+**B3. In plain terms, what is MCP, and what's the client/server split?**
+
+<details>
+<summary>Show answer</summary>
+
+MCP (Model Context Protocol) is an open standard for connecting an agent to tools and data —
+a universal plug. Claude Code is the **client**; an **MCP server** (like the AI Dev Kit's)
+advertises a set of tools. The client discovers what tools exist, then calls them over the
+standard protocol. Build a tool to the standard once, and any MCP-aware agent can use it —
+no bespoke wiring per assistant.
+
+</details>
+
+**B4. How does tool discovery work, and how do you add a server?**
+
+<details>
+<summary>Show answer</summary>
+
+On connecting, the client asks the server what tools it offers and reads each tool's name,
+description, and parameter schema — that's discovery. You add a server with something like
+`claude mcp add [--scope local|user|project] [--transport http|stdio] <name> <target>`, list
+them with `claude mcp list`, and use `/mcp` in-session to see/authenticate servers.
+Project-scoped servers live in a `.mcp.json` at the repo root and are shared via git — verify
+exact flags in the current docs, they evolve.
+
+</details>
+
+**B5. The governance question: when Claude Code calls a Databricks tool over MCP, whose permissions apply?**
+
+<details>
+<summary>Show answer</summary>
+
+**Yours.** The assistant acts under *your* identity — it isn't a separate super-user. Unity
+Catalog still decides whether each call is allowed, checked per call: if you can't run a
+function or read a table, neither can the agent on your behalf. MCP standardizes *how* it
+asks; Unity Catalog governs *whether* it may. The model proposes; the governed layer
+disposes.
+
+</details>
+
+**B6. First time a session uses a new MCP server's tool, what happens?**
+
+<details>
+<summary>Show answer</summary>
+
+You get an approval prompt. The first use of a server's tool asks for your consent before it
+runs — a deliberate checkpoint so a newly added server can't silently start acting. It's the
+same "human at the boundary" principle that runs through all of this.
+
+</details>
+
+## Section C — Building and deploying a Databricks App
+
+**C1. What's the plan → diff → approve → deploy → verify rhythm, and why follow it?**
+
+<details>
+<summary>Show answer</summary>
+
+It's the safe cadence for letting an agent build something real: **plan** (agree on the
+approach before any edits), **diff** (it proposes concrete file changes), **approve** (you
+review and okay them), **deploy** (push the App to Databricks), **verify** (confirm it
+actually works — hit the endpoint, check logs). Each stage is a checkpoint where a human can
+catch a wrong turn cheaply, instead of discovering it in production.
+
+</details>
+
+**C2. Key distinction: what's the difference between a file edit and an MCP tool call, and what does "approving" mean for each?**
+
+<details>
+<summary>Show answer</summary>
+
+A **file edit** changes bytes on your disk — reversible locally, caught by git, undoable.
+An **MCP tool call** reaches out and *does something in a real system* — queries a table,
+deploys a resource, runs a job — with side effects you may not be able to take back.
+Approving an edit means "yes, change this file"; approving a tool call means "yes, take this
+action in the live workspace." Treat the second with more care — a bad edit you revert; a bad
+deploy you may have to clean up.
+
+</details>
+
+**C3. Three rules for building a governed Databricks App — name them.**
+
+<details>
+<summary>Show answer</summary>
+
+1. **Never hardcode secrets.** No tokens or keys in code; use environment/config and secret
+   scopes so nothing sensitive lands in git.
+2. **Bind the endpoint as a resource**, not a pasted URL+token. Declaring the model-serving
+   endpoint as an App resource means the platform injects governed, rotatable credentials —
+   auth stays managed instead of copied around.
+3. **Keep the App a thin storefront.** The App is UI and orchestration; the real logic,
+   data access, and governance live behind it (serving endpoints, Unity Catalog functions).
+   A thin front end is easier to secure, test, and reason about.
+
+</details>
+
+**C4. Why is "thin storefront" more than a style preference?**
+
+<details>
+<summary>Show answer</summary>
+
+Because the App runs where users reach it, so it's the most exposed surface. If it holds
+business logic and direct data access, every bug there is a security and correctness risk. Push
+logic behind governed endpoints and UC-permissioned functions, and the App just renders and
+routes — the sensitive work happens where it's already governed and testable. Smaller blast
+radius, cleaner separation.
+
+</details>
+
+## Section D — Debugging, testing, and safe multi-step changes
+
+**D1. How do you use Claude Code to debug, without being led astray?**
+
+<details>
+<summary>Show answer</summary>
+
+Give it the real signal — the failing test, the stack trace, the actual log line — and let
+it read the surrounding code, form a hypothesis, and propose a fix. The discipline is
+**verify, don't trust**: rerun the test and confirm it passes, read the diff, check that it
+fixed the *cause* and not just silenced the symptom. The agent is great at generating
+candidate explanations fast; you're the one who confirms which is true.
+
+</details>
+
+**D2. When writing tests for LLM-powered code, why mock the LLM, and what stays a real test?**
+
+<details>
+<summary>Show answer</summary>
+
+You **mock/stub the LLM call** in unit tests so they're fast, deterministic, and free —
+they exercise *your* logic (parsing, tool wiring, prompt building, error handling) with a
+canned model response, not a live model that's slow and flaky. Quality of the model's actual
+output is a *different* kind of check — an eval over a dataset, often scored by judges. Unit
+tests prove the plumbing works; evals measure whether the answers are good.
+
+</details>
+
+**D3. What is plan mode, and why is it the highest-leverage safety control?**
+
+<details>
+<summary>Show answer</summary>
+
+In plan mode the assistant explores and proposes a plan **without editing anything** — you
+approve before it acts. It's highest-leverage because it catches a wrong approach at the
+*cheapest* possible moment (before a single file changes), and it forces the intent to be
+explicit and reviewable. You cycle permission modes with Shift+Tab; plan is the one that says
+"think out loud first, act only when I say so."
+
+</details>
+
+**D4. How do settings.json allow/deny lists and permission modes keep multi-step changes safe?**
+
+<details>
+<summary>Show answer</summary>
+
+`settings.json` (project `.claude/settings.json`, gitignored `.local` variant, or
+`~/.claude/settings.json`) carries a `permissions` object with `allow`/`deny` arrays that
+pre-decide which tools/commands run without prompting and which are forbidden outright.
+Permission **modes** set the default posture — plan (no writes), manual/default (ask before
+writes and bash), accept-edits (auto-allow edits and safe fs). Reads and safe bash (`ls`,
+`cat`, `pwd`) don't prompt. Together they let you widen autonomy for boring work and keep a
+hard fence around the dangerous stuff.
+
+</details>
+
+**D5. If a multi-step change goes wrong, how do you recover?**
+
+<details>
+<summary>Show answer</summary>
+
+Claude Code snapshots files before edits, so you can **undo** (e.g. Esc twice) or just ask
+it to revert the change. And because everything lives in git, a branch and a clean diff mean
+the ultimate safety net is always there — reset, discard, or roll back. You're never trusting
+that it got everything right the first time; you're keeping cheap escape hatches.
+
+</details>
+
+**D6. What are subagents and CLAUDE.md, and when do they earn their keep?**
+
+<details>
+<summary>Show answer</summary>
+
+**Subagents** (defined in `.claude/agents/*.md`) run in their own context window and return
+a summary — great for research, large sweeps, or work you want to run under restricted
+permissions, without cluttering the main thread. **CLAUDE.md** is project memory loaded
+*every* session (project `./CLAUDE.md`, user `~/.claude/CLAUDE.md`) — the place to write your
+conventions and guardrails once so you don't repeat them each time. Subagents scale *effort*;
+CLAUDE.md scales *consistency*.
+
+</details>
+
+## Section E — Good habits
+
+**E1. What makes a good prompt for an agentic assistant?**
+
+<details>
+<summary>Show answer</summary>
+
+Clear intent, concrete acceptance criteria, and the relevant context up front — "add a
+retry with backoff to the serving client, keep the existing signature, add a unit test with
+the LLM mocked" beats "make this more robust." Point it at the right files, say how you'll
+know it's done, and let it plan before it acts. Vague asks get vague work.
+
+</details>
+
+**E2. How do you manage context so the assistant stays sharp?**
+
+<details>
+<summary>Show answer</summary>
+
+Keep the working context focused: use CLAUDE.md for durable conventions, `/context` to see
+what's loaded, `/compact` when a long session gets noisy, and subagents to offload big
+side-quests so they don't crowd the main thread. Skills help too, since they load only when
+relevant. A lean, relevant context produces better decisions than a giant blurry one.
+
+</details>
+
+**E3. What's your rule of thumb for when to trust the assistant vs. when to check?**
+
+<details>
+<summary>Show answer</summary>
+
+Scale scrutiny to blast radius. Reversible, low-stakes work (a local refactor with tests, a
+throwaway script) — let it run and skim the result. Anything that touches production,
+governance, secrets, data, or is hard to undo — read every line, run the checks, approve
+deliberately. Trust the tests and the diff, not the confident prose; verify anything that
+would hurt if it were wrong.
+
+</details>
+
+## A tiny scenario to tie it together
+
+**Q. Maya at Northwind Trust needs to ship a governed internal support App on Databricks, and wants to pair with Claude Code to do it. Walk through how she'd get it done safely.**
+
+<details>
+<summary>Show answer</summary>
+
+1. **Set up awareness.** Install the **AI Dev Kit** so Claude Code has the Databricks MCP
+   server (UC functions, Vector Search, Genie) and skills. Add a **CLAUDE.md** with
+   Northwind's conventions and guardrails so every session starts on-rules.
+2. **Plan first.** In **plan mode**, ask for an approach: a thin App front end over a
+   model-serving endpoint, with logic behind governed tools. Review the plan before any edit.
+3. **Build via diffs.** Let it scaffold and edit, approving diffs as they come. **No
+   hardcoded secrets**; **bind the serving endpoint as a resource** so credentials are
+   managed; keep the App a **thin storefront**.
+4. **Governed tool calls.** When Claude Code calls Databricks tools over MCP, they run under
+   **Maya's identity** — **Unity Catalog decides** what's allowed, per call.
+5. **Test and debug.** Unit tests with the **LLM mocked** for speed and determinism; feed it
+   real stack traces to debug; **verify, don't trust** — rerun the tests.
+6. **Deploy and verify.** Push the App, then confirm it actually works end to end — hit it,
+   read the logs. Approving a *deploy* tool call is a real action, so she does it deliberately.
+7. **Stay safe throughout.** `settings.json` allow/deny lists widen autonomy for the boring
+   parts and fence the dangerous ones; checkpoints and git give cheap undo if something turns.
+
+That's the whole arc: aware → plan → diff → govern → verify → deploy — leverage with a human
+firmly in the loop.
+
+</details>
+
+## Where to go next
+
+You've finished the **Claude Code** subtopic. A few natural directions:
+
+- **[VS Code for Agentic Coding](/agentic-coding/vscode/intro)** — the sibling subtopic on
+  using a full IDE as a professional environment for building agents. The habits travel:
+  repos, tests, MCP, and human-in-the-loop review show up there too.
+- **[Databricks AI](/docs/intro)** — the track that teaches *what* you're building: LLM
+  foundations, RAG, agents, evaluation, and production LLMOps. This subtopic taught a *how*;
+  that track is the *what*.
+- **[Databricks Apps](/docs/building-agents/databricks-apps)** — go deeper on the App you
+  just learned to ship with an assistant.
+- **[Beyond Databricks](/docs/beyond-databricks/concepts-are-portable)** — because a good
+  agent-plus-editor workflow, and the "leverage not autopilot" discipline, travel with you
+  across any AI stack.
+
+Nicely done. Go build something — and ship it with a human in the loop. 🚀
