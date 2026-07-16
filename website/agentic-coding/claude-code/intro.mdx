@@ -1,32 +1,108 @@
 ---
 sidebar_position: 1
-title: Claude Code for AI Engineers
-description: Coming soon — using Claude Code, an agentic coding assistant, to build AI software faster.
+title: Claude Code for Databricks AI Engineers
+description: Use Claude Code — an agentic coding assistant — to build AI software faster, and wire it to Databricks with the official AI Dev Kit so it can create jobs, pipelines, and Apps under your workspace governance.
 ---
 
-# Claude Code for AI Engineers
+# Claude Code for Databricks AI Engineers
 
-:::note Coming soon
-Placeholder for the **Claude Code** subtopic of [Agentic Coding](/agentic-coding).
-Here's the plan.
+> Imagine hiring a sharp new teammate who reads your entire repository in seconds, writes
+> and runs code, edits many files at once, and drives a change from idea to working
+> software — all while you review each step. That teammate is **Claude Code**. This
+> subtopic is about pairing with it well, and pointing it at **Databricks** so it can
+> actually build things in your workspace.
+
+You already know *what* to build — the [Databricks AI](/docs/intro) track taught agents,
+RAG, evaluation, and deployment. The [VS Code](/agentic-coding/vscode/intro) subtopic set
+up a professional editor. This subtopic goes deep on the **agentic assistant** you work
+*with* inside that editor: Claude Code, a command-line coding agent that plans, edits,
+runs, and verifies — with a human in the loop.
+
+The centerpiece is a hands-on walkthrough: **building a Databricks App with Claude Code**,
+using the official **[Databricks AI Dev Kit](https://github.com/databricks-solutions/ai-dev-kit)**
+to give the assistant governed Databricks tools over MCP. By the end you'll have shipped a
+chat UI in front of an agent — mostly by describing what you want.
+
+:::note Dual audience by design
+Claude Code is not a Databricks product — it's a general coding agent that works on any
+codebase. The **AI Dev Kit** is the bridge that makes it Databricks-aware. So the habits
+here (planning, reviewing diffs, MCP, guardrails) travel with you to non-Databricks work
+too.
 :::
 
-> Claude Code is an agentic coding assistant that can read your repo, write and run
-> code, edit many files, and drive multi-step changes — with you in the loop. This
-> subtopic is about using it well as an AI engineer.
+## What this subtopic covers
 
-## Planned lessons
+A focused, three-page deep dive. Go in order the first time.
 
-- **What Claude Code is and how it works** — the agentic loop applied to your codebase (read, plan, edit, run, verify).
-- **Scaffolding AI projects** — generating agent skeletons, tools, tests, and Asset Bundles from a prompt.
-- **Refactoring & debugging** — using it to trace bugs, write tests, and reproduce failures.
-- **Driving multi-step changes safely** — reviewing diffs, keeping a human in the loop, and knowing where it needs guardrails.
-- **Claude Code + Databricks via MCP** — connecting to Unity Catalog functions, Vector Search, and Genie so the assistant can use governed tools.
-- **Good habits** — prompting, verification, and when to trust vs check the agent.
+```mermaid
+flowchart TD
+    L1["1 · This page<br/>what Claude Code is, why it fits"]
+    L2["2 · Setup<br/>Claude Code + the AI Dev Kit (MCP + skills)"]
+    L3["3 · Build a Databricks App<br/>end-to-end, hands-on flagship"]
 
-## Related
+    L1 --> L2 --> L3
+```
 
-- Pairs with the [VS Code](/agentic-coding/vscode/intro) subtopic.
-- The concepts here mirror the agent ideas in the [Databricks AI](/docs/agents-tools-mcp/what-is-an-agent) track — Claude Code is itself a tool-using agent.
+*The Claude Code subtopic. Each page uses the same running example — Maya, an engineer at
+"Northwind Trust," shipping a governed chat App on Databricks with Claude Code as her pair.*
 
-*On the roadmap.*
+## Pages
+
+1. **This overview** — what Claude Code is, the agentic loop, and why it pairs so well with Databricks work.
+2. **[Setup: Claude Code + the Databricks AI Dev Kit](/agentic-coding/claude-code/setup-ai-dev-kit)** — install Claude Code, install the AI Dev Kit, and connect the MCP server and skills so the assistant can use governed Databricks tools.
+3. **[Build a Databricks App with Claude Code](/agentic-coding/claude-code/build-a-databricks-app)** — the flagship: go from an empty folder to a deployed, governed chat App in front of an agent, driving Claude Code step by step.
+
+## What Claude Code actually is
+
+Claude Code is an **agentic coding assistant** that runs in your terminal (and integrates
+with editors like VS Code). "Agentic" means it runs the same reason → act → observe loop
+you learned about in [What Is an AI Agent?](/docs/agents-tools-mcp/what-is-an-agent) — but
+its tools are *your development environment*: it reads files, edits them, runs shell
+commands, runs tests, and reads the output to decide what to do next.
+
+```mermaid
+graph LR
+    You["You<br/>(intent + review)"] --> CC["Claude Code<br/>(the agent)"]
+    CC -->|reads| Repo["Your repo"]
+    CC -->|edits| Repo
+    CC -->|runs| Shell["Shell / tests"]
+    Shell -->|output| CC
+    CC -->|calls governed tools| MCP["Databricks MCP server<br/>(AI Dev Kit)"]
+    MCP --> DBX["Databricks workspace<br/>(Unity Catalog governs access)"]
+    CC -->|proposes diffs| You
+```
+
+*How Claude Code works: it drives your repo and shell, and — once wired to the AI Dev
+Kit's MCP server — it can also call governed Databricks tools. You stay in the loop,
+reviewing diffs and approving actions.*
+
+The important framing for an engineer: **Claude Code is leverage, not autopilot.** It
+scaffolds, refactors, writes tests, and drives multi-step changes fast. You supply the
+intent, review the diffs, and hold the guardrails — exactly the discipline the
+[repo-first](/agentic-coding/vscode/repo-first-project) and
+[debugging & testing](/agentic-coding/vscode/debugging-and-testing) lessons build.
+
+## Why it pairs so well with Databricks
+
+Building on Databricks means a lot of *glue*: create a catalog and schema, register a
+function, deploy a job, stand up a serving endpoint, wire a chat App to it. That glue is
+exactly the kind of well-documented, pattern-heavy work an agent is good at — *if* it can
+reach the platform safely. The **AI Dev Kit** makes that possible:
+
+- **An MCP server** exposing 50+ Databricks tools (SQL, Unity Catalog, jobs, pipelines, MLflow, model serving, **Databricks Apps**), so Claude Code can *do* things in your workspace — see [MCP](/docs/agents-tools-mcp/mcp).
+- **Skills** — curated markdown guides that teach the assistant Databricks patterns and best practices, so its suggestions follow the platform's grain.
+- **Your identity and Unity Catalog still govern everything.** The assistant acts through your Databricks CLI credentials and gets only the access you have.
+
+## How it connects to the rest of the site
+
+- Sibling of the **[VS Code](/agentic-coding/vscode/intro)** subtopic — that one sets up the *environment*; this one goes deep on the *assistant* you work with inside it. In fact, the AI Dev Kit installs for [VS Code's AI assistants too](/agentic-coding/vscode/ai-assistants-and-mcp).
+- Builds on **[Databricks AI](/docs/intro)** — especially [Authoring Agents](/docs/building-agents/authoring-agents) and [Shipping a Chat UI with Databricks Apps](/docs/building-agents/databricks-apps), which the flagship walkthrough brings to life with an assistant.
+- The habits are portable — see [Beyond Databricks](/docs/beyond-databricks/concepts-are-portable).
+
+Ready? Start with **[Setup: Claude Code + the Databricks AI Dev Kit](/agentic-coding/claude-code/setup-ai-dev-kit)**.
+
+:::info Independent project
+Databrickster is a free, independent educational resource. It is **not affiliated with,
+endorsed by, or sponsored by Databricks, Inc.** "Databricks" and related marks belong to
+their respective owners. Claude Code is a product of Anthropic.
+:::

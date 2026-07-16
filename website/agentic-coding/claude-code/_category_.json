@@ -4,9 +4,7 @@
   "collapsible": true,
   "collapsed": true,
   "link": {
-    "type": "generated-index",
-    "slug": "/claude-code",
-    "title": "Claude Code for AI Engineers",
-    "description": "Use Claude Code, an agentic coding assistant, to build AI software faster. Coming soon."
+    "type": "doc",
+    "id": "claude-code/intro"
   }
 }
