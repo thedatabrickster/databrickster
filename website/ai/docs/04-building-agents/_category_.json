@@ -1,0 +1,12 @@
+{
+  "label": "Part 4 · Building Agents",
+  "position": 4,
+  "collapsible": true,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "slug": "/category/part-4-building-agents",
+    "title": "Part 4 · Building Agents on Databricks",
+    "description": "Actually build agents: the agent development lifecycle, authoring code-first agents with MLflow's ResponsesAgent, the low-code Agent Bricks (Knowledge Assistant, Multi-agent Supervisor), Genie for conversational analytics, and shipping a chat UI with Databricks Apps."
+  }
+}

@@ -1,0 +1,207 @@
+---
+sidebar_position: 8
+title: "Part 4 · Interview Prep"
+description: A friendly self-check to review everything you learned about building agents on Databricks.
+---
+
+# Part 4 · Interview Prep
+
+You made it through Part 4. That is a big deal. You went from "what even is an agent?" to understanding a whole toolkit for building them on Databricks. This page is just a gentle way to check what stuck.
+
+Read each question, say your answer out loud (or in your head), and only then open the hidden answer to compare. There are no grades here. If something feels fuzzy, that is totally normal on a first pass. Take a breath and enjoy seeing how much you already know.
+
+:::tip
+Try to answer before you peek. Even a rough, half-formed answer helps the idea stick far better than reading the solution first. Guessing is part of learning, not a mistake.
+:::
+
+**Covers:** [The Agent Development Lifecycle](/docs/building-agents/agent-dev-lifecycle) · [Authoring an Agent with ResponsesAgent](/docs/building-agents/authoring-agents) · [Agent Bricks](/docs/building-agents/agent-bricks) · [Knowledge Assistant](/docs/building-agents/knowledge-assistant) · [Multi-Agent Supervisor](/docs/building-agents/multi-agent-supervisor) · [Genie](/docs/building-agents/genie-agents) · [Databricks Apps](/docs/building-agents/databricks-apps)
+
+---
+
+## Section A · The Lifecycle and Authoring
+
+You know how to move a table through a data pipeline. An agent has its own journey too. These questions revisit how an agent gets built and shipped, and how you write one in code.
+
+**1. What are the main stages of the agent development lifecycle?**
+
+<details>
+<summary>Show answer</summary>
+
+The lifecycle is: build → trace → evaluate → register to Unity Catalog → deploy as a Model Serving endpoint → monitor. And here is the friendly part: it is iterative. You loop back and improve. Nobody nails an agent on the first try, and the process expects that.
+
+</details>
+
+**2. Where does a finished agent get registered, and how is it served to users?**
+
+<details>
+<summary>Show answer</summary>
+
+You register the agent in Unity Catalog, the same governance layer you already use for tables. From there you deploy it as a Model Serving endpoint (using `agents.deploy`), which gives it a live URL that apps and services can call.
+
+</details>
+
+**3. Why does the lifecycle include a "monitor" step even after deployment?**
+
+<details>
+<summary>Show answer</summary>
+
+Because an agent's job is never truly "done." Real users ask things you did not anticipate, and quality can drift over time. Monitoring lets you catch problems and feed what you learn back into the next build-trace-evaluate loop.
+
+</details>
+
+**4. What is the Agent Framework, and how would you describe its style?**
+
+<details>
+<summary>Show answer</summary>
+
+The Agent Framework is the code-first way to build agents. You write Python, so you get full control over the logic. Think of it as the hands-on option, similar to writing a pipeline by hand rather than clicking through a wizard.
+
+</details>
+
+**5. What is `ResponsesAgent`, and what do you implement when you use it?**
+
+<details>
+<summary>Show answer</summary>
+
+`ResponsesAgent` is an interface from MLflow. You create a class based on it and implement a `predict` method, which is the code that runs when someone sends the agent a request. You then log that class as an MLflow model so it can be registered and deployed.
+
+</details>
+
+**6. Between `ResponsesAgent` and the older `ChatAgent`, which is recommended today?**
+
+<details>
+<summary>Show answer</summary>
+
+`ResponsesAgent` is the recommended interface. If you are starting fresh, reach for it. `ChatAgent` still exists, but the newer interface is where Databricks is pointing people.
+
+</details>
+
+**7. When would you pick code-first (Agent Framework) over a low-code option?**
+
+<details>
+<summary>Show answer</summary>
+
+Go code-first when you need custom logic, tight control, or behavior the low-code tools do not cover out of the box. Reach for low-code when your use case is a common pattern (like a document Q&A bot) and you would rather have Databricks handle the plumbing. Both are valid, it is about fit.
+
+</details>
+
+---
+
+## Section B · Agent Bricks, Knowledge Assistant, and the Supervisor
+
+This section is about the low-code side of the house, where Databricks builds and tunes agents for you. If you like the idea of describing what you want and letting the platform do the heavy lifting, this is your zone.
+
+**8. What is Agent Bricks in one sentence?**
+
+<details>
+<summary>Show answer</summary>
+
+Agent Bricks is the low-code path where Databricks auto-builds and auto-optimizes agents for you. You provide the goal and the data, and it handles much of the construction and tuning behind the scenes.
+
+</details>
+
+**9. Can you name the main Agent Bricks options?**
+
+<details>
+<summary>Show answer</summary>
+
+The four are: Knowledge Assistant, Multi-Agent Supervisor, Custom LLM, and Intelligent Document Processing. Each targets a common pattern so you do not have to build it from scratch.
+
+</details>
+
+**10. What is the Knowledge Assistant, and what makes it beginner-friendly?**
+
+<details>
+<summary>Show answer</summary>
+
+The Knowledge Assistant is a managed, auto-tuned RAG chatbot that answers questions from your documents. "RAG" just means it looks up relevant text before answering. It is beginner-friendly because the retrieval and tuning are handled for you, and it returns citations so users can see where each answer came from.
+
+</details>
+
+**11. Why do citations matter in a Knowledge Assistant?**
+
+<details>
+<summary>Show answer</summary>
+
+Citations let a user trace an answer back to the source document. That builds trust and makes it easy to double-check, which is exactly what you want when an agent is answering real questions about your company's content.
+
+</details>
+
+**12. What does the Multi-Agent Supervisor do?**
+
+<details>
+<summary>Show answer</summary>
+
+The Multi-Agent Supervisor takes a request and routes it to the right specialist, whether that is another agent or a Genie space. Then it combines the results into one coherent answer. Picture a helpful team lead who knows exactly which teammate to ask.
+
+</details>
+
+**13. When would a Multi-Agent Supervisor be a better choice than a single agent?**
+
+<details>
+<summary>Show answer</summary>
+
+When one request might touch several different areas, like "summarize this policy doc and also pull last quarter's sales numbers." One specialist handles the documents, another handles the data, and the supervisor stitches the pieces together.
+
+</details>
+
+---
+
+## Section C · Genie and Databricks Apps
+
+Last stretch. These two are about letting people talk to your governed data and giving them a real front door to your agent. You are almost at the finish line.
+
+**14. What is Genie, in plain terms?**
+
+<details>
+<summary>Show answer</summary>
+
+Genie lets people ask questions of your governed Unity Catalog tables in plain English. Under the hood, it writes and runs the SQL for them. So a business user can ask "what were sales in June?" without knowing any SQL at all.
+
+</details>
+
+**15. Does Genie ignore data permissions?**
+
+<details>
+<summary>Show answer</summary>
+
+No, and this is important: Genie respects the permissions already set in Unity Catalog. If a user is not allowed to see a table, Genie will not surface that data for them. Governance carries through.
+
+</details>
+
+**16. What makes Genie more or less accurate?**
+
+<details>
+<summary>Show answer</summary>
+
+Accuracy depends a lot on good table modeling and clear instructions. Well-named columns, sensible table structure, and helpful guidance make Genie much better at turning a question into the right SQL. Messy data means shakier answers, so the prep work pays off.
+
+</details>
+
+**17. What is a Databricks App, and what is it used for?**
+
+<details>
+<summary>Show answer</summary>
+
+A Databricks App is a governed, authenticated web UI, such as a chat interface, that calls a deployed agent endpoint. It is the friendly front door that lets real users interact with your agent through a browser instead of an API call.
+
+</details>
+
+**18. How do permissions work when a user logs into a Databricks App?**
+
+<details>
+<summary>Show answer</summary>
+
+Users log in with their Databricks identity, so their permissions carry through to whatever the app does on their behalf. That means the same governance you rely on for tables also protects what each person can see and do inside the app.
+
+</details>
+
+---
+
+## Nicely done
+
+That is Part 4 in the bag. You now understand how an agent goes from an idea to a deployed, governed service, and you know the main tools for building one, whether you prefer writing code or letting Databricks do the building.
+
+Whatever you got right, celebrate it. Whatever felt shaky, a quick reread of that lesson will lock it in. Either way, you are moving forward.
+
+Next up is **Part 5: Observability and Tracing**, where you will learn how to see inside your agent, watch what it is actually doing, and figure out why it behaves the way it does. It is one of the most satisfying parts of the whole journey. See you there.
