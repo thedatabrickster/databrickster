@@ -77,6 +77,49 @@ Everything strange about building AI systems — evaluation, hallucinations,
 guardrails, tracing — flows from that difference.
 :::
 
+<figure style={{textAlign: 'center', margin: '1.75rem 0'}}>
+<svg role="img" aria-label="Side-by-side comparison: a deterministic SQL pipeline returns an identical result every run, while a probabilistic LLM returns a slightly different answer each run." viewBox="0 0 720 300" style={{width: '100%', maxWidth: '680px', height: 'auto', fontFamily: 'var(--ifm-font-family-base)'}}>
+  <defs>
+    <marker id="arrowDet" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="var(--ifm-color-success)" />
+    </marker>
+    <marker id="arrowProb" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="var(--ifm-color-primary)" />
+    </marker>
+  </defs>
+
+  {/* Divider */}
+  <line x1="360" y1="20" x2="360" y2="280" stroke="var(--ifm-color-emphasis-300)" strokeWidth="1" strokeDasharray="4 4" />
+
+  {/* ---- Left: deterministic ---- */}
+  <text x="180" y="30" textAnchor="middle" fontSize="17" fontWeight="700" fill="var(--ifm-font-color-base)">Deterministic pipeline</text>
+  <text x="180" y="49" textAnchor="middle" fontSize="12" fill="var(--ifm-color-emphasis-700)">SQL / stored procedure</text>
+  <rect x="60" y="68" width="240" height="42" rx="8" fill="var(--ifm-color-emphasis-100)" stroke="var(--ifm-color-emphasis-400)" strokeWidth="1.5" />
+  <text x="180" y="94" textAnchor="middle" fontSize="13" fontFamily="var(--ifm-font-family-monospace)" fill="var(--ifm-font-color-base)">SELECT SUM(amount)</text>
+  <line x1="180" y1="110" x2="180" y2="146" stroke="var(--ifm-color-success)" strokeWidth="2" markerEnd="url(#arrowDet)" />
+  <rect x="60" y="150" width="240" height="34" rx="8" fill="var(--ifm-color-emphasis-100)" stroke="var(--ifm-color-success)" strokeWidth="1.5" />
+  <text x="180" y="172" textAnchor="middle" fontSize="13" fontFamily="var(--ifm-font-family-monospace)" fill="var(--ifm-font-color-base)">42.00</text>
+  <rect x="60" y="192" width="240" height="34" rx="8" fill="var(--ifm-color-emphasis-100)" stroke="var(--ifm-color-success)" strokeWidth="1.5" />
+  <text x="180" y="214" textAnchor="middle" fontSize="13" fontFamily="var(--ifm-font-family-monospace)" fill="var(--ifm-font-color-base)">42.00</text>
+  <text x="180" y="256" textAnchor="middle" fontSize="13" fontWeight="600" fill="var(--ifm-color-success)">✓ identical every run</text>
+
+  {/* ---- Right: probabilistic ---- */}
+  <text x="540" y="30" textAnchor="middle" fontSize="17" fontWeight="700" fill="var(--ifm-font-color-base)">Probabilistic LLM</text>
+  <text x="540" y="49" textAnchor="middle" fontSize="12" fill="var(--ifm-color-emphasis-700)">next-token generation</text>
+  <rect x="420" y="68" width="240" height="42" rx="8" fill="var(--ifm-color-emphasis-100)" stroke="var(--ifm-color-emphasis-400)" strokeWidth="1.5" />
+  <text x="540" y="94" textAnchor="middle" fontSize="13" fontFamily="var(--ifm-font-family-monospace)" fill="var(--ifm-font-color-base)">Summarize this filing</text>
+  <line x1="540" y1="110" x2="540" y2="146" stroke="var(--ifm-color-primary)" strokeWidth="2" markerEnd="url(#arrowProb)" />
+  <rect x="420" y="150" width="240" height="34" rx="8" fill="var(--ifm-color-emphasis-100)" stroke="var(--ifm-color-primary)" strokeWidth="1.5" />
+  <text x="540" y="172" textAnchor="middle" fontSize="12" fill="var(--ifm-font-color-base)">“Q3 revenue rose on strong…”</text>
+  <rect x="420" y="192" width="240" height="34" rx="8" fill="var(--ifm-color-emphasis-100)" stroke="var(--ifm-color-primary)" strokeWidth="1.5" />
+  <text x="540" y="214" textAnchor="middle" fontSize="12" fill="var(--ifm-font-color-base)">“Revenue grew in Q3, driven…”</text>
+  <text x="540" y="256" textAnchor="middle" fontSize="13" fontWeight="600" fill="var(--ifm-color-primary)">≈ varies each run</text>
+</svg>
+<figcaption style={{fontSize: '0.85rem', color: 'var(--ifm-color-emphasis-700)', marginTop: '0.5rem'}}>
+Same input, two worlds. The pipeline <em>retrieves</em> a fact and returns it exactly; the LLM <em>generates</em> its best guess, which can differ each time.
+</figcaption>
+</figure>
+
 An analogy that lands for most engineers: a deterministic system is a **vending
 machine** — press B4, get the item in slot B4, every time. An LLM is a **seasoned
 concierge** — ask for "somewhere nice for dinner nearby" and you get a thoughtful,
