@@ -42,3 +42,13 @@ table {
 .markdown {
   --ifm-h1-font-size: 2.2rem;
 }
+
+/* Acronyms: wrap first use in <abbr title="Full Term">ACRO</abbr> so readers
+   can hover (desktop) or tap/focus to see what it stands for. The dotted
+   underline + help cursor signal that the term is explainable. */
+abbr[title] {
+  cursor: help;
+  text-decoration: underline dotted;
+  text-underline-offset: 0.15em;
+  text-decoration-thickness: 1px;
+}
