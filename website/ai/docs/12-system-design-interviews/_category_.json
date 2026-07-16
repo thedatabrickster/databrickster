@@ -1,0 +1,12 @@
+{
+  "label": "Part 12 · AI System Design Interviews",
+  "position": 12,
+  "collapsible": true,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "slug": "/category/part-12-system-design-interviews",
+    "title": "Part 12 · AI System Design Interviews",
+    "description": "Ace the AI/GenAI system design interview: a repeatable answer framework, what interviewers are really probing for, and two full worked examples (a RAG support assistant and a tool-using agent) with the follow-up questions real interviewers ask."
+  }
+}

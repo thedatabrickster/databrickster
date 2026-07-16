@@ -1,0 +1,235 @@
+---
+sidebar_position: 4
+title: "Part 12 · Interview Prep & Cheat Sheet"
+description: A rapid-fire cheat sheet and active-recall Q&A to review right before an AI system design interview.
+---
+
+# Part 12 · Interview Prep & Cheat Sheet
+
+You have done the hard part already: you understand how these systems are built. This page is your warm-up before you walk in the door. Read the cheat sheet, quiz yourself, and remember that you know more than you think. Take a breath. You have got this.
+
+:::tip Answer first, then peek
+For every question below, say your answer out loud before you open the hidden panel. Active recall (retrieving the answer from memory) sticks far better than re-reading. A shaky first attempt is exactly how learning is supposed to feel.
+:::
+
+**Covers:** [The AI System Design Interview Playbook](/docs/system-design-interviews/the-playbook), [Worked Example: A Customer-Support Assistant (RAG)](/docs/system-design-interviews/example-support-assistant), [Worked Example: A Tool-Using Agent](/docs/system-design-interviews/example-agent-system).
+
+## Cheat sheet
+
+### The 8-step framework
+
+Copy this, glance at it before the interview, and let it be your map. When you feel lost mid-interview, come back to this list and name which step you are on.
+
+```text
+AI SYSTEM DESIGN — 8 STEPS
+
+1. CLARIFY REQUIREMENTS
+   Who uses it? What is the task? What is in / out of scope?
+   Ask before you architect.
+
+2. DEFINE SUCCESS METRICS & EVAL
+   How do we know it works? Offline eval set + online metrics.
+   Name the numbers you would watch.
+
+3. HIGH-LEVEL ARCHITECTURE
+   Draw the boxes: client, orchestrator, model, data stores.
+   One clean diagram beats ten words.
+
+4. DEEP-DIVE COMPONENTS
+   Pick the interesting boxes (retriever, model, tools) and go deep.
+
+5. QUALITY / EVAL / HALLUCINATION / GUARDRAILS
+   Grounding, citations, refuse-when-unsure, safety filters.
+
+6. NON-FUNCTIONAL: LATENCY, COST, SCALE, RELIABILITY
+   Reason in tokens and dollars. Caching, streaming, autoscale, fallbacks.
+
+7. SECURITY / GOVERNANCE / PRIVACY
+   AuthZ, PII handling, least-privilege tools, audit logs.
+
+8. TRADE-OFFS
+   State them out loud. Every choice costs something. Own the choice.
+```
+
+### Signals to send (what a strong candidate does)
+
+Interviewers are listening for these. Try to hit each one at least once.
+
+- **Asks clarifying questions first** instead of jumping straight to a diagram.
+- **Defines evaluation early** — names an offline eval set and online metrics, not just "it seems good."
+- **Handles hallucination and safety** proactively: grounding, citations, refusal, guardrails.
+- **Reasons about cost and latency in tokens** — shows you know what actually drives the bill and the wait.
+- **Knows when NOT to use an LLM** — a rule, a classifier, or a plain database query can be the right answer.
+- **States trade-offs explicitly** — "cheaper but staler," "faster but less accurate."
+- **Drives the discussion** — proposes structure, checks in with the interviewer, moves things forward.
+
+### Common curveball to one-line answer
+
+When the interviewer throws a twist, stay calm and reach for the pattern.
+
+| Curveball | Crisp one-line answer |
+| --- | --- |
+| "Traffic just went 100x." | Autoscale the serving layer, scale the ANN index, and add a cache for repeat queries. |
+| "How do you know it is any good?" | Offline eval dataset + LLM-as-judge + online monitoring + human feedback loop. |
+| "It gave a wrong or harmful answer." | Grounding + citations + guardrails + refuse-when-unsure + human escalation, then add the case to the eval set. |
+| "Cut the latency." | Smaller or tiered model, stream tokens, cache, and use fewer tokens and fewer steps. |
+| "Cut the cost." | Model tiering, caching, shorter prompts, and cap max_tokens. |
+| "Docs update every hour." | Sync the index incrementally (change data feed) so retrieval stays fresh. |
+| "The agent loops forever." | Cap the number of steps and add per-step and total timeouts. |
+| "Make the agent's actions safe." | On-behalf-of-user auth, least-privilege tools, human-in-the-loop approval, full audit log. |
+
+## Rapid-fire questions
+
+### Group A: Framework and signals
+
+**1. What is the very first thing you do when handed an AI design prompt?**
+
+<details>
+<summary>Show answer</summary>
+
+Clarify requirements. Ask who the users are, what the task is, and what is in and out of scope. Do not architect a system you do not yet understand. Jumping to a diagram is the most common way to lose points early.
+
+</details>
+
+**2. Why is defining evaluation so important, and when do you bring it up?**
+
+<details>
+<summary>Show answer</summary>
+
+Bring it up early, right after requirements. If you cannot measure quality, you cannot improve it or know when you are done. Name an offline eval set (labeled examples), online metrics you would monitor, and how humans stay in the loop. Interviewers treat "how will we know it works?" as a maturity signal.
+
+</details>
+
+**3. Name three signals a strong candidate sends.**
+
+<details>
+<summary>Show answer</summary>
+
+Any three of: asks clarifying questions first, defines evaluation early, handles hallucination and safety, reasons about cost and latency in tokens, knows when not to use an LLM, states trade-offs out loud, and drives the discussion forward.
+
+</details>
+
+**4. The interviewer says "an LLM feels like overkill here." What is the ideal reaction?**
+
+<details>
+<summary>Show answer</summary>
+
+Agree happily and say when you would NOT use an LLM. If a deterministic rule, a small classifier, or a plain database query solves it, use that. It is cheaper, faster, and easier to test. Knowing the limits of LLMs is a strong signal, not a weakness.
+
+</details>
+
+**5. How should you talk about latency and cost to impress?**
+
+<details>
+<summary>Show answer</summary>
+
+Reason in tokens. Cost and latency both scale with the number of tokens in and out, the model size, and the number of steps. So the levers are: smaller or tiered models, caching, shorter prompts, capping max_tokens, streaming, and reducing steps. Concrete token-level reasoning beats hand-waving.
+
+</details>
+
+**6. You are running low on time and have not finished. What do you do?**
+
+<details>
+<summary>Show answer</summary>
+
+Say so out loud, then summarize the trade-offs and name what you would do next. Ending with a clear "here is what I would deep-dive with more time, and here is the main trade-off" shows control of the discussion. Never trail off in silence.
+
+</details>
+
+### Group B: RAG design
+
+**7. What is chunking and why does it matter?**
+
+<details>
+<summary>Show answer</summary>
+
+Chunking splits documents into smaller passages before embedding and indexing. Chunk size is a trade-off: too large and you dilute relevance and waste tokens; too small and you lose context. It directly shapes retrieval quality, so it is worth mentioning explicitly.
+
+</details>
+
+**8. Why combine hybrid search with reranking?**
+
+<details>
+<summary>Show answer</summary>
+
+Hybrid search blends keyword search (exact terms, IDs, rare words) with vector similarity (meaning) so you catch both. A reranker then re-scores the top candidates with a more powerful model to push the truly relevant passages to the top. Cheap wide recall first, precise ordering second.
+
+</details>
+
+**9. A RAG answer is wrong. How do you tell if it is a retrieval failure or a generation failure?**
+
+<details>
+<summary>Show answer</summary>
+
+Check what was retrieved. If the correct passage was NOT in the retrieved context, it is a retrieval failure: fix chunking, embeddings, search, or reranking. If the right passage WAS retrieved but the model still answered wrong, it is a generation failure: fix the prompt, grounding, or model. Separating the two is a strong diagnostic signal.
+
+</details>
+
+**10. The knowledge base updates every hour. How do you keep the index fresh?**
+
+<details>
+<summary>Show answer</summary>
+
+Sync the index incrementally instead of rebuilding it wholesale. Use a change data feed so only new or edited documents get re-embedded and upserted. On Databricks this maps to a Delta change data feed feeding a Vector Search index that syncs automatically.
+
+</details>
+
+**11. How do you keep answers grounded and trustworthy?**
+
+<details>
+<summary>Show answer</summary>
+
+Ground the model in retrieved passages, instruct it to answer only from that context, and return citations linking back to sources. Add a refuse-when-unsure behavior so it says "I do not know" instead of inventing. Citations also let users verify and let you debug.
+
+</details>
+
+**12. What offline eval would you build for a RAG assistant?**
+
+<details>
+<summary>Show answer</summary>
+
+A labeled dataset of questions with known-good answers and source documents. Measure retrieval quality (did we fetch the right passages?) and answer quality (is the response correct and grounded?), often with an LLM-as-judge plus periodic human review. Then monitor online with real user feedback.
+
+</details>
+
+### Group C: Agent design
+
+**13. How does an agent actually "use tools"?**
+
+<details>
+<summary>Show answer</summary>
+
+Through function calling. You describe the available tools (name, purpose, parameters) to the model. The model chooses a tool and returns structured arguments; your code executes it and feeds the result back. The model loops: reason, act, observe, repeat, until it can answer.
+
+</details>
+
+**14. How do you evaluate an agent, given the path is not fixed?**
+
+<details>
+<summary>Show answer</summary>
+
+Evaluate the whole trajectory, not just the final answer. Did it pick the right tools, in a sensible order, with correct arguments? Trajectory and tool-use evaluation, plus task success rate, catch agents that reach a right answer by luck or a wrong answer through a bad path.
+
+</details>
+
+**15. When would you choose a single agent over a multi-agent design?**
+
+<details>
+<summary>Show answer</summary>
+
+Start with a single agent. It is simpler to build, debug, and reason about. Reach for multi-agent (a coordinator delegating to specialists) only when one agent's tool set and context get unwieldy, or when clearly separate skills need isolation. More agents means more latency, cost, and failure modes.
+
+</details>
+
+**16. The agent could take real actions like issuing refunds. How do you make that safe?**
+
+<details>
+<summary>Show answer</summary>
+
+Layer it: act on behalf of the user with their own permissions (on-behalf-of-user auth), give tools least privilege (only what the task needs), require human-in-the-loop approval for high-stakes actions, cap steps and add timeouts so it cannot loop, and log every action for audit. On Databricks, Unity Catalog governs tool and data access.
+
+</details>
+
+Congratulations. If you worked through these, you are more ready than most. You know the framework, you know the signals, and you know how to stay calm when a curveball comes. Walk in, ask good questions, think out loud, and let your data engineering instincts show. You have earned this.
+
+Head back to [Start Here](/docs/intro) whenever you want to revisit the journey. Good luck. We are cheering for you.
