@@ -1,0 +1,229 @@
+---
+sidebar_position: 3
+title: "Part 0 · Interview Prep"
+description: Interview questions covering Part 0 — the generative-AI mental model and the Databricks AI platform map — in active-recall format.
+---
+
+# Part 0 · Interview Prep
+
+This is your review checkpoint for **Part 0**. Every question below is one you could
+realistically be asked in an interview for a Databricks AI / GenAI engineering role,
+drawn from the two Part 0 lessons.
+
+:::tip How to use this page
+Read each question and **answer it out loud (or in writing) before expanding the
+answer.** Active recall — retrieving the answer from memory rather than re-reading —
+is what actually moves knowledge into long-term memory. If you can't answer one
+cleanly, revisit the linked lesson before moving on.
+:::
+
+**Covers:**
+[Lesson 1 — What Is Generative AI?](/docs/orientation/what-is-generative-ai) ·
+[Lesson 2 — The Databricks AI Platform Map](/docs/orientation/databricks-ai-platform-map)
+
+---
+
+## Section A — Generative AI fundamentals
+
+**A1. What is the fundamental difference between a deterministic data pipeline and a generative AI system?**
+
+<details>
+<summary>Show answer</summary>
+
+A pipeline executes explicit logic → the same input always produces the same output, and correctness is binary. A generative AI system samples from a learned probability distribution → the same input can produce different, *graded*-quality outputs. This single difference reshapes how you test (evaluation vs. equality assertions), operate (tracing, caching, versioning), and govern (guardrails) the system.
+
+</details>
+
+**A2. In one sentence, what does a Large Language Model actually do?**
+
+<details>
+<summary>Show answer</summary>
+
+It repeatedly predicts the next **token** in a sequence based on statistical patterns learned from massive text data — apparent "reasoning" and "knowledge" are emergent from doing that extremely well at scale.
+
+</details>
+
+**A3. Place Generative AI relative to AI, Machine Learning, and rule-based systems.**
+
+<details>
+<summary>Show answer</summary>
+
+Generative AI ⊂ Machine Learning ⊂ Artificial Intelligence. LLMs are a type of Generative AI. Rule-based systems (SQL, if/else, business-rule engines) are AI in the historical sense but are **not** Machine Learning, because they don't learn patterns from data — they execute logic a human wrote.
+
+</details>
+
+**A4. What is a hallucination, and why does it happen?**
+
+<details>
+<summary>Show answer</summary>
+
+A fluent but factually incorrect or unsupported output. It happens because the model *generates the most plausible continuation* of the text rather than *retrieving verified facts*, so it can produce confident statements that no real source backs.
+
+</details>
+
+**A5. Why is an LLM described as "stateless," and what does that imply for system design?**
+
+<details>
+<summary>Show answer</summary>
+
+It retains nothing between requests, and its built-in knowledge is frozen at its training cutoff. So any context it needs — conversation history, private company data, current facts — must be supplied *with every request*. That's why data retrieval and prompt assembly are central engineering tasks, and it's good news for a Data Engineer: the interesting work is the data plumbing around the model.
+
+</details>
+
+**A6. What does the `temperature` parameter control, and when would you set it near 0?**
+
+<details>
+<summary>Show answer</summary>
+
+It controls the amount of randomness in token sampling. Near 0, the model almost always picks the highest-probability token, giving focused and near-reproducible output — use it for factual, structured, or test-sensitive tasks. Raise it for creative or exploratory generation.
+
+</details>
+
+**A7. How does the cost of LLM calls scale, and how is that different from a SQL job?**
+
+<details>
+<summary>Show answer</summary>
+
+Cost scales with the number of **tokens** processed (input + output), not with rows scanned or compute time. A million short texts can cost less than a thousand very long documents. Cost estimation is a first-class design activity, not an afterthought.
+
+</details>
+
+**A8. Why does grounding an answer in retrieved documents (RAG) reduce hallucination?**
+
+<details>
+<summary>Show answer</summary>
+
+It places real, relevant source text directly in the prompt and instructs the model to answer only from that context. Generation is then anchored to supplied evidence instead of unconstrained plausibility, which sharply reduces fabrication and enables citations.
+
+</details>
+
+---
+
+## Section B — The Databricks AI platform
+
+**B1. Is "Mosaic AI" a single product? What is it?**
+
+<details>
+<summary>Show answer</summary>
+
+No. It's Databricks' **umbrella brand** for its AI platform. Products like Model Serving, Agent Framework, and AI Search are all "Mosaic AI *something*." Saying "we use Mosaic AI" means "we use the Databricks AI stack."
+
+</details>
+
+**B2. Name the five layers of the Databricks AI platform and one product in each.**
+
+<details>
+<summary>Show answer</summary>
+
+1. **Governance** — Unity Catalog + Unity AI Gateway
+2. **Models** — Foundation Model APIs (also external models, Model Serving)
+3. **Data & retrieval** — AI Search (Vector Search) (also AI Functions)
+4. **Build** — Agent Framework (also Agent Bricks, Genie, MCP, Databricks Apps, AI Playground)
+5. **Quality & ops** — MLflow 3 for GenAI
+
+</details>
+
+**B3. Agent Framework vs. Agent Bricks — when do you use each?**
+
+<details>
+<summary>Show answer</summary>
+
+**Agent Framework** is code-first (Python, `ResponsesAgent`), maximum control — for custom, complex, bespoke agents. **Agent Bricks** is low-code and auto-optimized — for common patterns (Knowledge Assistant, Multi-agent Supervisor, Custom LLM, Intelligent Document Processing). Rule of thumb: start with Agent Bricks if your use case matches a pattern it supports; drop to Agent Framework when you need control it can't give you.
+
+</details>
+
+**B4. How do Foundation Model APIs and Model Serving relate?**
+
+<details>
+<summary>Show answer</summary>
+
+Foundation Model APIs are the **pre-built model endpoints you call**. Model Serving is the **hosting system for endpoints in general** — including the custom agent *you* build and deploy. Your deployed agent runs on Model Serving and may internally call a Foundation Model API.
+
+</details>
+
+**B5. Pay-per-token vs. provisioned throughput Foundation Model APIs — what's the trade-off?**
+
+<details>
+<summary>Show answer</summary>
+
+**Pay-per-token** is serverless with per-request billing — ideal for prototyping and spiky/low-volume workloads. **Provisioned throughput** gives dedicated capacity with predictable latency and cost — for production workloads that need reliable performance.
+
+</details>
+
+**B6. What does the Unity AI Gateway do, and why call it a "choke point"?**
+
+<details>
+<summary>Show answer</summary>
+
+It sits in front of model endpoints and enforces guardrails (unsafe-content blocking, PII masking), rate limits, budgets, and traffic splitting/fallbacks, and logs every request/response to inference tables for audit and cost tracking. It's a "choke point" (in the good sense) because routing all model traffic through it lets you enforce policy uniformly in one place instead of per-application.
+
+</details>
+
+**B7. What does MLflow 3 for GenAI provide, in one breath?**
+
+<details>
+<summary>Show answer</summary>
+
+Tracing (step-by-step observability of an agent run), evaluation (datasets, LLM judges, custom scorers), a prompt registry (versioning and optimization), human-feedback collection (Review App), and production monitoring.
+
+</details>
+
+**B8. How does Unity Catalog's role extend from data into AI?**
+
+<details>
+<summary>Show answer</summary>
+
+Beyond tables and volumes, Unity Catalog also governs **models, functions (agent tools), vector indexes, and agents** as securable objects — with permissions, lineage, and auditing. That's why governance is the foundation layer: AI artifacts are governed exactly like data artifacts.
+
+</details>
+
+---
+
+## Section C — Scenario & judgment
+
+These are the questions that separate "can name the products" from "can architect a
+system." Say your reasoning out loud.
+
+**C1. Walk a user question through the entire platform, naming the product touched at each step.**
+
+<details>
+<summary>Show answer</summary>
+
+Example: an analyst asks a question in a chat UI hosted on **Databricks Apps** (Build) → the app calls an agent built with the **Agent Framework** and hosted on **Model Serving** (Build/Models) → the agent retrieves context via a tool backed by **AI Search** (Data & retrieval) → it calls a **Foundation Model API** to generate a grounded answer (Models) → **MLflow** records the full trace (Quality & ops) → the **Unity AI Gateway** and **Unity Catalog** permit, rate-limit, log, and govern the whole path (Governance) → the answer returns. The point is to connect the layers, not just list them.
+
+</details>
+
+**C2. A team wants a chatbot over a folder of PDF policy documents with minimal custom code. What do you reach for, and why not a hand-coded agent?**
+
+<details>
+<summary>Show answer</summary>
+
+Agent Bricks **Knowledge Assistant** — it's purpose-built for a document-grounded chatbot and auto-handles chunking, retrieval, and tuning. Hand-coding an agent for a standard pattern wastes effort and adds maintenance and quality risk; reserve the Agent Framework for cases needing custom control.
+
+</details>
+
+**C3. Why design governance (Unity Catalog + AI Gateway) and observability (MLflow) in from day one rather than adding them later?**
+
+<details>
+<summary>Show answer</summary>
+
+AI objects (models, tools, indexes, agents) are securables just like tables, and the interesting failure modes (unsafe output, cost blowups, untraceable bugs) are exactly what governance and tracing prevent. Retrofitting access control, audit, budgets, and tracing onto a live AI app is painful and risky — the same reason you wouldn't bolt Unity Catalog and monitoring onto a data platform after it's in production.
+
+</details>
+
+**C4. A stakeholder says "the AI gave a different answer than yesterday — that's a bug." How do you respond?**
+
+<details>
+<summary>Show answer</summary>
+
+Explain that generative models are probabilistic by design, so variation is expected, not necessarily a bug. If stable output is required, you engineer for it: set `temperature` near 0, cache results, pin and version the prompt (Prompt Registry), and pin the model version. Then define "correct" via evaluation criteria rather than exact-match, since there are many acceptable answers.
+
+</details>
+
+---
+
+## Ready for Part 1?
+
+If you can answer Sections A and B without peeking and reason through Section C, you
+have the mental model and the map. Next we descend into **Layer 2** and open the
+black box — starting with what a **token** really is.
