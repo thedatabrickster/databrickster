@@ -122,6 +122,20 @@ flowchart LR
 
 *Figure 2: MLflow ships judges for the dimensions most teams need. You choose the ones that match what "good" means for your use case.*
 
+### Aligning a judge with human judgment
+
+We keep saying a judge is an imperfect model. So how do you earn the right to trust one at scale? You do the same thing the MLflow team did for the built-in judges: you check the judge against people. This is **custom judge alignment** - you take a sample of answers that humans have already graded, run your judge on that same sample, and measure how often the judge's scores agree with the human ones. If agreement is high, you can trust the judge to grade the thousands of answers no human will ever read. If it is low, you tighten the rubric, or adjust the labels, and check again.
+
+This is why the next lesson on human feedback matters so much. Those human labels are not just a nice-to-have; they are the yardstick you hold your judge up against. A judge you have never compared to humans is measuring something, but you have no idea whether that something is quality. Align first, then scale.
+
+### Agent-as-a-judge
+
+Sometimes the thing you need to grade is genuinely hard - harder than "does this read well?" Suppose Northwind's assistant answers, "Your $2,000 balance at 4 percent earns about $80 a year." Checking that means actually doing the arithmetic. Or suppose the answer cites a fee that changes weekly, and verifying it means looking something up. A plain judge just reads text; it cannot compute or fetch.
+
+This is where **agent-as-a-judge** comes in: instead of a single model call, you use a more capable model, or a small tool-using agent, as the grader. Because it is an agent, it can take steps - run a calculation, query a table, or look up the current policy - before deciding on a score. For the hard cases, that extra capability is what separates "sounds right" from "is right."
+
+Two honest caveats keep this grounded. First, a judge should generally be **as strong as, or stronger than, the model it grades.** A weaker judge grading a stronger model tends to reward confident-sounding answers it cannot actually check - the grader has to be able to tell right from wrong at least as well as the thing it is grading. Second, a fancier judge is still a model, so **you still calibrate it against humans.** Agent-as-a-judge raises the ceiling on what you can grade automatically; it does not remove the need for the alignment step above.
+
 ## Architecture
 
 Here is the diagram to keep in your head. When an LLM judge grades one answer, it is given three things: the **question**, the **agent's answer**, and (for groundedness and retrieval) the **context** the agent used. It returns a **score** and a **rationale** (a short written reason).
@@ -408,6 +422,7 @@ You learned that grading AI answers at scale comes down to **scorers**. Some sco
 - Run everything with `mlflow.genai.evaluate(data=..., predict_fn=..., scorers=[...])`.
 - Clear rubrics with exclusive labels beat vague scales.
 - Judges are imperfect — **validate against human labels** and read the rationales.
+- **Align a custom judge** against human-graded samples before trusting it at scale; for hard cases (a calculation, a lookup) reach for an **agent-as-a-judge** that is at least as strong as the model it grades — and still calibrate it against humans.
 
 ## Glossary
 
@@ -423,6 +438,8 @@ You learned that grading AI answers at scale comes down to **scorers**. Some sco
 - **Retrieval quality** - Whether the retrieval step fetched the right documents.
 - **Aggregate metric** - A per-example score rolled up across the dataset (e.g., an average).
 - **Calibration / validation** - Checking how often a judge agrees with human labels.
+- **Custom judge alignment** - Validating and tuning your own judge against a sample of human-graded answers until its scores agree with human judgment, before trusting it at scale.
+- **Agent-as-a-judge** - Using a more capable model or a small tool-using agent as the grader so it can take steps (compute, look something up) on hard cases; it should be at least as strong as the model it grades and is still calibrated against humans.
 
 ## Further Reading
 
