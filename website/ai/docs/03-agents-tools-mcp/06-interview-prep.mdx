@@ -1,0 +1,181 @@
+---
+sidebar_position: 6
+title: "Part 3 · Interview Prep"
+description: Friendly, active-recall review covering all of Part 3 — agents and the reason/act/observe loop, function calling, Unity Catalog tools, retrieval tools, and MCP.
+---
+
+# Part 3 · Interview Prep
+
+Take a breath — you just leveled up. In Part 2 the model *answered* questions. In Part 3
+you learned how it can *act*: decide, call a tool, look at the result, and keep going.
+That's a big conceptual jump, and you made it. This page is your relaxed checkpoint —
+read each question, answer it in your own words, then peek.
+
+:::tip One gentle rule
+Try to answer *before* you open the toggle. A shaky answer from memory teaches you far
+more than a perfect one you just re-read. If a question won't come, hop back to the
+lesson — that's studying, not failing.
+:::
+
+**Covers:**
+[What Is an AI Agent?](/docs/agents-tools-mcp/what-is-an-agent) ·
+[How Function Calling Works](/docs/agents-tools-mcp/function-calling) ·
+[Tools from Unity Catalog Functions](/docs/agents-tools-mcp/unity-catalog-tools) ·
+[Retrieval Tools](/docs/agents-tools-mcp/retrieval-tools) ·
+[MCP](/docs/agents-tools-mcp/mcp)
+
+---
+
+## Section A — Agents and the loop
+
+**A1. In one sentence, what is an AI agent?**
+
+<details>
+
+An LLM that can *decide* what to do and *act* on it in a loop — choosing tools, using their results, and repeating until the task is done — rather than just producing one block of text.
+
+</details>
+
+**A2. Describe the reason / act / observe loop.**
+
+<details>
+
+Reason: the model thinks about the goal and decides a next step. Act: it calls a tool. Observe: it reads the tool's result. Then it loops back to reason again — continuing until it has enough to give a final answer.
+
+</details>
+
+**A3. How is an agent different from a plain RAG pipeline?**
+
+<details>
+
+RAG runs one fixed step every time: retrieve, then answer. An agent *decides* what to do — it might call one tool, several, or none, in whatever order the task needs. RAG is a straight line; an agent is a loop that chooses its own path.
+
+</details>
+
+**A4. What is a "tool" in agent terms, and what is a "tool call"?**
+
+<details>
+
+A tool is any function the model is allowed to use — a database query, a search, an API call. A tool call is the model *requesting* that one of those functions run, with specific arguments, so it can use the result.
+
+</details>
+
+**A5. Roughly, when is an agent the right choice over plain RAG?**
+
+<details>
+
+When the task needs more than one lookup, a choice between different data sources, or an actual action (not just an answer). If a single fixed retrieval always answers the question, RAG is simpler and cheaper — reach for an agent only when the task genuinely needs to branch or act.
+
+</details>
+
+## Section B — Function calling and Unity Catalog tools
+
+**B1. How do you tell a model what tools it has?**
+
+<details>
+
+You describe each tool to the model — its name, what it does, and its parameters as a JSON schema. The model reads those descriptions and picks the right tool with the right arguments.
+
+</details>
+
+**B2. Here's the key one: when the model "calls a tool," does the model run the code?**
+
+<details>
+
+No — and this is the safety heart of function calling. The model only *requests* a call and hands you the arguments. **Your** code decides whether to run it, runs it, and returns the result. The model never executes anything itself.
+
+</details>
+
+**B3. Walk through the full round-trip of a function call.**
+
+<details>
+
+1. You send the prompt plus the tool descriptions. 2. The model replies "please call tool X with these arguments." 3. Your code validates and runs it. 4. You send the result back to the model. 5. The model continues — maybe answering, maybe requesting another call. Loop as needed.
+
+</details>
+
+**B4. Why does "the model never runs the code" matter for security?**
+
+<details>
+
+Because there's always a checkpoint you control. Before anything executes, your code can validate the arguments, enforce permissions, and reject anything unsafe. The model can *ask*, but it can't *do* — you're the gatekeeper on every call.
+
+</details>
+
+**B5. What is a Unity Catalog function as a tool, and why is that nice?**
+
+<details>
+
+It's a governed, reusable function registered in Unity Catalog that you expose to the agent as a tool. Nice because it's centrally defined once and shared, and it's permissioned — a caller needs the `EXECUTE` grant to run it, so access is governed like any other data asset.
+
+</details>
+
+**B6. In a Unity Catalog function tool, what does the model actually read to decide when to use it?**
+
+<details>
+
+The function's `COMMENT`. That description *is* the model's instruction manual for the tool — a clear, accurate comment is what lets the model pick it correctly. Vague comment, wrong tool choices.
+
+</details>
+
+## Section C — Retrieval tools and MCP
+
+**C1. What's the difference between an unstructured and a structured retrieval tool?**
+
+<details>
+
+An unstructured retrieval tool searches free text — for example Vector Search wrapped as a tool (RAG-as-a-tool) over documents. A structured retrieval tool queries governed tables — for example a Unity Catalog SQL function, or Genie answering questions over tables. Text vs. tables.
+
+</details>
+
+**C2. Why turn retrieval into a *tool* instead of always retrieving up front like classic RAG?**
+
+<details>
+
+So the agent can *decide* whether — and how often — to look something up. It can skip retrieval when it isn't needed, search more than once, or pick between a document search and a table query depending on the question.
+
+</details>
+
+**C3. What is MCP, in plain terms?**
+
+<details>
+
+The Model Context Protocol — an open, standard way to connect agents to tools and data. Think of it as a universal plug: build a tool to the standard once, and any MCP-aware agent can use it, instead of custom wiring for every combination.
+
+</details>
+
+**C4. What do Databricks managed MCP servers give you?**
+
+<details>
+
+Ready-made MCP servers that expose Databricks capabilities as tools — Unity Catalog functions, Vector Search, and Genie — so an agent can reach them over the standard protocol without you building the plumbing.
+
+</details>
+
+**C5. Can you build your own MCP server, and who governs all of this?**
+
+<details>
+
+Yes — you can build custom MCP servers for your own tools and systems. And whether managed or custom, access stays governed by Unity Catalog: the agent only reaches what its identity is permitted to use.
+
+</details>
+
+**C6. What's the one security theme running through this whole part?**
+
+<details>
+
+The agent acts under an identity, and that identity's permissions are the fence. Validate every tool argument, enforce permissions at the tool boundary (the `EXECUTE` grant, Unity Catalog governance), and the agent only ever gets data it's actually allowed to access. The model proposes; your governed layer disposes.
+
+</details>
+
+---
+
+## Really nicely done 🎉
+
+You can now explain what an agent is, how function calling works, how Unity Catalog turns
+functions into governed tools, how retrieval becomes something the agent *chooses* to do,
+and how MCP plugs it all together — safely. That's the mental model behind every modern
+AI agent. Genuinely impressive progress.
+
+Next up: **Part 4 — Building Agents on Databricks**, where you stop describing agents and
+start building them with the **Agent Framework** and **Agent Bricks**. See you there.

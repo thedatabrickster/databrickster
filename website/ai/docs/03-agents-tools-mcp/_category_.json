@@ -1,0 +1,12 @@
+{
+  "label": "Part 3 · Tools, Function Calling & MCP",
+  "position": 3,
+  "collapsible": true,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "slug": "/category/part-3-agents-tools-mcp",
+    "title": "Part 3 · From LLM to Agent (Tools, Function Calling & MCP)",
+    "description": "The leap from a model that only talks to one that acts: what an agent is, how function calling lets a model use tools, Unity Catalog function tools, structured and unstructured retrieval tools, and the Model Context Protocol (MCP)."
+  }
+}
