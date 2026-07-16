@@ -1,0 +1,346 @@
+---
+sidebar_position: 6
+title: "Question Bank: Agents & Search/Ranking"
+description: A practice set of agent, tool-use, search, and ranking interview prompts, each with a structured approach you can rehearse out loud.
+---
+
+# Question Bank: Agents & Search/Ranking
+
+This page is your sparring partner. Each prompt below is the kind of open-ended question a real interviewer might open with, followed by a hidden panel showing one clean way to walk through it. Say your answer out loud first, then peek. The goal is not to memorize these answers; it is to feel the rhythm of the framework until it becomes second nature.
+
+If you have already read [The AI System Design Interview Playbook](/docs/system-design-interviews/the-playbook) and the [tool-using agent worked example](/docs/system-design-interviews/example-agent-system), you have everything you need. These questions just give you reps.
+
+:::tip Reach for the 8-step framework every time
+Whatever the prompt, the shape of your answer is the same: clarify requirements, define success and evaluation, sketch the architecture, deep-dive the interesting boxes, handle quality and safety, reason about latency and cost, cover security and governance, and state your trade-offs. When you feel lost mid-answer, name which step you are on and keep moving.
+:::
+
+## C. Agents & Tool-Use
+
+**1. Architect an end-to-end AI agent system (agent loop, tool interfaces, memory, orchestration, safety).**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** What tasks does the agent handle? What tools does it need? Is it read-only or can it take real actions? Who is the user, and what latency is acceptable?
+
+**Approach:** The core is a reason-act-observe loop. The model receives the goal plus tool descriptions, chooses a tool, your runtime executes it, and the result is fed back. Repeat until the model produces a final answer. Around that loop sit four supports: tool interfaces (typed function schemas), memory (short-term scratchpad plus long-term store), an orchestrator that manages steps and state, and a safety layer.
+
+**Key decisions:** Single agent first. Function-calling for tool selection. Retrieval for grounding facts the model does not hold.
+
+**Evaluation:** Score the whole trajectory, not just the final answer. Did it pick the right tools, in a sensible order, with correct arguments? Track task success rate offline and online.
+
+**Trade-offs / pitfalls:** More tools and steps mean more latency, cost, and failure modes. Guard against infinite loops with step caps and timeouts.
+
+**Likely follow-up:** "How do you stop it looping forever?" Cap total steps, add per-step and total timeouts, and detect repeated states.
+
+</details>
+
+**2. Design a multi-step agentic workflow (for example, meeting scheduling, automated code review, or email campaigns).**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** Which workflow? Take meeting scheduling: what calendars, whose availability, and does the user confirm before anything is booked?
+
+**Approach:** Decompose into a plan of discrete steps: read constraints, query calendar availability, propose slots, draft the invite, and send on approval. Each step maps to a tool. The agent loops over the plan, but many steps are deterministic and do not need the model at all. Use the LLM for the fuzzy parts (interpreting "sometime next week, mornings") and plain code for the rest.
+
+**Key decisions:** Separate planning from execution so you can inspect the plan. Make each tool idempotent so a retry does not double-book.
+
+**Evaluation:** End-to-end task success, plus per-step correctness. Build a fixed set of scenarios with known-good outcomes.
+
+**Trade-offs / pitfalls:** Over-planning wastes tokens; a rigid plan cannot adapt. The pitfall is letting the model do arithmetic or exact date math it is bad at.
+
+**Likely follow-up:** "What if a tool call fails mid-workflow?" Retry with backoff, then surface a clear error and pause for the user rather than guessing.
+
+</details>
+
+**3. Design an "Agent Harness and Evaluation System" (agent runtime plus eval loop).**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** Are we evaluating one agent or comparing many versions? Do we have labeled tasks, or must we build them? What counts as success per task?
+
+**Approach:** Two coupled systems. The harness is the runtime: it runs an agent against a task, records the full trajectory (every prompt, tool call, argument, and observation), and captures the final output. The eval loop replays a benchmark of tasks through the harness, then scores each run. Scoring blends exact checks (did the booked flight match?), LLM-as-judge for open-ended quality, and trajectory metrics.
+
+**Key decisions:** Log everything in a structured, replayable format so failures are debuggable. Version the benchmark so scores are comparable across agent versions.
+
+**Evaluation:** The system is the evaluation, so meta-metrics matter: judge agreement with humans, benchmark coverage, and flakiness of runs.
+
+**Trade-offs / pitfalls:** LLM judges drift and can be gamed; calibrate against periodic human review. Non-determinism makes runs flaky, so aggregate over multiple trials.
+
+**Likely follow-up:** "How do you catch regressions?" Re-run the benchmark on every agent change and alert on score drops.
+
+</details>
+
+**4. Design a safe, debuggable agent loop with termination conditions.**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** What is the longest reasonable task? What is the cost ceiling per request? Is a partial answer acceptable, or must it be all-or-nothing?
+
+**Approach:** Wrap the reason-act-observe loop in explicit guardrails. Set a hard cap on total steps and a total wall-clock timeout. Add a per-tool-call timeout. Detect loops by hashing recent states or tool-argument pairs and stopping when they repeat. Track a token or cost budget and halt when it is exceeded. When any limit trips, return the best partial answer with a clear reason.
+
+**Key decisions:** Every step emits a structured trace so a human can replay exactly what happened. Termination is a first-class feature, not an afterthought.
+
+**Evaluation:** Measure how often runs hit each limit; a spike signals over-planning or a broken tool.
+
+**Trade-offs / pitfalls:** Caps set too low cut off legitimate long tasks; too high and a runaway agent burns money. The classic failure is silent infinite looping with no trace.
+
+**Likely follow-up:** "How do you debug a bad run?" Replay the stored trajectory step by step to find where reasoning or a tool went wrong.
+
+</details>
+
+**5. Single-agent versus multi-agent architecture: when to split, how to coordinate, conflict resolution, debugging.**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** How many distinct skills or tool sets are involved? Is latency or cost the constraint? How independent are the sub-tasks?
+
+**Approach:** Default to a single agent; it is simpler to build, cheaper, and far easier to debug. Split into multiple agents only when one agent's tool set and context grow unwieldy, or when clearly separate skills benefit from isolation. Coordinate with a supervisor pattern: a coordinator agent decomposes the goal and delegates to specialist agents, then merges their outputs. Resolve conflicts by giving the coordinator final authority and a tie-break rule.
+
+**Key decisions:** Keep shared state explicit and passed between agents, not implicit. Give each specialist a narrow, well-defined contract.
+
+**Evaluation:** Compare single versus multi-agent on task success, latency, and cost before committing to the complexity.
+
+**Trade-offs / pitfalls:** Every added agent multiplies latency, cost, and failure modes, and makes tracing harder. Agents can disagree or duplicate work.
+
+**Likely follow-up:** "How do you debug across agents?" Assign a shared trace ID so one timeline spans every agent's steps.
+
+</details>
+
+**6. Design tool schemas and a sandboxed tool-execution layer.**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** What tools exist? Which take real-world actions versus read data? What is the blast radius if a tool is misused?
+
+**Approach:** Define each tool with a strict typed schema: name, purpose, and typed parameters with validation. Clear descriptions and tight types are your best defense against hallucinated or malformed calls, because the model has less room to improvise. Execute every call in a sandbox with least-privilege credentials and no ambient access. Validate arguments before running, and make write actions idempotent using a client-supplied key so retries are safe.
+
+**Key decisions:** Reject or repair calls that fail schema validation instead of executing them. Rate-limit and scope each tool to only what the task needs.
+
+**Evaluation:** Track hallucinated-call rate, schema-validation failures, and retry success.
+
+**Trade-offs / pitfalls:** Overly loose schemas invite bad calls; overly rigid ones make the agent brittle. Non-idempotent writes plus retries cause duplicates.
+
+**Likely follow-up:** "How do you prevent injection through tool results?" Treat tool output as untrusted data, never as instructions, and sanitize it before it re-enters the prompt.
+
+</details>
+
+**7. Design agent memory (short-term versus long-term) with safe correction and deletion.**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** What must the agent remember across turns versus across sessions? Is any of it personal data? Who can edit or delete it?
+
+**Approach:** Split memory in two. Short-term memory is the working context for the current task: recent messages and a scratchpad, held in the prompt window and trimmed or summarized as it grows. Long-term memory persists across sessions in a store, often a vector index for semantic recall plus a structured store for facts and preferences. On each turn, retrieve only the relevant long-term items rather than dumping everything.
+
+**Key decisions:** Store memories as discrete, addressable records so a single fact can be updated or removed. Support explicit correction and hard deletion, not just append.
+
+**Evaluation:** Measure recall relevance and whether corrections actually take effect on later turns.
+
+**Trade-offs / pitfalls:** Stale or wrong memories poison future answers. Personal data creates privacy and right-to-be-forgotten obligations.
+
+**Likely follow-up:** "A user says a stored fact is wrong. What happens?" Overwrite or delete that record and confirm it no longer surfaces in retrieval.
+
+</details>
+
+**8. Design a task/booking agent ("book me the cheapest flight to Tokyo") with auth, action validation, and human-in-the-loop.**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** Does the agent actually purchase, or only propose? Whose payment method and account? What is the spending limit?
+
+**Approach:** Split reading from acting. The agent freely searches flights (read-only) and assembles the cheapest option. Any action that spends money or commits the user routes through an approval gate: the agent presents the plan, the user confirms, then a validated action executes. Actions run on-behalf-of the user with their own credentials and least privilege, so the agent can never exceed what the user could do themselves.
+
+**Key decisions:** Human-in-the-loop confirmation for high-stakes actions. Validate every action's arguments (price, dates, passenger) against the confirmed plan before executing.
+
+**Evaluation:** Task success rate, plus a strict count of any unauthorized or unconfirmed actions, which should be zero.
+
+**Trade-offs / pitfalls:** Full autonomy is risky and legally fraught; too many confirmations kill the experience. Prices change between search and purchase.
+
+**Likely follow-up:** "The price changed at checkout." Re-validate and re-confirm with the user rather than silently paying more.
+
+</details>
+
+**9. Design a unified query agent across email, calendar, docs, and chat (cross-source tool routing).**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** Which sources, and what are their APIs? Are results per-user permissioned? Read-only or can it act, like sending mail?
+
+**Approach:** Wrap each source as a tool with a typed interface (search email, list calendar events, search docs, search chat). The agent routes a natural-language query to the right tool or tools, sometimes fanning out to several, then synthesizes one grounded answer with citations back to each source. A light planning step decides which sources a query needs so you do not always hit all four.
+
+**Key decisions:** Enforce per-source access control so the agent only ever sees what the requesting user is allowed to see. Normalize results into a common shape before synthesis.
+
+**Evaluation:** Routing accuracy (did it query the right sources?), answer correctness, and citation quality.
+
+**Trade-offs / pitfalls:** Fanning out to every source is slow and expensive; missing a source gives incomplete answers. Cross-source permission leaks are the serious risk. On Databricks, Unity Catalog can govern which data each tool may touch.
+
+**Likely follow-up:** "How do you keep latency down?" Route to the fewest sources needed and query them in parallel.
+
+</details>
+
+## D. Search, Ranking & Recommendation
+
+**10. Design Perplexity.ai, a real-time LLM-powered search engine (live retrieval, generation, citations).**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** How fresh must results be? Is coverage the open web or a curated set? Are citations required on every claim?
+
+**Approach:** Three stages. First, live retrieval: rewrite the query, hit a web search or index, and fetch the top pages in real time. Second, ground the LLM in those fetched passages and instruct it to answer only from them. Third, attach citations linking every claim to its source. Stream tokens so the user sees an answer forming while later sources are still fetched.
+
+**Key decisions:** Rerank fetched passages before generation so the model reads the most relevant few. Refuse or hedge when sources disagree or are thin.
+
+**Evaluation:** Answer correctness, citation accuracy (does the source actually support the claim?), and freshness.
+
+**Trade-offs / pitfalls:** Live fetching adds latency and can pull in low-quality or contradictory pages. The signature failure is a confident answer with citations that do not support it.
+
+**Likely follow-up:** "How do you keep it fast?" Cache popular queries, cap fetched pages, and stream the response.
+
+</details>
+
+**11. Design an enterprise/semantic search system that returns LLM-synthesized answers.**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** What document corpus and how often does it change? Are documents permissioned per user? Do users want an answer, the source documents, or both?
+
+**Approach:** This is retrieval-augmented generation over internal data. Chunk and embed documents into a vector index, ideally with hybrid search combining keyword and vector so you catch exact IDs and meaning. Retrieve, rerank the top candidates, then have the LLM synthesize a grounded answer with citations. Answer only from retrieved context and refuse when the corpus lacks the answer.
+
+**Key decisions:** Enforce document-level access control at retrieval time so users never see restricted content. Sync the index incrementally as documents change.
+
+**Evaluation:** Separate retrieval quality (were the right passages fetched?) from answer quality (is it correct and grounded?), with an LLM-judge plus human spot-checks.
+
+**Trade-offs / pitfalls:** Poor chunking sinks relevance. Permission leaks are a top enterprise risk. On Databricks, this maps to Vector Search syncing from a Delta change data feed, governed by Unity Catalog.
+
+**Likely follow-up:** "A wrong answer came back." Check what was retrieved to tell a retrieval failure from a generation failure.
+
+</details>
+
+**12. Design a personalized news feed / ranking system (candidate generation, ranking, re-ranking).**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** What is the objective: clicks, dwell time, long-term retention? How many items in the pool? What latency budget per request?
+
+**Approach:** The classic three-stage funnel. Candidate generation narrows millions of items to a few hundred cheaply, often via embeddings and simple retrieval. Ranking scores those few hundred with a heavier model using user, item, and context features. Re-ranking then adjusts the top list for business rules: diversity, freshness, and de-duplication. Serve from a feature store so training and serving features match.
+
+**Key decisions:** Optimize ranking for a blend of objectives, not raw clicks alone, to avoid clickbait. Log impressions and outcomes for training.
+
+**Evaluation:** Offline ranking metrics like AUC and NDCG, then online A/B tests on engagement and retention.
+
+**Trade-offs / pitfalls:** Chasing clicks degrades long-term satisfaction. Training-serving skew silently breaks quality.
+
+**Likely follow-up:** "How do you handle a brand-new user?" Fall back to popularity and context until you have signal (the cold-start problem).
+
+</details>
+
+**13. Design short-video (Reels or TikTok-style) recommendation at scale.**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** What is the objective: watch time, completion rate, retention? What scale of videos and requests per second? How fast must new videos get distributed?
+
+**Approach:** Same candidate-generation then ranking funnel, tuned for a fast-moving, high-volume catalog. Candidates come from embedding retrieval plus fresh and trending pools. The ranker predicts engagement signals like completion and re-watch. Because the feed is consumed continuously, feedback is fast, so lean on near-real-time features and frequent model updates. Inject exploration so new videos get a chance to be seen.
+
+**Key decisions:** Weight watch time and completion over raw likes. Balance exploitation of known-good videos with exploration of new ones.
+
+**Evaluation:** Offline engagement prediction metrics, online A/B tests on watch time and retention, plus creator-side fairness checks.
+
+**Trade-offs / pitfalls:** Pure exploitation creates filter bubbles and starves new creators. Feedback loops amplify whatever the model already favors.
+
+**Likely follow-up:** "How do new videos break in?" Reserve exploration traffic and use content embeddings so a cold video can be matched before it has engagement.
+
+</details>
+
+**14. Design ad ranking / click-through-rate (CTR) prediction with real-time serving and a feature store.**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** What is the objective: CTR, conversions, or revenue? What is the latency budget (ads are strict)? How many candidate ads per request?
+
+**Approach:** For each request, retrieve eligible ads, then score each with a CTR model using user, ad, and context features pulled from a low-latency feature store. Combine predicted CTR with bid to rank by expected value. The feature store serves the exact same features used in training, refreshed in near real time. Serving must be fast and cheap because it runs on every impression.
+
+**Key decisions:** Calibrate predicted probabilities so they can be multiplied by bids meaningfully. Keep the online model light; do heavy feature work upstream.
+
+**Evaluation:** Offline AUC and log-loss with calibration checks, then online A/B tests on CTR and revenue.
+
+**Trade-offs / pitfalls:** Training-serving skew is the number-one bug; the feature store exists to prevent it. Miscalibration distorts the auction.
+
+**Likely follow-up:** "Traffic just spiked 100x." Autoscale serving, cache features for hot users, and shed load gracefully before latency breaks the auction.
+
+</details>
+
+**15. Design an LLM-based recommendation/personalization system (LLM as ranker or explainer).**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** Where does the LLM add value: ranking, generating explanations, or interpreting intent? What latency and cost can we afford, since LLM calls are heavy?
+
+**Approach:** Keep the cheap candidate-generation stage classic (embeddings, retrieval). Bring in the LLM selectively: to re-rank a small top set using rich context, to interpret a natural-language request into structured preferences, or to generate a human-readable reason for each recommendation. Feed it a compact, structured summary of the user and items rather than raw logs.
+
+**Key decisions:** Do not call the LLM on thousands of candidates; that is too slow and costly. Use it where language understanding or explanation genuinely helps.
+
+**Evaluation:** Compare LLM re-ranking against the classic ranker on engagement, and rate explanation quality with an LLM-judge plus human review.
+
+**Trade-offs / pitfalls:** LLM latency and cost can dwarf a normal ranker. Explanations can sound plausible while being unfaithful to the real ranking reason.
+
+**Likely follow-up:** "Is the LLM worth the cost?" A/B test it against the classic pipeline and keep it only where the lift pays for the tokens.
+
+</details>
+
+**16. Design LLM-based semantic search for conversational e-commerce queries (embedding retrieval and intent).**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** What does a query look like ("a warm jacket for hiking under 100 dollars")? What structured filters exist (price, size, brand)? Is catalog freshness important?
+
+**Approach:** Parse the query into two parts: semantic meaning and hard constraints. Embed the meaning and retrieve similar products from a vector index, while extracting structured filters (price, category) and applying them as exact filters. Combine both in a hybrid search, then rerank. Optionally use an LLM to interpret intent and to power follow-up turns like "cheaper ones."
+
+**Key decisions:** Never let semantic similarity override hard constraints; a 200-dollar jacket must not surface under a 100-dollar budget. Keep product embeddings fresh as the catalog changes.
+
+**Evaluation:** Retrieval relevance, constraint compliance, and conversion or add-to-cart rate online.
+
+**Trade-offs / pitfalls:** Pure vector search ignores exact filters and returns out-of-budget items. Stale embeddings miss new products.
+
+**Likely follow-up:** "Handle a multi-turn refinement." Carry conversation state so "cheaper" re-applies the prior query with a tighter price filter.
+
+</details>
+
+**17. Design low-latency typeahead/autocomplete or email smart-reply.**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** What is the latency budget (typeahead is tens of milliseconds)? How many suggestions? Personalized or generic?
+
+**Approach:** Latency dominates every choice here. For typeahead, prefer a precomputed structure like a prefix trie or a cached ranked completion list over any model call on the hot path. For smart-reply, precompute a small set of candidate responses and rank them, or use a small distilled model, rather than a large LLM per keystroke. Cache aggressively on popular prefixes and rank by frequency plus light personalization.
+
+**Key decisions:** Keep the hot path model-free or use a tiny model. Push heavy computation offline into precomputed candidates.
+
+**Evaluation:** Acceptance rate of suggestions, plus strict latency percentiles (p99 must stay tiny).
+
+**Trade-offs / pitfalls:** A large model on every keystroke is far too slow and expensive. Over-personalization adds latency for little gain.
+
+**Likely follow-up:** "Why not just call an LLM?" It cannot meet the latency budget per keystroke; this is a case where a simpler approach wins.
+
+</details>
+
+You have just rehearsed the two hardest families of AI design prompts: agents that act in the world, and the retrieval and ranking systems that decide what people see. Notice how the same moves keep returning: clarify first, separate cheap wide steps from expensive precise ones, ground and cite, evaluate the whole trajectory or funnel, and name your trade-offs out loud. Practice these until the structure feels boring, because boring is exactly what calm looks like in the room.
+
+Next Lesson: ➡️ [Question Bank: Generation, Multimodal & Safety](/docs/system-design-interviews/question-bank-generation-safety)

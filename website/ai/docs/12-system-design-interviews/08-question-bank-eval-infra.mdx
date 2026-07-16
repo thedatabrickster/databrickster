@@ -1,0 +1,348 @@
+---
+sidebar_position: 8
+title: "Question Bank: Evaluation & LLM Infrastructure"
+description: "A rehearsal set of evaluation-centric and LLM-infrastructure interview questions, each with a compact, framework-driven approach you can narrate out loud."
+---
+
+# Question Bank: Evaluation & LLM Infrastructure
+
+This page is a batting cage. Each prompt below is a real-shaped interview question, followed by a short approach you can practice narrating. Do not memorize the answers word for word - instead, notice how every one of them leans on the same eight steps you already know. Read the prompt, cover the answer, try it aloud, then peek.
+
+The two clusters here are the ones companies probe hardest: **evaluation** (how do you know it is any good?) and **LLM infrastructure** (can you actually serve this at scale?). If you can speak calmly to both, you cover most of what senior AI interviews are testing.
+
+:::tip Lean on the framework
+Every answer below is just the [The AI System Design Interview Playbook](/docs/system-design-interviews/the-playbook) 8-step framework applied: clarify, define metrics, sketch architecture, deep-dive, quality, non-functional, security, trade-offs. When you feel lost mid-answer, silently ask "which step am I in?" and continue.
+:::
+
+## H. Evaluation-Centric
+
+**1. "Design an eval for X." Turn a vague quality goal into measurable criteria.**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** What is X actually for, and who decides "good"? What does a failure cost - a mildly clunky answer, or a compliance breach? Is there a single correct answer or a range of acceptable ones?
+
+**Approach:** Decompose the fuzzy goal into named dimensions (correctness, faithfulness, relevance, tone, safety). For each, define a concrete scorer: exact match, a rubric score from 1 to 5, or a pass/fail check. Build a golden set of representative inputs with expected outputs or acceptance criteria. Score candidate outputs against it and aggregate per dimension.
+
+**Key decisions:** Which dimensions matter most, and their weights. Deterministic checks versus graded judgments. Golden-set size and how you source it.
+
+**Evaluation:** The eval is the deliverable, but validate it too - do its scores correlate with human judgment on a sample?
+
+**Trade-offs / pitfalls:** A single blended score hides regressions in one dimension. Over-fitting the golden set to easy cases inflates confidence. Vague rubrics produce noisy scores.
+
+**Likely follow-up:** "How do you know your eval itself is trustworthy?" Answer: calibrate against human labels and track inter-rater agreement.
+
+</details>
+
+**2. Design an LLM-as-a-judge evaluation pipeline.**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** What are we judging - a single answer's quality, or A-versus-B preference? How many items per day, and what latency and budget can we spend on judging?
+
+**Approach:** Write a precise rubric with concrete anchors for each score. Feed the judge model the input, the candidate output, and (when available) reference material, then have it return a score plus a short rationale. Run it as a batch job over logged traffic and over your golden set.
+
+**Key decisions:** Pairwise comparison versus absolute scoring. Whether the judge sees a reference answer. Using a strong model as judge even when a cheaper model serves production.
+
+**Evaluation:** Validate the judge against human labels on a held-out set; report agreement. Re-validate whenever the rubric or judge model changes.
+
+**Trade-offs / pitfalls:** Judges show position bias, verbosity bias, and self-preference. Mitigate by randomizing order, normalizing for length, and avoiding the same model that generated the answer. Judging is itself a cost and latency line item.
+
+**Likely follow-up:** "The judge disagrees with humans 20 percent of the time - now what?" Refine the rubric, add few-shot examples, or fall back to human review for low-confidence cases.
+
+</details>
+
+**3. Build and version a golden evaluation dataset from scratch.**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** What decisions will this set drive - ship gates, model comparison, regression detection? What coverage matters: common cases, edge cases, known failure modes?
+
+**Approach:** Source examples from three places: real production traffic (sampled and de-identified), hand-authored edge cases, and past incidents. Label with expected outputs or acceptance criteria, ideally with human review. Stratify so each important segment is represented. Store it versioned, so every eval run pins a dataset version.
+
+**Key decisions:** Sizing - enough per segment for a stable signal, often hundreds to low thousands. Freezing a canonical set versus continuously growing it. How to prevent train/test contamination.
+
+**Evaluation:** Track coverage per segment and label quality via re-labeling agreement.
+
+**Trade-offs / pitfalls:** Contamination - if golden items leaked into training or prompts, scores lie. Staleness - production shifts, so refresh periodically. Small sets give noisy deltas.
+
+**Likely follow-up:** "How do you keep it representative as traffic evolves?" Periodically resample production and add newly discovered failures.
+
+</details>
+
+**4. Design a regression / CI eval suite for LLM features.**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** What triggers the suite - every prompt change, model swap, or nightly? What is the ship gate, and who owns overrides?
+
+**Approach:** On each change, run the candidate against the versioned golden set, score per dimension, and compare to the last known-good baseline. Gate the merge on thresholds. Because outputs are non-deterministic, run multiple samples per item and compare distributions, not single values, using a tolerance band rather than exact match.
+
+**Key decisions:** Absolute thresholds versus relative-to-baseline deltas. Sample count per item to tame variance. Blocking failures versus warnings.
+
+**Evaluation:** Track false-alarm and missed-regression rates of the suite itself over time.
+
+**Trade-offs / pitfalls:** Thresholds too tight cause flaky, ignored builds; too loose lets regressions ship. Non-determinism means a single run can mislead. Shadow evals - running the candidate silently on live traffic without serving it - catch issues the golden set misses.
+
+**Likely follow-up:** "A build fails but the diff looks harmless - what do you do?" Inspect per-item deltas, re-run for noise, and add the surprising case to the golden set.
+
+</details>
+
+**5. Design offline versus online evaluation for an LLM feature.**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** What decision are we making - which change is safe to ship, or which is actually better for users? What business metric is the north star?
+
+**Approach:** Use offline eval (golden set plus LLM judge) as the cheap, fast pre-ship gate. Use online eval to measure real impact: an A/B test splits traffic between variants and compares outcome metrics; interleaving mixes results from both variants in one session and measures which the user prefers, giving a more sensitive signal with less traffic.
+
+**Key decisions:** A/B versus interleaving. Guardrail metrics (latency, cost, safety) alongside the primary metric. Sample size and run duration for significance.
+
+**Evaluation:** Confirm offline wins actually predict online wins; when they diverge, trust online for the ship decision.
+
+**Trade-offs / pitfalls:** Offline is fast but can miss real behavior; online is truthful but slow, costly, and exposes users to risk. Novelty effects and peeking at results early both mislead.
+
+**Likely follow-up:** "Offline says better, A/B says worse - which do you trust?" Online, and investigate what the offline set failed to capture.
+
+</details>
+
+**6. Design evaluation for a RAG system.**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** Are we debugging retrieval, generation, or end-to-end quality? Do we have labeled query-to-relevant-document pairs, or must we build them?
+
+**Approach:** Evaluate the two stages separately, then together. For retrieval, measure recall at k, precision at k, and mean reciprocal rank against known relevant chunks. For generation, measure faithfulness (is the answer grounded in retrieved context?), answer relevance, and correctness against references. End-to-end, score the final answer with a rubric or judge.
+
+**Key decisions:** Where to spend labeling effort. Faithfulness scoring - claim-level checking versus a holistic judge. Chunk-level versus document-level relevance labels.
+
+**Evaluation:** Attribute failures - a wrong answer from good context is a generation problem; a right-shaped answer from missing context is a retrieval problem.
+
+**Trade-offs / pitfalls:** Judging only the final answer hides which stage broke. Faithfulness and relevance are distinct - a grounded answer can still miss the question.
+
+**Likely follow-up:** "Answers are wrong - retrieval or generation?" Check retrieval metrics first; if the right chunks were retrieved, the model is the culprit.
+
+</details>
+
+**7. Design evaluation for agents and tool-use.**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** What defines task success - a correct final state, or a correct answer? Are tools read-only or do they mutate real systems? Do we have reference trajectories?
+
+**Approach:** Score two layers. Outcome: did the agent achieve the goal, verified by checking end state (row created, ticket closed) rather than parsing prose. Trajectory: were the right tools called, in a sensible order, with valid arguments, and no wasteful or destructive steps? Run against a suite of tasks in a sandbox with seeded state.
+
+**Key decisions:** Outcome-only versus trajectory scoring. Sandbox versus mocked tools. Step-count and cost budgets as guardrail metrics.
+
+**Evaluation:** Report task success rate, average steps, tool-error rate, and recovery rate after a failed call.
+
+**Trade-offs / pitfalls:** Multiple valid trajectories exist, so rigid step-matching is unfair - grade on outcome plus reasonableness. Live tools make evals non-reproducible and risky.
+
+**Likely follow-up:** "The agent gets the right answer but takes ten wasteful steps - pass or fail?" Pass on outcome, flag on efficiency; both are metrics.
+
+</details>
+
+**8. Design production monitoring, observability, and drift detection for LLM quality.**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** What quality signals matter live, and what latency can we tolerate for detection? Do we have ground truth in production, or only proxies?
+
+**Approach:** Trace every request end to end - input, retrieved context, prompt, output, tokens, latency, cost. Layer online quality proxies: user feedback (thumbs, edits, regenerations), automated safety and faithfulness checks, and a sampled LLM judge on live traffic. Watch input distributions and output-score distributions for drift, and alert on shifts.
+
+**Key decisions:** Sampling rate for expensive judging. Which proxy metrics stand in for true quality. Alert thresholds versus baselines.
+
+**Evaluation:** Confirm monitored proxies actually track real quality by periodically comparing against human review.
+
+**Trade-offs / pitfalls:** Judging every request is too costly, so sample. Proxy metrics drift from truth. Drift can come from inputs, the model, or the data behind retrieval - distinguish them. See [Databricks Lakehouse Monitoring](https://docs.databricks.com/aws/en/lakehouse-monitoring/) for one vendor's approach.
+
+**Likely follow-up:** "Quality dropped overnight - how do you localize it?" Segment by input type, model version, and data freshness to isolate the change.
+
+</details>
+
+## I. LLM Infrastructure & Platform
+
+**9. Design an LLM inference and request-batching system.**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** What is the latency target versus throughput goal? What model size, sequence lengths, and GPU type? Streaming or full-response?
+
+**Approach:** Batch multiple requests per GPU to keep it saturated, since a single request underuses the hardware. Use continuous (in-flight) batching, adding and retiring sequences each decoding step rather than waiting for a fixed batch. Manage the KV cache carefully - it stores per-token attention state and grows with sequence length and batch size, and it usually dominates GPU memory.
+
+**Key decisions:** Max batch size, bounded by KV-cache memory. Continuous versus static batching. Paged KV-cache allocation to cut fragmentation.
+
+**Evaluation:** Track tokens per second, time-to-first-token, GPU utilization, and queue wait time.
+
+**Trade-offs / pitfalls:** Bigger batches raise throughput but hurt per-request latency, and can exhaust KV-cache memory and trigger evictions. Long sequences shrink the feasible batch. The prefill and decode phases have very different resource profiles.
+
+**Likely follow-up:** "You are out of GPU memory under load - what gives?" Cap batch size or sequence length, page the KV cache, or shard the model.
+
+</details>
+
+**10. Design a token-generation service at 100K RPS.**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** Is 100K RPS requests or tokens? What is the output-length distribution? What latency SLO per request?
+
+**Approach:** Reframe the load in tokens per second, because generation cost scales with tokens, not requests - a request emitting 500 tokens is far heavier than one emitting 5. Size the fleet from aggregate tokens per second divided by per-GPU throughput at your target batch size. Front it with a queue and admission control, and shard across many GPU replicas behind a load balancer.
+
+**Key decisions:** Tokens-per-second capacity planning over raw RPS. Per-GPU batch size trading latency for throughput. Autoscaling on queue depth and GPU saturation.
+
+**Evaluation:** Track tokens per second per GPU, GPU utilization, p50/p99 time-to-first-token, and queue depth.
+
+**Trade-offs / pitfalls:** Planning on RPS alone ignores that long generations saturate GPUs. GPUs are the scarce resource - keep them busy but not starved. Cold-start latency on scale-up.
+
+**Likely follow-up:** "Half the requests suddenly generate long outputs - what happens?" Effective RPS capacity drops; admission control and per-request token caps protect the SLO.
+
+</details>
+
+**11. Design a large-scale model serving system for a frontier model to millions of users.**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** How many model variants and versions must coexist? What is the traffic pattern - steady or spiky? Can any results be cached?
+
+**Approach:** Put a gateway in front of an autoscaling pool of GPU inference replicas. Version models explicitly so you can roll out gradually and roll back fast. Cache aggressively - identical prompts and common prefixes can serve from a result cache. Autoscale GPU replicas on saturation, with warm capacity for spikes.
+
+**Key decisions:** Model versioning and traffic-splitting for rollout. Cache key design and time-to-live. GPU autoscaling signals and headroom.
+
+**Evaluation:** Track availability, p99 latency, cache-hit rate, cost per request, and GPU utilization.
+
+**Trade-offs / pitfalls:** GPU cold starts are slow and expensive, so keep warm pools. Caching helps only with repetition and risks staleness. Multiple live versions multiply operational surface.
+
+**Likely follow-up:** "Roll out a new model version safely - how?" Shadow, then canary a small traffic slice, watch quality and latency, then ramp with an instant rollback path.
+
+</details>
+
+**12. Design an LLM gateway / router.**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** How many tenants, and must they be isolated? What routing logic - by cost, capability, or availability? Is fallback required?
+
+**Approach:** A single entry point that authenticates per-tenant keys, enforces rate limits and quotas, then routes each request to a model by policy (a cheap model for easy prompts, a stronger one for hard ones). Add semantic caching so near-duplicate prompts reuse answers. On provider error or timeout, fall back to an alternate model. Log tokens and cost per tenant.
+
+**Key decisions:** Routing policy - static rules versus a difficulty classifier. Semantic-cache similarity threshold. Per-tenant isolation of keys, quotas, and logs.
+
+**Evaluation:** Track routing accuracy, cache-hit rate, fallback rate, per-tenant cost, and added gateway latency.
+
+**Trade-offs / pitfalls:** Semantic caching can serve a subtly wrong answer if the threshold is loose. The gateway is a single point of failure - it needs its own redundancy. Cross-tenant leakage is a serious risk.
+
+**Likely follow-up:** "A tenant floods you with traffic - how do you protect the rest?" Per-tenant rate limits and quotas, plus fair-queuing so one tenant cannot starve others.
+
+</details>
+
+**13. Optimize cost for an LLM product at 1M+ queries per day.**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** Where does spend actually go - input tokens, output tokens, or model choice? What quality floor cannot be crossed?
+
+**Approach:** Attack cost on several axes. Model tiering: route easy queries to a small cheap model, reserve the frontier model for hard ones. Caching: exact and semantic caches remove repeat work. Token discipline: trim prompts, retrieve fewer chunks, and cap output length. Prompt caching for shared long prefixes cuts repeated input cost.
+
+**Key decisions:** Tiering policy and how to classify difficulty. Cache scope and freshness. Output-length caps per use case.
+
+**Evaluation:** Track cost per query, per-tier traffic share, cache-hit rate, and the quality of downgraded traffic - savings must not tank quality.
+
+**Trade-offs / pitfalls:** Over-aggressive downgrading quietly erodes quality. Loose semantic caching serves stale or wrong answers. Every optimization needs a quality guardrail beside it.
+
+**Likely follow-up:** "Cut cost 50 percent without hurting quality - where first?" Caching and tiering usually pay most; measure the quality impact of each before committing.
+
+</details>
+
+**14. Design a low-latency LLM autocomplete system.**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** What is the latency ceiling - genuinely sub-second, per keystroke? How long are completions? How much context surrounds the cursor?
+
+**Approach:** Optimize relentlessly for time-to-first-token. Use a small fast model. Apply speculative decoding, where a cheap draft model proposes tokens the main model verifies in parallel, cutting latency. Cache by context prefix so common situations return instantly. Debounce input and cancel in-flight requests when the user keeps typing.
+
+**Key decisions:** Model size versus quality. Speculative decoding and draft-model choice. Prefix-cache design and debounce interval.
+
+**Evaluation:** Track p99 time-to-first-token, acceptance rate of suggestions, and wasted (cancelled) compute.
+
+**Trade-offs / pitfalls:** Speculative decoding helps only when the draft model agrees often. Firing on every keystroke wastes GPU - debounce and cancel. Tiny models keep latency low but may suggest poorly.
+
+**Likely follow-up:** "Latency is fine but suggestions are weak - what do you tune?" A slightly larger model or richer context, watching the latency budget closely.
+
+</details>
+
+**15. Design a distributed GPU job queue/scheduler for long-running opaque jobs.**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** How long do jobs run - minutes or days? Are they preemptible? Do priorities and fair-share across teams matter?
+
+**Approach:** A central scheduler assigns queued jobs to a pool of GPU workers by priority and resource fit. Because jobs run long, support checkpointing so a preempted or crashed job resumes from its last saved state rather than restarting. Higher-priority jobs preempt lower-priority ones, which checkpoint and requeue. Enforce fair-share quotas per team.
+
+**Key decisions:** Priority and fair-share policy. Checkpoint frequency, trading overhead against lost work. Gang scheduling for multi-GPU jobs that need all workers at once.
+
+**Evaluation:** Track queue wait time, GPU utilization, preemption rate, and wasted compute from lost work.
+
+**Trade-offs / pitfalls:** Frequent checkpoints cost time and storage; rare ones lose more on preemption. Multi-GPU jobs can deadlock without gang scheduling. Opaque jobs make runtime estimation hard.
+
+**Likely follow-up:** "A high-priority job arrives and everything is busy - what happens?" Preempt the lowest-priority running job, which checkpoints and requeues.
+
+</details>
+
+**16. Design a system to distribute large model weights to thousands of machines.**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** How large are the weights, and how many machines need them how fast? Is this a one-time rollout or frequent updates?
+
+**Approach:** Serving many-gigabyte files from one origin to thousands of nodes saturates the source. Instead, use peer-to-peer distribution: nodes that already have chunks share them with peers, so bandwidth scales with the fleet rather than bottlenecking on the origin. Layer regional caches so most transfers stay local, and verify each file by checksum.
+
+**Key decisions:** Peer-to-peer versus a tiered cache hierarchy versus both. Chunk size for parallel transfer. Version pinning so every node runs the intended weights.
+
+**Evaluation:** Track time to full rollout, origin bandwidth, per-node download time, and integrity-check failures.
+
+**Trade-offs / pitfalls:** A pure origin-pull design melts under thousands of simultaneous pulls. Peer-to-peer adds coordination complexity. Version skew mid-rollout can leave nodes inconsistent.
+
+**Likely follow-up:** "Push a new version to the whole fleet fast - how?" Seed a few nodes, let peer-to-peer fan it out, and pin the version to flip traffic atomically once propagated.
+
+</details>
+
+**17. Handle real-time versus batch index and data updates for freshness versus cost.**
+
+<details>
+<summary>Show approach</summary>
+
+**Clarify:** How fresh must retrieval be - seconds, hours, or days? What is the update volume, and how costly is re-embedding?
+
+**Approach:** Match the update path to the freshness need. Batch re-indexing on a schedule is cheap and simple and fits slowly changing data. For data that must be fresh now, a streaming path embeds and upserts changes into the index as they arrive. A hybrid is common: nightly full rebuilds for correctness, plus a real-time stream for recent changes.
+
+**Key decisions:** Batch versus streaming versus hybrid. Incremental upserts versus periodic full rebuilds. Which data segments justify real-time cost.
+
+**Evaluation:** Track index staleness (age of newest data), update cost, and retrieval quality on recently changed items.
+
+**Trade-offs / pitfalls:** Real-time updates cost far more in compute and complexity. Incremental indexes can drift from a clean rebuild over time. Not all data needs the same freshness - segment it.
+
+**Likely follow-up:** "Only 1 percent of data changes hourly, the rest yearly - what do you build?" A cheap batch rebuild for the bulk, a streaming path just for the hot 1 percent.
+
+</details>
+
+You have now rehearsed the two hardest clusters in AI system design interviews. Notice how the same moves recur: clarify before designing, name your metrics, and say the trade-off out loud. Practice these aloud with a timer until the rhythm feels automatic.
+
+## Next Lesson
+
+➡️ [Question Bank: Training & Domain-Specific](/docs/system-design-interviews/question-bank-training-domain)
