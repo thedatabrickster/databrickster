@@ -1,0 +1,148 @@
+---
+sidebar_position: 7
+title: "Part 2 · Interview Prep"
+description: Friendly, active-recall review covering all of Part 2 — RAG, chunking, Vector Search indexes, retrieval, the end-to-end pipeline, and improving quality.
+---
+
+# Part 2 · Interview Prep
+
+Look how far you've come. You can now take a pile of PDFs and turn them into something
+a model can actually answer questions about. This page is your relaxed checkpoint —
+read each question, answer it in your own words, then peek.
+
+:::tip One gentle rule
+Try to answer *before* you open the toggle. A wobbly answer from memory beats a perfect
+answer you just re-read. If one won't come, hop back to the lesson — that's studying,
+not failing.
+:::
+
+**Covers:**
+[What Is RAG?](/docs/rag-and-ai-search/what-is-rag) ·
+[Chunking](/docs/rag-and-ai-search/chunking) ·
+[Vector Search Index](/docs/rag-and-ai-search/vector-search-index) ·
+[Retrieval](/docs/rag-and-ai-search/retrieval) ·
+[RAG Pipeline](/docs/rag-and-ai-search/rag-pipeline) ·
+[RAG Quality](/docs/rag-and-ai-search/rag-quality)
+
+---
+
+## Section A — The idea of RAG
+
+**A1. In one sentence, what problem does RAG solve?**
+
+<details>
+
+It lets a model answer using *your* private or current data — by finding relevant passages and putting them in the prompt — instead of guessing from what it memorized during training.
+
+</details>
+
+**A2. What do the three letters in RAG stand for, and what happens at each step?**
+
+<details>
+
+Retrieve (find the most relevant passages from your data), Augment (add them into the prompt), Generate (the model writes an answer grounded in that text).
+
+</details>
+
+**A3. Why does RAG reduce hallucinations?**
+
+<details>
+
+Because the model reads real, supplied facts instead of relying on memory. And because you can attach citations, a human can verify each claim.
+
+</details>
+
+**A4. Why is RAG usually preferred over retraining the model on your documents?**
+
+<details>
+
+No retraining needed: your data stays in your own store, updates take effect instantly when documents change, it's far cheaper, and access control stays with your data.
+
+</details>
+
+## Section B — Preparing and indexing data
+
+**B1. Why don't we embed a whole 50-page document as one vector?**
+
+<details>
+
+Two reasons: it won't fit the embedding model's token limit, and its meaning becomes a blurry average of many topics that matches no specific question well. So we split it into focused chunks.
+
+</details>
+
+**B2. What is chunk overlap and why use it?**
+
+<details>
+
+It's a bit of repeated text shared between neighboring chunks (often 10–20%). It's a safety margin so an idea that lands on a boundary isn't cut in half — it survives whole on at least one side.
+
+</details>
+
+**B3. What's the difference between a Vector Search endpoint and an index?**
+
+<details>
+
+The endpoint is the compute that hosts indexes and answers queries. The index is the searchable catalog built from one Delta table. One endpoint can host many indexes.
+
+</details>
+
+**B4. What is a Delta Sync index, and why do data engineers love it?**
+
+<details>
+
+An index that embeds a text column for you and stays in sync as the Delta table changes — like a materialized view for AI search. Your table stays the source of truth; the index follows it automatically. (It needs Change Data Feed enabled on the table.)
+
+</details>
+
+## Section C — Retrieving and answering
+
+**C1. Why must the query use the same embedding model as the index?**
+
+<details>
+
+Different models produce vectors in different "coordinate systems," so a query vector from one model can't be meaningfully compared to chunk vectors from another. Using the index's `query_text` path avoids this automatically.
+
+</details>
+
+**C2. What are metadata filters, and why are they critical for security?**
+
+<details>
+
+They restrict which chunks are eligible before ranking (like a SQL `WHERE`). For security, a filter scoped to the authenticated user (e.g. `client_id`) guarantees the search can never return another user's documents — even a perfect semantic match. Source the filter value from the session, never from user input.
+
+</details>
+
+**C3. What are the two rules that make a RAG answer trustworthy?**
+
+<details>
+
+(1) Ground only in the retrieved text. (2) Say "I don't know" when the context doesn't contain the answer. You enforce both in the system prompt, and back up rule 2 with a code guardrail when retrieval returns nothing.
+
+</details>
+
+**C4. A RAG answer is wrong. What's the very first thing you check — and what do you NOT do?**
+
+<details>
+
+First: look at the *retrieved chunks* and ask whether the needed info is even in them (recall). Do NOT immediately rewrite the prompt — if it's a retrieval (wrong-book) problem, coaching the model to "summarize better" won't help.
+
+</details>
+
+**C5. Contrast hybrid search and reranking.**
+
+<details>
+
+Hybrid search blends keyword (exact-term) and semantic (meaning) scoring so exact codes/acronyms and paraphrases both match — it improves the *candidates*. Reranking is a second, careful pass that re-scores the top candidates by reading each one together with the question and keeps the best few — it improves the *ordering*. "Retrieve wide → rerank → answer narrow."
+
+</details>
+
+---
+
+## Nicely done 🎉
+
+You can now design, build, debug, and explain a RAG system on Databricks. That's a
+genuinely valuable, in-demand skill — and you built it from first principles.
+
+Next up: **Part 3 — From LLM to Agent (Tools, Function Calling & MCP)**, where the model
+stops just *answering* and starts *doing* — calling tools, looking things up, and taking
+actions on your behalf.
