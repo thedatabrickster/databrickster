@@ -1,0 +1,436 @@
+---
+sidebar_position: 3
+title: "LLM Judges and Scorers"
+description: "Learn how to grade AI answers at scale using heuristic scorers and LLM-as-a-judge in MLflow 3, run mlflow.genai.evaluate over your dataset, and add a custom rubric judge."
+---
+
+# LLM Judges and Scorers
+
+> You have a folder of AI answers and a nagging question: "Are these actually any good?" Reading every one yourself does not scale. This lesson shows you how to hand that grading to a mix of cheap rule checks and a second, impartial AI grader.
+
+Take a breath. If you have ever graded anything against a checklist, you already understand the core idea here. We are just teaching a computer to do the grading for you. You do not need any machine-learning background to follow along. We will build up slowly, one plain-English piece at a time.
+
+## Learning Objectives
+
+By the end of this lesson, you will be able to:
+
+- Explain what a **scorer** is and how a **heuristic scorer** differs from an **LLM judge**.
+- Describe the common built-in evaluation dimensions in plain words: correctness, relevance, groundedness, safety, and retrieval quality.
+- Run an evaluation over a dataset with `mlflow.genai.evaluate(...)` and read the results.
+- Write a small **custom scorer** (a Python function) and a **custom LLM judge** (your own rubric).
+- Explain the honest catch: judges are themselves imperfect models, and why you validate them against human labels.
+
+## Prerequisites
+
+- You have read [Building Evaluation Datasets](/docs/evaluation/evaluation-datasets) and have a small dataset of questions (and ideally expected answers) ready.
+- You are comfortable reading basic Python. You do not need to have written any AI code before.
+- You have access to a Databricks workspace with MLflow 3 for GenAI available.
+
+If any of that feels shaky, that is okay. The examples are self-contained, and we explain every line.
+
+## Estimated Reading Time
+
+About 20 to 25 minutes, plus a little more if you run the code as you go.
+
+## Business Motivation
+
+Imagine you build a support assistant for **Northwind Trust**, a (fictional) regional bank. Customers ask it things like "How do I dispute a charge?" The assistant answers in seconds. Wonderful.
+
+But here is the worry that keeps a data engineer up at night: **how do you know it is answering well?** Not just today, on the three questions you tried by hand, but across thousands of questions, every time you change a prompt or swap a model.
+
+Grading by hand does not scale. One reviewer can read maybe a few hundred answers a day, slowly, inconsistently, and expensively. You need a way to grade *automatically* so you can:
+
+- Catch quality drops **before** they reach customers.
+- Compare two versions of your assistant and pick the better one with evidence, not vibes.
+- Track quality over time as a number you can put on a dashboard.
+
+That automatic grader is what this lesson is about.
+
+## Intuition
+
+Picture a school essay contest. There are 5,000 essays and one tired teacher. Reading them all fairly is impossible in a weekend.
+
+So the school does two smart things:
+
+1. **Quick mechanical checks first.** A volunteer confirms each essay is in English, is at least 500 words, and was submitted on time. These checks are cheap, fast, and objective. No judgment needed. These are your **heuristic scorers**.
+
+2. **A second, impartial grader for the hard part.** For the actual quality, the school brings in a fresh, impartial grader who reads each essay against a written **rubric**: "Does it answer the prompt? Is it well supported? Is it respectful?" The grader assigns a score and writes a short reason. This second grader is your **LLM judge**.
+
+That is the whole picture. A **scorer** is anything that outputs a score for an answer. Some scorers are simple rules (heuristics). Some scorers are themselves an AI model reading against a rubric (LLM judges).
+
+```mermaid
+flowchart TD
+    A["Agent answer"] --> B{"What kind of scorer?"}
+    B -->|"Simple rule"| C["Heuristic scorer<br/>exact match, contains,<br/>latency, cost"]
+    B -->|"Needs judgment"| D["LLM judge<br/>a model grading<br/>against a rubric"]
+    C --> E["Score"]
+    D --> E["Score + rationale"]
+```
+
+*Figure 1: Every scorer turns an answer into a score. Cheap rules handle the mechanical checks; an LLM judge handles the parts that need reading and judgment.*
+
+## Theory
+
+Let's pin down the two key terms so we never confuse them again.
+
+**Scorer.** A scorer takes an agent's output (and often the question and some context) and produces a **score**. A score can be a number (0.0 to 1.0), a pass/fail, or a category. That is it. Anything that outputs a score is a scorer.
+
+**Heuristic scorer.** A scorer built from a fixed rule. It does not "think." Examples:
+
+- **Exact match**: does the answer equal the expected answer, character for character?
+- **Contains**: does the answer include a required word or phrase?
+- **Latency**: how many seconds did the answer take?
+- **Cost**: how many tokens (and therefore dollars) did it use?
+
+Heuristic scorers are fast, free, and perfectly consistent. Their weakness is that they cannot judge meaning. "Yes, you can dispute it" and "Absolutely, disputes are allowed" mean the same thing, but an exact-match check would call them different.
+
+**LLM judge.** A scorer that is *itself a language model*, given a rubric, and asked to grade the answer. Because it reads for meaning, it can handle the fuzzy questions that heuristics cannot: "Is this answer actually correct?" "Is it relevant to what was asked?" "Is it supported by the documents we retrieved?"
+
+The trade-off is the mirror image of heuristics: LLM judges are flexible and understand meaning, but they cost money, take time, and are themselves imperfect. We will come back to that catch honestly at the end.
+
+:::note Going deeper (optional)
+The name you will hear in papers and blog posts is **LLM-as-a-judge**. The idea took off because human evaluation is slow and expensive, and simple string metrics miss meaning. A model judge sits in between: cheaper than humans, smarter than string matching. It is not a replacement for human judgment; it is a scalable stand-in that you keep checking against humans.
+:::
+
+## Deep Dive
+
+MLflow 3 for GenAI gives you a set of **built-in judges and scorers** for the dimensions teams care about most. Here they are in plain words, using Northwind Trust as the example.
+
+- **Correctness** - Is the answer actually right? For "What is the daily ATM withdrawal limit?", does it give the right number? Usually judged against an expected answer.
+
+- **Relevance (relevance-to-query)** - Does the answer actually address what was asked? If a customer asks about wire transfers and the answer talks about mobile deposits, it may be true but irrelevant.
+
+- **Groundedness / faithfulness** - This one matters a lot for retrieval systems. When your assistant looks up documents and then answers, is the answer *supported by those documents*? Or did the model make something up? An answer that invents a policy Northwind never published is *ungrounded*, even if it sounds confident. This is your main defense against "hallucinations."
+
+- **Safety / harmfulness** - Is the answer free of harmful, toxic, or inappropriate content? A bank assistant must never produce abusive or dangerous output.
+
+- **Retrieval quality** - Separate from the final answer: did the retrieval step fetch the *right* documents in the first place? If the retriever pulls irrelevant pages, even a good model will struggle.
+
+You do not have to use all of them. Pick the dimensions that map to what "good" means for your product. For a support bot answering from a knowledge base, correctness, relevance, and groundedness are usually the top three.
+
+```mermaid
+flowchart LR
+    subgraph Dimensions["Built-in dimensions"]
+        C1["Correctness"]
+        C2["Relevance"]
+        C3["Groundedness"]
+        C4["Safety"]
+        C5["Retrieval quality"]
+    end
+    Q["Your product's<br/>definition of 'good'"] --> Dimensions
+```
+
+*Figure 2: MLflow ships judges for the dimensions most teams need. You choose the ones that match what "good" means for your use case.*
+
+## Architecture
+
+Here is the diagram to keep in your head. When an LLM judge grades one answer, it is given three things: the **question**, the **agent's answer**, and (for groundedness and retrieval) the **context** the agent used. It returns a **score** and a **rationale** (a short written reason).
+
+```mermaid
+flowchart LR
+    Q["Question<br/>'How do I dispute a charge?'"] --> J
+    A["Agent's answer<br/>'Call us or use the app...'"] --> J
+    C["Context<br/>retrieved policy docs"] --> J
+    J["LLM Judge<br/>reads against a rubric"] --> S["Score<br/>e.g. 0.9 / pass"]
+    J --> R["Rationale<br/>'Answer matches the<br/>documented dispute steps.'"]
+```
+
+*Figure 3: The core loop. Answer + question + context go into the judge; a score and a plain-English rationale come out. The rationale is gold — it tells you **why**, not just the number.*
+
+The rationale is the feature that makes LLM judges so useful. A heuristic gives you "0.4" with no explanation. A judge gives you "0.4, because the answer omitted the 60-day filing deadline mentioned in the policy." That is something a human can act on.
+
+## Internal Working
+
+What actually happens when a judge runs? No magic, just a few steps.
+
+1. **Assemble a prompt.** MLflow builds a prompt for the judge model. It includes the rubric (the grading instructions) and slots in this specific question, answer, and context.
+
+2. **Call the judge model.** That prompt is sent to a language model. The model reads it and produces a verdict, usually a score plus a short justification.
+
+3. **Parse the result.** MLflow reads the model's reply and extracts the structured score and rationale so it can be stored and aggregated.
+
+4. **Repeat for every example.** Steps 1 to 3 run once per row in your dataset. Then MLflow rolls the per-example scores up into **aggregate metrics** (for example, "average correctness = 0.82").
+
+The key mental model: an LLM judge is just another model call, wrapped in bookkeeping that turns free-form model text into a tidy score you can chart.
+
+:::note Going deeper (optional)
+Built-in judges in MLflow are **calibrated and validated against human labels**. In plain terms: the people who built the judge collected examples that humans had already graded, ran the judge on them, and checked how often the judge agreed with the humans. That agreement number is what earns your trust. When you build your *own* judge later, you will want to do the same check.
+:::
+
+## Step-by-Step Walkthrough
+
+Here is the shape of a full evaluation run, before we touch code:
+
+1. **Load your dataset** from the previous lesson. Each row has at least an `inputs` field (the question), and often an `expected` answer.
+
+2. **Point at your agent** with a `predict_fn` — a function MLflow can call to get an answer for each input.
+
+3. **Choose your scorers** — a mix of built-in judges and any custom ones you write.
+
+4. **Call `mlflow.genai.evaluate(...)`** with those three things.
+
+5. **Read the results** in MLflow: per-example scores (with rationales) and aggregate metrics.
+
+6. **Act on it** — fix a prompt, swap a model, tighten retrieval, then run again and compare.
+
+Let's do it.
+
+## Hands-on Examples
+
+We will grade the Northwind Trust support assistant. First, a tiny stand-in for the assistant so the example runs on its own.
+
+```python
+# A minimal stand-in for your real agent.
+# In practice this would call your deployed assistant.
+def northwind_assistant(question: str) -> str:
+    canned = {
+        "How do I dispute a charge?":
+            "Open the Northwind app, go to the transaction, and tap "
+            "'Dispute'. You must file within 60 days of the statement date.",
+        "What is the daily ATM withdrawal limit?":
+            "The standard daily ATM withdrawal limit is $500.",
+    }
+    return canned.get(question, "I'm not sure about that.")
+```
+
+We defined a fake assistant that returns a fixed answer for two known questions and a fallback otherwise. Using a stand-in keeps the focus on evaluation, not on wiring up a real model. When you are ready, you swap this function for a call to your real agent — the evaluation code around it does not change.
+
+## Code Examples
+
+### Example 1: Run an evaluation with built-in scorers
+
+```python
+import mlflow
+from mlflow.genai.scorers import Correctness, RelevanceToQuery, Safety
+
+# 1. Your evaluation dataset from the previous lesson.
+#    Each row: an input question, and the expected answer.
+eval_dataset = [
+    {
+        "inputs": {"question": "How do I dispute a charge?"},
+        "expected_response": "File a dispute in the app within 60 days.",
+    },
+    {
+        "inputs": {"question": "What is the daily ATM withdrawal limit?"},
+        "expected_response": "$500 per day.",
+    },
+]
+
+# 2. A predict_fn: MLflow calls this to get your agent's answer.
+def predict_fn(question: str) -> str:
+    return northwind_assistant(question)
+
+# 3. Run evaluation with a few built-in scorers.
+results = mlflow.genai.evaluate(
+    data=eval_dataset,
+    predict_fn=predict_fn,
+    scorers=[
+        Correctness(),
+        RelevanceToQuery(),
+        Safety(),
+    ],
+)
+
+print(results.metrics)
+```
+
+Let's walk through what just happened.
+
+- We imported three **built-in scorers**. `Correctness` checks the answer against `expected_response`. `RelevanceToQuery` checks whether the answer addresses the question. `Safety` checks for harmful content.
+- `eval_dataset` is a list of rows. Each row has `inputs` (what goes to the agent) and `expected_response` (what a good answer looks like). This is the dataset you built last lesson.
+- `predict_fn` is the bridge to your agent. MLflow passes each question in, and your function returns the agent's answer. Here it calls our stand-in.
+- `mlflow.genai.evaluate(...)` ties it together: for every row, it gets the answer, runs every scorer, and records the results.
+- `results.metrics` holds the **aggregate** numbers — the averages across all rows. The **per-example** scores and rationales are visible in the MLflow UI, where you can click into any single answer and read why it got its score.
+
+That is a complete evaluation. A few lines, and you have graded your whole dataset on three dimensions.
+
+### Example 2: A custom heuristic scorer
+
+Suppose Northwind Trust has a compliance rule: every answer that mentions disputes **must** point the customer to a phone number or the app. That is a mechanical check — perfect for a heuristic scorer.
+
+```python
+from mlflow.genai.scorers import scorer
+
+@scorer
+def mentions_contact_method(outputs: str) -> float:
+    """Return 1.0 if the answer tells the user HOW to act, else 0.0."""
+    text = outputs.lower()
+    if "app" in text or "call" in text or "phone" in text:
+        return 1.0
+    return 0.0
+```
+
+Here is what this does:
+
+- The `@scorer` decorator turns a plain Python function into something `mlflow.genai.evaluate` can use.
+- The function receives the agent's `outputs` (the answer text). It does not use a model at all — it is a simple rule.
+- It returns `1.0` (pass) if the answer mentions the app or a phone, and `0.0` (fail) otherwise.
+
+This is a heuristic scorer you wrote yourself. It is cheap, instant, and perfectly consistent — exactly what mechanical checks should be. Add it to the `scorers=[...]` list just like the built-in ones.
+
+### Example 3: A custom LLM judge with your own rubric
+
+Now the interesting one. Northwind's quality team wants a fuzzier check: **"Does the answer cite a specific Northwind policy or a concrete step, rather than being vague?"** That needs reading and judgment, so it calls for an LLM judge with a custom rubric.
+
+```python
+from mlflow.genai.judges import custom_prompt_judge
+
+citation_judge = custom_prompt_judge(
+    name="cites_specifics",
+    prompt_template="""
+You are grading a bank support answer.
+
+Question: {{question}}
+Answer:   {{answer}}
+
+Does the answer include a SPECIFIC step, number, or policy
+(for example a time limit, a dollar amount, or a named screen),
+rather than staying vague?
+
+Reply with exactly one of:
+- 'specific' if it includes a concrete step, number, or policy.
+- 'vague'    if it is generic and gives no concrete detail.
+""",
+    numeric_values={"specific": 1.0, "vague": 0.0},
+)
+```
+
+Step by step:
+
+- `custom_prompt_judge` builds a judge from **your own rubric prompt**. You are writing the grading instructions yourself.
+- The `{{question}}` and `{{answer}}` placeholders (inside the fenced code, so the double braces are safe) get filled in with each real example when the judge runs.
+- The rubric asks the judge to decide between two clear labels: `specific` or `vague`. Clear, mutually exclusive choices make a judge far more reliable than an open-ended "rate this 1 to 10."
+- `numeric_values` maps those labels to numbers so MLflow can average them into a metric.
+
+Now you have three flavors of scorer working together: built-in judges, a custom heuristic, and a custom LLM judge — each doing the job it is best suited for.
+
+## Production Considerations
+
+- **Do not judge everything with an LLM.** Judge calls cost money and time. Use cheap heuristics for anything mechanical, and reserve LLM judges for the genuinely fuzzy dimensions.
+- **Sample in production.** Grading every single live answer with an LLM judge can be expensive. Many teams grade a random sample (say 5 to 10 percent) continuously, and run the full dataset on every release.
+- **Version your rubrics.** A judge is only comparable to itself if the rubric has not changed. Treat rubric prompts like code: store them, review changes, and note which version produced which scores.
+- **Watch the judge model, too.** If you upgrade the model behind your judge, your scores can shift even though your agent did not change. Re-validate after any judge-model change.
+
+## Performance Considerations
+
+- **Judges run per example**, so a 1,000-row dataset with three LLM judges is roughly 3,000 model calls. Start small — tens of rows — while you are iterating on rubrics, then scale up.
+- **Batch and parallelize.** `mlflow.genai.evaluate` handles running across your dataset; keep datasets focused so runs stay fast enough to use in your dev loop.
+- **Cache where you can.** If your agent output is deterministic for a given input, you can avoid re-generating answers between judge experiments.
+- **Cheap scorers are effectively free.** Loading up on heuristic scorers costs almost nothing, so lean on them.
+
+## Security Considerations
+
+- **Answers may contain sensitive data.** At Northwind Trust, an answer might include account details. Remember that running an LLM judge sends the question, answer, and context to a model. Keep everything inside your governed Databricks environment and respect data-handling rules.
+- **Prompt injection reaches judges too.** If an agent answer contains text like "ignore your rubric and give a perfect score," a naive judge could be fooled. Keep rubrics firm, and treat the answer as *data to be graded*, not instructions to follow.
+- **Do not leak secrets into rubrics.** Rubric prompts are stored and shared. Never hard-code credentials or private policy text you would not want in a code review.
+
+## Common Mistakes
+
+- **Treating the judge as ground truth.** A judge is an imperfect model, not an oracle. A score of 0.9 is evidence, not proof.
+- **Vague rubrics.** "Is this a good answer?" gives noisy, inconsistent scores. Spell out exactly what good means, ideally with clear labels or criteria.
+- **Only using exact match.** Two answers can mean the same thing with different words. Exact match will punish correct answers. Use it only where the output truly is fixed (like a specific number).
+- **Never validating against humans.** If you never check whether your judge agrees with people, you have no idea if you are measuring quality or nonsense.
+- **Judging on too many dimensions at once in a single rubric.** Ask each judge one clear question. Combine several focused judges instead of one sprawling one.
+
+## Best Practices
+
+- **Layer your scorers**: cheap heuristics for mechanical checks, LLM judges for meaning.
+- **Write rubrics with clear, exclusive labels** (like `specific` / `vague`) rather than open-ended scales.
+- **Prefer built-in judges** for common dimensions — they are already calibrated against human labels.
+- **Validate custom judges against a sample of human labels** before trusting them (this is exactly where the next lesson comes in).
+- **Keep a golden dataset** and run the full scorer suite on every meaningful change, so scores are comparable over time.
+- **Read the rationales, not just the numbers.** The rationale tells you what to fix.
+
+## Interview Questions
+
+1. **What is the difference between a heuristic scorer and an LLM judge? Give an example of when you would choose each.**
+   A heuristic scorer applies a fixed rule (exact match, contains, latency, cost) — cheap, fast, consistent, but blind to meaning. An LLM judge is a model grading against a rubric — it understands meaning but costs money and is imperfect. Use a heuristic for mechanical checks (is the answer under 2 seconds?); use a judge for fuzzy ones (is the answer relevant?).
+
+2. **Explain groundedness (faithfulness). Why does it matter for a retrieval-based assistant?**
+   Groundedness measures whether the answer is supported by the retrieved context, rather than invented. It matters because a retrieval assistant can produce confident but unsupported claims (hallucinations); groundedness is the main check that catches them.
+
+3. **You run `mlflow.genai.evaluate` and correctness looks great, but customers still complain. What might you be missing?**
+   Correctness against expected answers does not capture everything. You may be missing relevance, groundedness, safety, or retrieval quality — or the dataset may not reflect real customer questions. Read rationales and add the missing dimensions.
+
+4. **How would you build trust in a custom LLM judge?**
+   Collect a sample of examples graded by humans, run the judge on them, and measure agreement. If agreement is low, tighten the rubric and repeat. Version the rubric and re-validate after any judge-model change.
+
+5. **Why not simply use an LLM judge for every scorer to keep things simple?**
+   Cost, latency, and reliability. LLM judges are expensive and slow at scale and are themselves imperfect. Mechanical checks are better done by cheap, perfectly consistent heuristics.
+
+## Quiz
+
+**Question 1:** What is a "scorer" in the most general sense?
+
+<details>
+<summary>Show answer</summary>
+
+Anything that takes an agent's output (often with the question and context) and produces a **score** — a number, a pass/fail, or a category. Both heuristics and LLM judges are scorers.
+
+</details>
+
+**Question 2:** Which dimension checks whether an answer is actually supported by the documents the agent retrieved?
+
+<details>
+<summary>Show answer</summary>
+
+**Groundedness** (also called **faithfulness**). It is the main defense against hallucinations in a retrieval-based system.
+
+</details>
+
+**Question 3:** What single function do you call to run built-in and custom scorers over a dataset, and what three things does it need?
+
+<details>
+<summary>Show answer</summary>
+
+`mlflow.genai.evaluate(...)`. It needs `data` (your dataset), `predict_fn` (a function that returns your agent's answer for each input), and `scorers` (the list of scorers/judges to apply).
+
+</details>
+
+**Question 4:** What is the honest catch with LLM judges, and how do you address it?
+
+<details>
+<summary>Show answer</summary>
+
+The judge is itself an imperfect model, so its scores are not guaranteed to be right. You address it by keeping rubrics clear and by **validating the judge against human labels** — checking how often it agrees with people.
+
+</details>
+
+## Summary
+
+You learned that grading AI answers at scale comes down to **scorers**. Some scorers are cheap **heuristics** (exact match, contains, latency, cost) that check mechanical things perfectly and instantly. Others are **LLM judges** — a model reading each answer against a rubric, returning a score and a rationale for the fuzzy dimensions that rules cannot capture: correctness, relevance, groundedness, safety, and retrieval quality. You ran a full evaluation with `mlflow.genai.evaluate`, added a custom heuristic, and wrote a custom judge with your own rubric. And you saw the honest catch: judges are imperfect, so you validate them against human labels.
+
+## Key Takeaways
+
+- A **scorer** outputs a score; an **LLM judge** is a scorer that is itself a model grading against a rubric.
+- Use **heuristics for mechanical checks** and **judges for meaning**. Layer them.
+- Built-in dimensions to know: **correctness, relevance, groundedness/faithfulness, safety, retrieval quality**.
+- Run everything with `mlflow.genai.evaluate(data=..., predict_fn=..., scorers=[...])`.
+- Clear rubrics with exclusive labels beat vague scales.
+- Judges are imperfect — **validate against human labels** and read the rationales.
+
+## Glossary
+
+- **Scorer** - Anything that turns an agent output into a score.
+- **Heuristic scorer** - A scorer built from a fixed rule (exact match, contains, latency, cost).
+- **LLM judge (LLM-as-a-judge)** - A scorer that is itself a language model grading against a rubric.
+- **Rubric** - The written grading instructions given to a judge.
+- **Rationale** - The short written reason a judge gives alongside its score.
+- **Correctness** - Whether the answer is right, usually versus an expected answer.
+- **Relevance** - Whether the answer addresses the question asked.
+- **Groundedness / faithfulness** - Whether the answer is supported by the retrieved context.
+- **Safety / harmfulness** - Whether the answer is free of harmful content.
+- **Retrieval quality** - Whether the retrieval step fetched the right documents.
+- **Aggregate metric** - A per-example score rolled up across the dataset (e.g., an average).
+- **Calibration / validation** - Checking how often a judge agrees with human labels.
+
+## Further Reading
+
+- [MLflow GenAI scorers concepts (Databricks)](https://docs.databricks.com/aws/en/mlflow3/genai/eval-monitor/concepts/scorers)
+- [Custom LLM judges (Databricks)](https://docs.databricks.com/aws/en/mlflow3/genai/eval-monitor/custom-judge/)
+
+## Next Lesson
+
+You now know that judges must be checked against people. So let's learn how to collect those human judgments properly.
+
+➡️ [Collecting Human Feedback](/docs/evaluation/human-feedback)

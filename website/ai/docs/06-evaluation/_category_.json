@@ -1,0 +1,12 @@
+{
+  "label": "Part 6 · Evaluation & Quality",
+  "position": 6,
+  "collapsible": true,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "slug": "/category/part-6-evaluation",
+    "title": "Part 6 · Evaluation & Quality",
+    "description": "How do you know your AI is any good when there is no single correct answer? Learn why GenAI evaluation is hard, how to build evaluation datasets, how LLM judges and scorers grade quality, how to collect human feedback, and how to monitor quality in production."
+  }
+}
