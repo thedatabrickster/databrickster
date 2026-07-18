@@ -1,5 +1,5 @@
 .features {
-  padding: 4rem 0 5rem;
+  padding: 3.5rem 0 5rem;
 }
 
 .sectionTitle {
@@ -18,17 +18,20 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
 
+/* Direction C card: colored left rail, clean surface, hover lift. */
 .card {
+  position: relative;
   display: flex;
   flex-direction: column;
-  padding: 1.5rem;
+  padding: 1.4rem 1.4rem 1.4rem 1.6rem;
   border: 1px solid var(--ifm-color-emphasis-200);
-  border-radius: 14px;
+  border-radius: 12px;
   background: var(--ifm-background-surface-color);
   color: inherit;
+  overflow: hidden;
   text-decoration: none !important;
   transition:
     transform 0.15s ease,
@@ -36,32 +39,39 @@
     border-color 0.15s ease;
 }
 
+.card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--ifm-color-primary);
+}
+
 .card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-3px);
   border-color: var(--ifm-color-primary);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.12);
 }
 
 .cardTop {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.75rem;
-}
-
-.icon {
-  font-size: 2rem;
-  line-height: 1;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .cardTitle {
-  font-size: 1.3rem;
-  margin-bottom: 0.5rem;
+  font-size: 1.2rem;
+  margin: 0;
+  letter-spacing: -0.01em;
 }
 
 .cardBody {
   color: var(--ifm-color-emphasis-800);
-  font-size: 0.95rem;
+  font-size: 0.93rem;
   line-height: 1.55;
   flex: 1 1 auto;
   margin-bottom: 1rem;
@@ -70,6 +80,7 @@
 .cardCta {
   font-weight: 700;
   color: var(--ifm-color-primary);
+  font-size: 0.9rem;
 }
 
 .card:hover .cardCta span {

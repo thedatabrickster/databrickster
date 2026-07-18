@@ -5,7 +5,6 @@ import StatusBadge from '@site/src/components/StatusBadge';
 import styles from './styles.module.css';
 
 type Topic = {
-  icon: string;
   title: string;
   status: 'Available' | 'Coming soon';
   to: string;
@@ -15,7 +14,6 @@ type Topic = {
 
 const TopicList: Topic[] = [
   {
-    icon: '🧠',
     title: 'Databricks AI',
     status: 'Available',
     to: '/docs/intro',
@@ -29,7 +27,6 @@ const TopicList: Topic[] = [
     ),
   },
   {
-    icon: '🤖',
     title: 'Agentic Coding',
     status: 'Available',
     to: '/agentic-coding',
@@ -43,7 +40,6 @@ const TopicList: Topic[] = [
     ),
   },
   {
-    icon: '🧩',
     title: 'Databricks Features',
     status: 'Available',
     to: '/databricks-features',
@@ -52,39 +48,36 @@ const TopicList: Topic[] = [
       <>
         Executive-style architecture guides for <strong>70+</strong> Databricks
         features — placement, use cases, alternatives, cost, and decision
-        matrices. Built for architects and leaders.
+        matrices.
       </>
     ),
   },
   {
-    icon: '🆕',
     title: 'DAIS 2026',
     status: 'Available',
     to: '/dais-2026',
     cta: "See what's new",
     description: (
       <>
-        A field guide to Data + AI Summit 2026 — every announcement with where
-        it fits, where it fails, and its release stage (GA / Preview / Beta),
-        sourced from the official blogs.
+        A field guide to Data + AI Summit 2026 — every announcement with where it
+        fits, an honest take, and its release stage (GA / Preview / Beta), sourced
+        from the official blogs.
       </>
     ),
   },
   {
-    icon: '💬',
     title: 'Genie',
     status: 'Coming soon',
     to: '/genie',
-    cta: 'Preview the plan',
+    cta: 'Watch the series',
     description: (
       <>
         Ask governed data questions in plain English — Genie writes and runs the
-        SQL, and shows its work. Conversational analytics you can trust.
+        SQL, and shows its work. A full video series is available now.
       </>
     ),
   },
   {
-    icon: '📊',
     title: 'Business Intelligence',
     status: 'Coming soon',
     to: '/business-intelligence',
@@ -98,18 +91,15 @@ const TopicList: Topic[] = [
   },
 ];
 
-function TopicCard({icon, title, status, to, cta, description}: Topic) {
+function TopicCard({title, status, to, cta, description}: Topic) {
   return (
     <Link to={to} className={styles.card}>
       <div className={styles.cardTop}>
-        <span className={styles.icon} aria-hidden="true">
-          {icon}
-        </span>
+        <Heading as="h3" className={styles.cardTitle}>
+          {title}
+        </Heading>
         <StatusBadge stage={status} />
       </div>
-      <Heading as="h3" className={styles.cardTitle}>
-        {title}
-      </Heading>
       <p className={styles.cardBody}>{description}</p>
       <span className={styles.cardCta}>
         {cta} <span aria-hidden="true">→</span>
@@ -126,7 +116,7 @@ export default function HomepageFeatures(): ReactNode {
           Explore the tracks
         </Heading>
         <p className={styles.sectionSubtitle}>
-          Six ways in — pick a course, or dive into the reference.
+          Four courses and references, live now — plus two on the way.
         </p>
         <div className={styles.grid}>
           {TopicList.map((props, idx) => (

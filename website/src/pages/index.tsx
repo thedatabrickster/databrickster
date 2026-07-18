@@ -8,43 +8,25 @@ import Heading from '@theme/Heading';
 
 import styles from './index.module.css';
 
-const STATS = [
-  {value: '13-part', label: 'Databricks AI course'},
-  {value: '70+', label: 'feature architecture guides'},
-  {value: '2 tracks', label: 'VS Code + Claude Code'},
-  {value: 'DAIS 2026', label: 'announcements, decoded'},
-];
-
 function HomepageHeader() {
-  const {siteConfig} = useDocusaurusContext();
   return (
-    <header className={clsx(styles.heroBanner)}>
+    <header className={styles.hero}>
       <div className="container">
-        <span className={styles.eyebrow}>Free · independent · in-depth</span>
+        <span className={styles.kchip}>Free · independent · in-depth</span>
         <Heading as="h1" className={styles.heroTitle}>
-          {siteConfig.title}
+          Data Engineers → AI Engineers, on Databricks.
         </Heading>
         <p className={styles.heroSubtitle}>
-          Courses and references that turn <strong>Data Engineers</strong> into{' '}
-          <strong>AI Engineers</strong> — on Databricks and beyond.
+          Courses and references that take you from LLM foundations to governed,
+          production AI agents — and a catalog of the whole platform.
         </p>
         <div className={styles.buttons}>
-          <Link className={clsx('button button--lg', styles.btnPrimary)} to="/docs/intro">
+          <Link className={styles.btnPrimary} to="/docs/intro">
             Start with Databricks AI →
           </Link>
-          <Link
-            className={clsx('button button--lg', styles.btnGhost)}
-            to="/databricks-features">
+          <Link className={styles.btnGhost} to="/databricks-features">
             Browse Databricks Features
           </Link>
-        </div>
-        <div className={styles.stats}>
-          {STATS.map((s) => (
-            <div key={s.label} className={styles.stat}>
-              <div className={styles.statValue}>{s.value}</div>
-              <div className={styles.statLabel}>{s.label}</div>
-            </div>
-          ))}
         </div>
       </div>
     </header>
