@@ -6,48 +6,43 @@ description: "An open-source meta-harness that sits above your coding agents —
 
 # Omnigent
 
-> A "harness over harnesses" — one interface to swap, sandbox, and share Claude Code, Codex, Pi, and custom agents, with policy and live collaboration built in.
+> A harness over harnesses: one interface to swap, sandbox, and govern Claude Code, Codex, Pi, and custom agents — with policy and live collaboration built in. The idea is right; the maturity isn't there yet.
 
 *Announced at Data + AI Summit 2026 (June 16–17, 2026). Source: [Databricks blog](https://www.databricks.com/blog/introducing-omnigent-meta-harness-combine-control-and-share-your-agents).*
 
 **Stage:** <StatusBadge stage="Alpha" /> — open source (Apache-2.0).
 
-## Overview
+## What it is
 
-- **Open-source meta-harness (Apache 2.0)** that sits *above* your agents — combine, control, and share Claude Code, Codex, Pi, and custom agents through one common interface. Repo: [omnigent-ai/omnigent](https://github.com/omnigent-ai/omnigent).
-- **Open source in alpha today** — early release from Databricks engineers, including Matei Zaharia, Kasey Uhlenhuth, and Corey Zumar.
-- **Swap agents with one-line changes** — move between Claude Code, Codex, Pi, and your own agents; use different LLMs for planning, search, and code generation.
-- **Stateful, contextual policies** — track agent actions and enforce guardrails like cost budgets and permissions (e.g. pause and ask to continue after every $100 spent).
-- **Live session sharing** — invite others to view a session, comment on files in its workspace, or send commands, in real time.
-- **Two-part architecture** — a **Runner** wraps any agent in a sandboxed session with a uniform API; a **Server** provides policies and sharing, exposing every session over the terminal, app, and web APIs.
+- **An Apache-2.0 meta-harness** that sits *above* your coding agents — one common interface to combine, control, and share Claude Code, Codex, Pi, and custom agents. Repo: [omnigent-ai/omnigent](https://github.com/omnigent-ai/omnigent).
+- **Alpha, open source, out now** — an early release from Databricks engineers including Matei Zaharia, Kasey Uhlenhuth, and Corey Zumar. Real code, not a slide.
+- **One-line agent swaps** — move between Claude Code, Codex, Pi, and your own agents, and route different LLMs to planning, search, and code generation.
+- **Stateful policies** — track agent actions and enforce guardrails like cost budgets and permissions (e.g. pause and ask before continuing past every $100 spent).
+- **Live session sharing** — invite others to watch a session, comment on files in its workspace, or send commands, in real time.
+- **Two parts** — a **Runner** wraps any agent in a sandboxed session behind a uniform API; a **Server** layers on policy and sharing, exposing every session over terminal, app, and web.
 
 ## Where it fits
 
-- **Developer-tooling / orchestration layer** — sits between developers and the coding agents they run, not on the data plane. See [the overview](/dais-2026).
-- For teams running **more than one coding agent** who want a single control surface instead of per-tool config and per-tool governance.
-- **Planning vs. codegen split** is the sharpest idea: route a strong reasoning model to plan and a cheaper/faster one to generate — useful for cost and latency.
-- **Cost budgets and sandboxed sessions** target the real enterprise blocker — letting agents run with guardrails auditors accept.
-- **Live shared sessions** pair well with pairing/review workflows and incident debugging where two engineers steer one agent.
+- **Orchestration/control layer for dev tooling** — it sits between engineers and the agents they run, not on the data plane. See [the overview](/dais-2026).
+- The target user is a team running **more than one coding agent** that wants a single control surface instead of per-tool config and per-tool governance.
+- **Planning-vs-codegen split** is the sharpest idea here: a strong reasoning model to plan, a cheaper/faster one to generate. That maps to real cost and latency wins.
+- **Cost budgets plus sandboxed sessions** hit the actual enterprise blocker — letting agents run with guardrails an auditor will sign off on.
+- **Shared live sessions** fit pairing, review, and incident debugging where two engineers want to steer one agent together.
 
-## Where it fails
+## Where it falls short
 
-- **Alpha maturity** — open source in alpha today; expect thin docs, rough edges, and little production track record. Plan pilots, not rollouts.
-- **Another abstraction layer** — a harness over harnesses adds indirection, its own bugs, and version-skew against fast-moving tools (Claude Code, Codex ship weekly).
-- **Lowest-common-denominator risk** — a "one common interface" tends to expose only the features all agents share, blunting what makes each one good.
-- **"One-line swap" rarely holds cleanly** — agents differ in tool schemas, prompt behavior, and permission models; portability usually leaks in practice.
-- **vs. using one agent directly** — most teams standardize on a single agent; the multi-agent premise only pays off at real tool diversity.
+- **Alpha maturity.** Thin docs, rough edges, no production track record. This is pilot material, not a rollout — budget for breakage.
+- **Another abstraction layer.** A harness over harnesses adds indirection, its own bugs, and constant version-skew against tools that ship weekly (Claude Code, Codex). You inherit everyone's release cadence.
+- **Lowest-common-denominator risk.** A single common interface tends to surface only what all agents share, blunting the features that make each one worth using.
+- **Adoption risk vs. one harness directly.** Most teams standardize on a single agent, where direct use is simpler and loses almost nothing. The multi-agent premise only pays off at genuine tool diversity — which most orgs don't have.
+- **The one-line swap rarely holds clean** — tool schemas, prompt behavior, and permission models differ per agent, so portability leaks in practice.
 
-## Response
+## My take
 
-- **Verdict: Watch.** Genuinely interesting architecture with a real Apache-2.0 repo, but it's alpha — validate before investing.
-- **Pilot only if** you already run two-plus coding agents and feel the governance/cost pain today; test the sandbox and cost-budget claims on one team.
-- **Ignore** if you have standardized on a single agent — direct use is simpler and loses little.
-- **Adopt now: no** — alpha stage; abstraction layers over volatile tools carry real maintenance risk.
-- **Market context** — overlaps with harness-agnostic ideas in **OpenHands**, **Aider**, and IDE agent orchestration; the sandbox + policy + live-sharing bundle is the differentiator if it matures and holds up.
+The architecture is genuinely good. Sandboxed sessions, cost pauses, and the planning/codegen model split are real gaps in today's single-harness workflows, and I'd happily use those parts tomorrow. That it ships as an actual Apache-2.0 repo from a credible team — Zaharia, Uhlenhuth, Zumar — is not nothing.
 
-## Personal impression
+But a meta-harness only earns its keep when you're already juggling multiple agents and feeling the governance and cost pain. Most teams aren't there. For them, Omnigent is one more layer to babysit against tools that move faster than it can — and alpha maturity means you're debugging the abstraction, not the work.
 
-- The planning-vs-codegen model split and sandboxed sessions with cost pauses are the parts I'd actually want; those are real gaps in today's single-harness workflows.
-- But a meta-harness only earns its keep at genuine tool diversity, and most teams don't have that — for them it's an extra layer to babysit.
-- **Hype level: Medium.** Clever framing, strong team, real OSS repo — tempered by alpha maturity and classic abstraction-layer risk.
-- **Bottom line:** A credible open-source bet worth watching; pilot only if you're already juggling multiple coding agents and hurting for governance.
+So: **watch, don't adopt.** Pilot only if you run two-plus coding agents today and the cost/policy pain is real — put the sandbox and budget claims on one team and see if they hold. If you've standardized on a single agent, stay direct.
+
+**Bottom line:** The right idea from the right people, a full generation too early — bookmark the repo, run a pilot only if multi-agent governance already hurts.

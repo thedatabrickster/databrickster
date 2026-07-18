@@ -6,50 +6,43 @@ description: "Natural-language app building with enterprise guardrails — App S
 
 # Governed Vibe Coding
 
-> Fast, natural-language app building with enterprise guardrails — App Spaces, Genie App Builder, and Serverless Micro Apps make "vibe coding" safe for line-of-business teams.
+> Natural-language app building with the governance moved to where it belongs — set access, security, and cost once per space, then let people conjure apps inside the fence.
 
 *Announced at Data + AI Summit 2026 (June 16–17, 2026). Source: [Databricks blog](https://www.databricks.com/blog/enabling-governed-vibe-coding-enterprise-apps-databricks).*
 
 **Stage:** <StatusBadge stage="Private Preview" /> — coming soon.
 
-## Overview
+## What shipped
 
-- Build apps in natural language with **enterprise guardrails baked in** — three pieces stitched together for governed, low-effort app creation. All three are in **private preview (coming soon)**.
-- **App Spaces**: admins set **resource and data access, API scopes for on-behalf-of-user access, and security policies once** per space; every app in the space **inherits those settings automatically** — governance lives at the space, not the app.
-- **Genie App Builder**: **describe it in plain language (or provide a screenshot)** and get a **live preview updating in a side pane**; built on the **AppKit TypeScript SDK** (built-in caching, telemetry, retry logic) with direct awareness of your Unity Catalog tables and semantic layer.
-- **Serverless Micro Apps**: each app runs in its **own lightweight micro-VM** with per-app isolation — **starts up fast, scales to zero when idle**, and is priced on **usage, not reserved capacity**.
-- Adoption over the **last six months**: a **near doubling of active running apps** and **more than 3x the users interacting with apps every week**.
+- Three pieces stitched into one story: build internal apps in plain language with guardrails baked in. All three are private preview (coming soon).
+- **App Spaces**: admins set resource and data access, API scopes for on-behalf-of-user access, and security policies once per space; every app in the space inherits them automatically. Governance lives at the space, not the app.
+- **Genie App Builder**: describe it in plain language or hand it a screenshot, get a live preview in a side pane. Built on the AppKit TypeScript SDK (caching, telemetry, retry logic) with direct awareness of your Unity Catalog tables and semantic layer.
+- **Serverless Micro Apps**: each app runs in its own lightweight micro-VM, starts fast, scales to zero when idle, priced on usage rather than reserved capacity.
+- Traction over the last six months: a near doubling of active running apps and more than 3x the users interacting with apps weekly.
 
 ## Where it fits
 
-- **Line-of-business micro-tools**: approval forms, small dashboards, data-entry apps — the bursty, internal stuff that never justified a real dev project.
-- **Sits at the app/serving layer** on top of the lakehouse; pairs with Unity Catalog for permissions and Genie for the natural-language front door.
-- **Scale-to-zero economics** fit apps used a few times a day — you pay for use, not for an idle always-on server.
-- **App Spaces suit platform teams** who want to set guardrails once and let analysts self-serve inside a fenced sandbox.
-- The **screenshot-to-app** path helps non-developers reproduce an existing UI or mockup without writing markup.
-- Benefits **already-on-Databricks orgs** — data, auth, and cost controls are in one place, so a generated app inherits governance for free.
+- Line-of-business micro-tools — approval forms, small dashboards, data-entry apps. The bursty internal stuff that never justified a real dev project.
+- Sits at the app/serving layer on top of the lakehouse; pairs with Unity Catalog for permissions and Genie for the natural-language front door.
+- Scale-to-zero economics fit apps used a few times a day — you pay for use, not for an idle always-on server.
+- App Spaces suit platform teams who want to set guardrails once and let analysts self-serve inside a fenced sandbox.
+- The screenshot-to-app path lets non-developers reproduce an existing UI or mockup without touching markup.
+- Best payoff for orgs already on Databricks — data, auth, and cost controls sit in one place, so a generated app inherits governance for free.
 
-## Where it fails
+## Where it falls short
 
-- **"Vibe coding" quality is the core doubt** — generated apps are easy to spin up, hard to maintain; you inherit code nobody wrote and nobody fully understands.
-- **Governed sprawl is still sprawl.** App Spaces bound *access*, not *count* — you can end up with hundreds of shadow-IT micro apps that are individually harmless and collectively unmanageable.
-- **Generated-app security** needs scrutiny — inherited data scopes help, but injection, logic flaws, and over-broad queries in auto-written code won't be caught by space-level guardrails alone.
-- **Ownership is unanswered**: who maintains, patches, and deprecates an app the original author generated in five minutes and forgot?
-- **Crowded category** — this is Retool, Streamlit, and Power Apps territory; Databricks' edge is native governance and data proximity, not the builder itself.
-- **Lock-in**: apps wired to App Spaces, AppKit, and serverless micro-VMs are hard to port off Databricks later.
-- **Private preview only** — none of the three pieces is GA yet, so timelines, quotas, and pricing can still shift.
+- Vibe-coding quality is the core doubt. Apps are easy to spin up and hard to maintain — you inherit code nobody wrote and nobody fully understands, and that debt lands on whoever's on call a year later.
+- Governed sprawl is still sprawl. App Spaces bound *access*, not *count*. You can end up with hundreds of individually harmless, collectively unmanageable micro apps.
+- Generated-app security needs real scrutiny. Inherited data scopes help, but injection, logic flaws, and over-broad queries in auto-written code won't be caught by space-level guardrails alone.
+- Ownership is unanswered — who patches, reviews, and deprecates an app the author generated in five minutes and forgot?
+- Crowded category. This is Retool, Streamlit, and Power Apps territory. Databricks' edge is native governance and data proximity, not the builder itself — and lock-in cuts the other way, since apps wired to App Spaces, AppKit, and serverless micro-VMs are hard to port off later.
 
-## Response
+## My take
 
-- **Verdict: Pilot.** The governance-first framing is the right idea for internal tools, but quality and sprawl risks mean it earns a bounded trial, not a rollout.
-- **Pilot inside one App Space** with a clear owner and a hard cap on cost and data scope — prove the inherited guardrails actually hold before opening it up.
-- **Set a lifecycle policy up front** — naming, ownership, and an expiry/review date per app — or you'll rediscover shadow IT with a Databricks bill attached.
-- Market context: **Retool/Power Apps** lead on ecosystem and connectors, **Streamlit** on Python-native data apps; Databricks wins only if native data governance genuinely beats bolting auth onto those tools.
-- **Watch** the security story for generated code — pilot with low-stakes, read-mostly apps until injection and access review are proven.
+The insight is genuinely right. What scares enterprises about internal app builders was never the building — it's the governance. Setting access, security, and cost once per space is a better default than per-app config, and it's the kind of thing you only design well if you own the data plane already. That's Databricks' real advantage here, not the prompt-to-app trick everyone else also ships.
 
-## Personal impression
+But "vibe coding" and "enterprise" is an uneasy pairing. The easier it is to conjure an app, the more orphaned, half-maintained apps you'll be governing next year. The guardrails constrain what an app *can reach*; they do nothing about whether it should exist or who keeps it alive. Against Retool and Power Apps on ecosystem, and Streamlit on Python-native data apps, the governance story is the only thing that has to win — the builder itself won't.
 
-- The insight is real: the reason internal app builders scare enterprises isn't the building, it's the *governance* — and setting access, security, and cost once per space is a genuinely better default than per-app config.
-- But "vibe coding" plus "enterprise" is an uneasy pairing; the easier it is to conjure an app, the more orphaned, half-maintained apps you'll be governing in a year.
-- **Hype level: Medium.** Smart governance model, real competitors, and unproven quality/maintainability on the generated code itself.
-- **Bottom line:** Great for governed internal micro-tools if you enforce ownership and lifecycle from day one — not a place to build anything you'd be sad to see abandoned.
+So: **pilot**, don't roll out. Stand up one App Space with a named owner, a hard cap on cost and data scope, and a lifecycle policy — naming, ownership, an expiry/review date per app — from day one. Keep the first apps low-stakes and read-mostly until the security story on generated code is proven. Do that and it's a strong home for governed internal micro-tools; skip it and you'll rediscover shadow IT with a Databricks bill attached.
+
+**Bottom line:** Great for governed internal micro-tools if you enforce ownership and lifecycle from day one — not a place to build anything you'd be sad to see abandoned.

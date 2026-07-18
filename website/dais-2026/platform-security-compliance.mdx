@@ -6,46 +6,40 @@ description: "Scaling AI securely — automatic identity management, zero-trust 
 
 # Platform Security & Compliance
 
-> A security push aimed at scaling AI safely: automatic identity, zero-trust ingress, private networking, and broad new compliance coverage — with GA and Preview labels called out for each.
+> The unglamorous plumbing that lets security teams say yes to the agentic stack — identity auto-sync, zero-trust ingress, private networking, and a pile of new compliance badges. Read the GA/Preview labels carefully; a lot of this isn't shippable yet.
 
 *Announced at Data + AI Summit 2026 (June 16–17, 2026). Source: [Databricks blog](https://www.databricks.com/blog/whats-new-databricks-platform-security-and-compliance-data-ai-summit-2026).*
 
 **Stage:** <StatusBadge stage="Mixed" /> — AIM (Entra ID) GA; Okta & Context-Based Ingress Public Preview; Private Network Gateway Private Preview.
 
-## Overview
-- A single theme: **scale AI securely** across four pillars — identity, ingress, networking, compliance.
-- **Automatic Identity Management (AIM) for Entra ID** is **Generally Available on AWS and GCP** (already available on Azure). **AIM for Okta** is in **Public Preview on AWS and GCP**.
-- **Context-Based Ingress (CBI)** is in **Public Preview** on AWS, Azure, and Google Cloud — zero-trust access policies by network source, identity, and scope for Genie, dashboards, Databricks Apps, and AI Gateway endpoints.
-- **Private Network Gateway** is in **Private Preview** (Azure only), securing connections to private data sources, APIs, and enterprise apps.
-- **Private Link for Lakebase, Zerobus, and services** is **GA on AWS** and **Public Preview on Azure**; **Inbound Private Link for account-level resources** (Genie, account console) is **Beta** (end of June 2026).
-- Compliance additions: **HITRUST** GA on all three clouds, **ISMAP** (Japan) GA on AWS and Azure, **AWS GovCloud** expanded with new services (GA), plus **Azure serverless compliance** GA.
-- Still coming: **Saudi frameworks (CCC, DCC, ECC)** on Google Cloud later this month, **AWS serverless compliance** and **FedRAMP High on Azure Commercial** later this summer.
+## What shipped
+- One theme — **scale AI securely** — across four pillars: identity, ingress, networking, compliance.
+- **Automatic Identity Management (AIM) for Entra ID** is **GA on AWS and GCP** (already GA on Azure). **AIM for Okta** is **Public Preview** on AWS and GCP. Auto-syncs users and groups so you stop babysitting SCIM.
+- **Context-Based Ingress (CBI)** — **Public Preview** on all three clouds — enforces zero-trust access by network source, identity, and scope for Genie, dashboards, Databricks Apps, and AI Gateway endpoints.
+- **Private Network Gateway** — **Private Preview, Azure only** — secures outbound connections to private data sources, APIs, and enterprise apps.
+- **Private Link for Lakebase, Zerobus, and services** is **GA on AWS**, **Public Preview on Azure**; **Inbound Private Link for account-level resources** (Genie, account console) is **Beta** (end of June 2026).
+- Compliance: **HITRUST** GA on all three clouds, **ISMAP** (Japan) GA on AWS and Azure, **AWS GovCloud** expanded with new services (GA), and **Azure serverless compliance** GA. Still on the roadmap: **Saudi frameworks (CCC, DCC, ECC)** on GCP, **AWS serverless compliance**, and **FedRAMP High on Azure Commercial** — "later this summer."
 
 ## Where it fits
-- **Governance and security layer** of the stack — the plumbing under Unity Catalog and the agentic tools above it.
-- **Identity teams**: AIM auto-syncs users/groups from Entra ID or Okta, cutting manual SCIM/provisioning drift.
-- **Regulated industries** (healthcare via HITRUST, public sector via GovCloud/FedRAMP, JP/SA markets) get new procurement checkboxes.
-- **Network/security architects**: Private Network Gateway + expanded Private Link keep traffic — including to Lakebase and Zerobus — off the public internet.
-- **Zero-trust shops**: Context-Based Ingress pairs with conditional-access policies already run in Entra/Okta.
-- Pairs naturally with **Unity Catalog** and **Unity AI Gateway** for an identity-to-model governance chain.
+- This is the **governance and security layer** — the plumbing beneath Unity Catalog and everything agentic sitting above it.
+- **Identity teams** get the biggest immediate win: AIM kills manual provisioning drift from Entra ID or Okta.
+- **Regulated shops** — healthcare (HITRUST), public sector (GovCloud/FedRAMP), JP/SA markets — pick up new procurement checkboxes without a services engagement.
+- **Network architects** keep traffic off the public internet: Private Network Gateway plus expanded Private Link now cover Lakebase and Zerobus, not just the classic surfaces.
+- **Zero-trust shops** already running conditional access in Entra/Okta can extend those policies to Databricks ingress via CBI.
+- Chains cleanly with **Unity Catalog** and **Unity AI Gateway** for identity-to-model governance.
 
-## Where it fails
-- **Preview is doing heavy lifting.** AIM for Okta, Context-Based Ingress, and Private Network Gateway are **not GA** — architect around them cautiously.
-- **Cloud-by-cloud unevenness**: AIM for Entra ID is GA on AWS/GCP (already on Azure); Private Network Gateway is Azure-only; Private Link for Lakebase/Zerobus is GA on AWS but only Preview on Azure. Feature parity varies by cloud.
-- **Compliance coverage is not your certification.** Databricks holding HITRUST/ISMAP/FedRAMP authorization does not make *your* workload compliant — shared-responsibility scoping is still on you.
-- **Zero-trust rollout is complex**: Context-Based Ingress can silently lock out CI, BI tools, and partners if policies are misjudged; expect a tuning phase.
-- **Private Link expansion adds cost and config sprawl** — more endpoints, DNS, and per-service wiring to maintain across accounts.
-- **Dated items can slip.** FedRAMP High on Azure and AWS serverless compliance are "later this summer" targets, not shipped GA today.
+## Where it falls short
+- **Preview is doing the heavy lifting.** AIM for Okta, Context-Based Ingress, and Private Network Gateway are all **not GA** — architect around them cautiously, if at all, in prod.
+- **Cloud-by-cloud parity is uneven.** AIM for Entra ID: GA on AWS/GCP/Azure. Private Network Gateway: Azure only. Private Link for Lakebase/Zerobus: GA on AWS, Preview on Azure. What you can deploy depends heavily on which cloud you're on.
+- **Their compliance coverage is not your certification.** Databricks holding HITRUST/ISMAP/FedRAMP authorization does not make *your* workload compliant. Shared-responsibility scoping — and the audit — is still on you.
+- **Zero-trust is a self-inflicted-outage risk.** CBI can silently lock out CI jobs, BI tools, and partners if a policy is misjudged. Budget for a tuning phase in non-prod before you point it at anything real.
+- **Dated items are roadmap, not GA.** FedRAMP High on Azure and AWS serverless compliance are "later this summer" targets. Don't put them in a plan that ships before they do.
 
-## Response
-- **AIM for Entra ID (GA clouds): Adopt now** — auto-sync is low-risk, high-toil-reduction, and it is GA.
-- **Private Link expansion & GovCloud/HITRUST/ISMAP: Adopt / Pilot** if you are already regulated — real procurement value, but validate scope against auditors.
-- **Context-Based Ingress & Private Network Gateway: Pilot** in a non-prod workspace first — zero-trust misconfig is the top self-inflicted outage risk here.
-- **AIM for Okta & FedRAMP High on Azure: Watch** — Preview and forward-looking respectively; revisit when GA and authorized.
-- Market context: identity auto-sync and Private Link parity are **table stakes** vs Snowflake and the hyperscalers, not differentiation — this is Databricks closing gaps, not opening a lead.
+## My take
+The least flashy page from DAIS 2026 and probably one of the most genuinely useful. None of this is a headline, but it's the work that lets a security team sign off on the agentic stack everyone else is excited about.
 
-## Personal impression
-- The least flashy DAIS page and probably one of the most *useful* — the unglamorous work that lets security teams say yes to the agentic stack above it.
-- The genuinely-shippable news today is AIM for Entra ID plus the GA Private Link and compliance pieces; a lot of the rest is Preview or dated for later this summer.
-- Compliance breadth reads impressive, yet it is inheritance, not absolution — the certification burden on customers barely moves.
-- **Hype level: Low.** **Bottom line:** Adopt the GA identity + networking pieces now, pilot zero-trust carefully, and treat Preview and "later this summer" items as a roadmap, not a plan.
+Split it by what's actually shippable today. **AIM for Entra ID — adopt now.** It's GA on all three clouds, low-risk, and it removes real provisioning toil; there's no reason to wait. **The GA Private Link, GovCloud, HITRUST, and ISMAP pieces — adopt or pilot** if you're already regulated: real procurement value, but validate the scope against your auditors, not the blog post. **Context-Based Ingress and Private Network Gateway — pilot in a non-prod workspace first.** Zero-trust misconfiguration is the top way to hurt yourself here. **AIM for Okta and FedRAMP High on Azure — watch**; revisit when they're GA and authorized respectively.
+
+Market context matters: identity auto-sync and Private Link parity are table stakes against Snowflake and the hyperscalers, not differentiation. This is Databricks closing gaps, not opening a lead — and the compliance breadth, impressive as it reads, is inheritance, not absolution. The certification burden on you barely moves.
+
+**Bottom line:** Adopt the GA identity and networking pieces now, pilot zero-trust carefully, and treat everything labeled Preview or "later this summer" as a roadmap, not a plan.

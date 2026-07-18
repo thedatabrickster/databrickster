@@ -6,50 +6,44 @@ description: "Databricks' Agentic CDP and its product CustomerLake: Golden Conte
 
 # Agentic CDP (CustomerLake)
 
-> Databricks' "new species of CDP" — built agent-first, with a **Golden Context** (not just a Golden Record) driving always-on, real-time **Infinity Campaigns** from inside the lakehouse.
+> Databricks' pitch: stop shipping customer data to a separate SaaS CDP, and let agents decide and act on a governed Golden Context that lives inside the lakehouse. The architecture is right; the category is brutal.
 
 *Announced at Data + AI Summit 2026 (June 16–17, 2026). Source: [Databricks blog](https://www.databricks.com/blog/what-is-an-agentic-cdp).*
 
 **Stage:** <StatusBadge stage="Not stated" /> — the announcement did not give a release stage.
 
-## Overview
+## What it is
 
-- Databricks introduces the **Agentic CDP** and its product, **[CustomerLake](https://www.databricks.com/blog/what-is-an-agentic-cdp)** — described as "a native Agentic CDP for the Databricks platform" (authors: Tasso Argyros, Ali Ghodsi, Reynold Xin).
-- Core reframe: a **Golden Context**, not just a **Golden Record**. The Golden Record answers *who the customer is*; Golden Context adds *what the business is trying to accomplish right now* and *what's already been tried with this customer and how they responded*.
-- **Infinity Campaigns** — the headline capability: "autonomous, continuously compounding engagement loops" that adapt to new context signals to reshape message, timing, and channel on the fly, for always-on 1:1 personalization.
-- **Embedded in the data foundation**, not alongside it — the CDP lives inside the data platform with native integration to governance like **Unity Catalog**.
-- **Born agentic** — agents are first-class operators and agentic operation is the primary mode from the start, not a bolted-on feature.
-- Databricks' stated rationale: agentic buying lifecycles move in **milliseconds** while legacy CDPs run **batch cycles of days/weeks**, and agents need hyper-personalization down to **segments of one**.
+- **Agentic CDP** and its product **[CustomerLake](https://www.databricks.com/blog/what-is-an-agentic-cdp)** — "a native Agentic CDP for the Databricks platform" (authors: Tasso Argyros, Ali Ghodsi, Reynold Xin).
+- The reframe: a **Golden Context**, not just a **Golden Record**. The record says *who the customer is*; the context adds *what the business wants right now* and *what's already been tried with this customer and how they responded*.
+- **Infinity Campaigns** — the headline: "autonomous, continuously compounding engagement loops" that reshape message, timing, and channel on the fly for always-on 1:1 personalization.
+- **Embedded in the data foundation**, not bolted alongside it — the CDP lives inside the platform with native **Unity Catalog** governance.
+- **Born agentic** — agents are first-class operators from day one, not a feature added later.
+- Databricks' rationale: agentic buying cycles move in **milliseconds** while legacy CDPs run **batch cycles of days/weeks**, and agents need personalization down to **segments of one**.
 
 ## Where it fits
 
 - **Activation / marketing layer** on top of the lakehouse — a customer 360 paired with agents that decide and act. See [the overview](/dais-2026).
-- For teams already consolidating customer data in **Unity Catalog** who want activation without shipping it all to a separate SaaS CDP.
-- **Governance-in-place** is the sharpest angle: agent outreach that inherits UC entitlements and lineage makes compliance review easier than in a bolt-on tool.
-- **Golden Context** is a genuinely useful reframe — carrying *why* a decision was made helps agents avoid repeating rejected offers or ignoring stated intent.
-- Complements **Genie / agent tooling** for the reasoning layer and real-time serving for the responsiveness claim.
-- Best suited to **high-volume B2C** (retail, media, telco) where 1:1 personalization at scale actually moves revenue.
+- For teams already consolidating customer data in **Unity Catalog** who want activation without exporting everything to a separate SaaS CDP.
+- **Governance-in-place** is the sharpest angle: outreach that inherits UC entitlements and lineage makes compliance review far easier than in a bolt-on tool.
+- **Golden Context** is a genuinely good reframe — carrying *why* a decision was made stops agents from re-pitching rejected offers or ignoring stated intent.
+- Pairs with **Genie / agent tooling** for the reasoning layer and real-time serving for the responsiveness claim.
+- Best fit is **high-volume B2C** (retail, media, telco) where 1:1 personalization at scale actually moves revenue.
 
-## Where it fails
+## Where it falls short
 
-- **CDP is a crowded, mature category** — Salesforce Data Cloud, Adobe Real-Time CDP, and Segment/Twilio all bring years of activation, identity resolution, and connector ecosystems this must match.
-- **Agent-driven outreach is a brand and compliance risk** — autonomous 1:1 messaging invites tone errors, hallucinated offers, and CAN-SPAM / GDPR / TCPA exposure; "agents as first-class operators" doesn't remove liability for what they send.
-- **Headline claims lack benchmarks** — "milliseconds," "segments of one," and always-on loops are stated as design goals in the launch post, without a published latency budget or reference customer.
-- **"Golden Context" is hard to build** — inferring intent and decision rationale reliably is an unsolved data problem; garbage context yields confidently wrong personalization.
-- **Lock-in** — an activation layer welded to Unity Catalog is sticky; the batch-vs-realtime, lakehouse-native framing can understate connector and identity-graph gaps.
-- **Availability not stated** — the post doesn't specify GA / Preview / Beta status, so treat "always-on" as the product vision until a rollout/status page confirms timing.
+- **The CDP category is crowded and mature.** Salesforce Data Cloud, Adobe Real-Time CDP, and Segment/Twilio bring years of identity resolution, activation, and connector ecosystems this has to match from a standing start.
+- **Agent-driven outreach is a brand and compliance risk.** Autonomous 1:1 messaging invites tone errors, hallucinated offers, and CAN-SPAM / GDPR / TCPA exposure. "Agents as first-class operators" does not remove liability for what they send.
+- **Headline claims lack benchmarks.** "Milliseconds," "segments of one," and always-on loops are stated as design goals — no published latency budget, no reference customer.
+- **Golden Context is hard to build.** Reliably inferring intent and decision rationale is an unsolved data problem; bad context yields confidently wrong personalization.
+- **Stage is not stated.** No GA / Preview / Beta signal, so treat "always-on" as product vision until a rollout page confirms timing.
 
-## Response
+## My take
 
-- **Verdict: Watch closely.** This is a real Databricks product with a compelling architecture story; the open question is maturity and rollout timing, not legitimacy.
-- **Pilot if** you already run Databricks as your customer 360 and want to test governed activation on **one low-risk, opt-in channel** with human approval in the loop.
-- **Hold** if you have a working Salesforce/Adobe/Segment CDP — rip-and-replace before benchmarks and availability are clear isn't justified.
-- **Adopt now: cautiously** — confirm status and connector coverage, and keep autonomous outreach gated given the compliance exposure.
-- **Market context** — "governed activation inside the warehouse" is a real trend (reverse-ETL and lakehouse-native CDPs like Hightouch/Census), so the category is well-founded, not speculative.
+**Watch closely, pilot narrowly.** This is a real Databricks product with a coherent architecture story — the legitimacy question is settled, the maturity question is not. Golden Context is the idea I'd steal today: carrying intent and decision rationale is a genuine gap in every CDP I've worked with, and pairing it with lakehouse-native governance is a real edge over bolt-on tools.
 
-## Personal impression
+Where I'd hold back is the autonomous outreach. Infinity Campaigns is exactly the spot where the demo outruns the safety story — a hallucinating agent hitting real customers has a severe compliance and brand blast radius, and no benchmark or reference customer yet backs the milliseconds/always-on framing. If you already run Databricks as your customer 360, pilot governed activation on **one low-risk, opt-in channel with a human in the loop**. If you have a working Salesforce/Adobe/Segment stack, don't rip and replace before availability and connector coverage are clear.
 
-- **Golden Context** is the one idea I'd steal — carrying intent and decision rationale is a real gap in every CDP I've seen, and lakehouse-native governance is a legitimate edge.
-- **Infinity Campaigns** and always-on agentic outreach is exactly where hype can outrun safety; a hallucinating agent hitting real customers has a severe compliance and brand blast radius.
-- **Hype level: High.** Strong framing and buzzy naming, but no published metrics yet and a category full of entrenched incumbents.
-- **Bottom line:** A genuine, well-architected Databricks entry — borrow the Golden Context concept now, but keep any agentic outreach human-approved and single-channel until governance, accuracy, and availability are proven.
+The trend it rides — governed activation inside the warehouse, à la Hightouch/Census reverse-ETL — is well founded, so this isn't speculative. It just has to win a category full of entrenched incumbents.
+
+**Bottom line:** Well-architected and worth watching — borrow the Golden Context concept now, but keep any agentic outreach human-approved and single-channel until governance, accuracy, and a release stage are proven.

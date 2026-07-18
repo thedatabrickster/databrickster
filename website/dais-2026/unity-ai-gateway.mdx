@@ -6,51 +6,41 @@ description: "One access, cost, and audit layer for runtime AI — models, agent
 
 # Unity AI Gateway
 
-> Govern runtime AI — models, agents, MCP services, and skills — through a single access, cost, and audit layer.
+> One governed door for every runtime model call — so AI spend and access stop being a black box.
 
 *Announced at Data + AI Summit 2026 (June 16–17, 2026). Source: [Databricks blog](https://www.databricks.com/blog/ai-governance-data-ai-summit-2026-whats-new-unity-ai-gateway).*
 
 **Stage:** <StatusBadge stage="GA" /> — the core gateway is GA; contextual policies & MCP governance are in Beta.
 
-## Overview
+## What shipped
 
-- Control plane for **runtime AI traffic**: Databricks-hosted models, external/frontier models, agents, MCP services, and skills sit behind one governed layer.
-- **Cost governance** — unified spend visibility across hosted models, frontier model families, coding agents, enterprise AI apps, and custom agents, with attribution by user, team, tool, and use case, plus **hard spend caps that automatically stop requests when budgets are exceeded**.
-- **Smart routing** — recommendations and request routing based on task complexity, quality requirements, and cost.
-- **Fine-grained policies** — Unity Catalog access policies applied dynamically by model provider, country of origin, approval status, or governed tags; plus **managed MCP services** (Google Drive, Jira, Confluence, Slack, GitHub, SharePoint) and custom MCP.
-- **Guardrails** — protection against PII exposure, prompt injection, jailbreaks, and unsafe content.
-- **Observability** — end-to-end agent traces (model interactions + MCP tool activity), Genie natural-language log exploration, and Lakewatch-based detection of suspicious activity and policy violations.
-- **Status** — core cost controls, spend visibility, hard caps, and smart routing are **GA**. Contextual Service Policies, Managed Omnigent on Databricks, and MCP service governance are **Beta**.
+- A control plane for **runtime AI traffic**: Databricks-hosted models, external/frontier models, agents, MCP services, and skills all sit behind one governed layer.
+- **Cost governance** — unified spend visibility across hosted models, frontier families, coding agents, enterprise AI apps, and custom agents, attributed by user, team, tool, and use case, with **hard spend caps that stop requests when a budget is blown**.
+- **Smart routing** — request routing and recommendations based on task complexity, quality requirements, and cost.
+- **Fine-grained policies** — Unity Catalog access rules applied dynamically by model provider, country of origin, approval status, or governed tags; plus **managed MCP services** (Google Drive, Jira, Confluence, Slack, GitHub, SharePoint) and custom MCP.
+- **Guardrails and observability** — PII, prompt-injection, jailbreak, and unsafe-content protection; end-to-end agent traces (model + MCP tool activity), Genie natural-language log exploration, and Lakewatch anomaly detection.
+- **What's actually GA vs Beta** — cost controls, spend visibility, hard caps, and smart routing are **GA**. Contextual Service Policies, Managed Omnigent, and MCP service governance are **Beta**.
 
 ## Where it fits
 
-- **Governance & security layer** of the Modern Databricks Stack — the runtime-AI counterpart to Unity Catalog's data governance. See [the overview](/dais-2026).
-- Central chokepoint for **FinOps on AI**: attribute spend to users, teams, tools, and use cases, and set caps before the bill surprises you.
-- Fits orgs running **multiple model providers** (foundation, hosted, external) who want one policy surface instead of per-provider consoles.
-- Pairs naturally with **Agent Bricks, Genie, and MCP services** — anything that emits or consumes model calls at runtime.
-- Compliance value: **country-of-origin, provider, and approval-status policies** help with data-residency and approved-vendor mandates.
-- Useful where **audit trails** for agent behavior are required — end-to-end traces feed Lakewatch and Genie for investigation.
+- The **runtime-AI counterpart to Unity Catalog** — same governance instinct (attribution, policy, lineage), pointed at model calls instead of tables. See [the overview](/dais-2026).
+- The natural home for **FinOps on AI**: attribute spend and set caps before the monthly frontier-model bill turns into a fire drill.
+- Built for orgs running **multiple providers** (foundation, hosted, external) who are tired of reconciling per-provider consoles into one policy surface.
+- Pairs with **Agent Bricks, Genie, and MCP services** — anything that emits or consumes model calls at runtime.
+- Real compliance leverage: **country-of-origin, provider, and approval-status policies** map cleanly onto data-residency and approved-vendor mandates.
 
-## Where it fails
+## Where it falls short
 
-- **Chokepoint and latency** — routing every model call through a gateway adds a hop; real-time/low-latency agent loops may feel it. No published latency figures.
-- **Only governs traffic that flows through it** — direct SDK calls, notebook-embedded keys, or third-party tools bypass it. **Shadow AI remains the hole in the fence.**
-- **MCP governance is Beta** — MCP service governance and Contextual Service Policies are early; expect coverage gaps versus the GA cost-control surface.
-- **Routing quality is a judgment call** — "smart routing" ranks on task complexity, quality, and cost, but how quality is scored and how reliably is not detailed. Validate on your own workloads.
-- **Lock-in** — centralizing routing, policy, and attribution inside Databricks makes it costly to move governance out later.
-- Overlaps with existing tooling (below) — teams already standardized on an AI gateway will weigh migration cost against marginal Unity integration.
+- **It's a chokepoint** — every governed call takes an extra hop. Tight real-time or agent-loop latency budgets will notice, and there are no published latency figures to reason from.
+- **It only governs what flows through it.** Direct SDK calls, notebook-embedded keys, and third-party tools route around it. **Shadow AI is still the hole in the fence**, and centralizing the sanctioned path can push determined teams toward the unsanctioned one.
+- **MCP governance is Beta** — MCP service governance and Contextual Service Policies trail the GA cost surface; expect coverage gaps until they mature.
+- **"Smart routing" is an unvalidated claim** — how quality is scored, and how reliably, isn't detailed. Treat routing decisions as a hypothesis to test on your own workloads, not a setting to trust blind.
+- **Versus LiteLLM / cloud gateways** — LiteLLM (open, self-hosted), Kong, Portkey, and cloud-native gateways (Bedrock, Azure AI) already do routing and spend caps. The only real differentiator here is native Unity lineage/policy — so lock-in is the trade you're accepting, and it's costly to unwind later.
 
-## Response
+## My take
 
-- **Verdict: Adopt for cost control, pilot the rest.** Unified spend visibility, attribution, and hard caps are GA and the clearest near-term win.
-- **Adopt now if** you are already on Unity Catalog and want one governance surface — the native lineage/policy integration is the differentiator, not the gateway mechanics.
-- **Pilot** the Beta pieces (Contextual Service Policies, MCP service governance, Managed Omnigent) until they mature.
-- **Market context** — competes with **LiteLLM** (open-source proxy), **Kong AI Gateway**, **Portkey**, and cloud-native gateways (Bedrock, Azure AI). Databricks' edge is native Unity lineage/policy.
-- Don't rip out a working gateway for this alone; the value is Unity integration, so scope adoption to that.
+**Adopt it for cost control; pilot the rest.** Unified spend visibility, attribution, and hard caps are GA, and they solve a genuinely painful problem — treating AI spend and access like any other governed resource is the right idea, and it shipped for real. That alone justifies turning it on if you're already on Unity Catalog.
 
-## Personal impression
+Everything past cost controls needs a colder eye. A gateway governs only what passes through it, so budget for the shadow-AI leakage and don't assume the fence is complete. The Beta pieces — contextual policies, MCP governance, Managed Omnigent — are worth a pilot but not a bet-the-quarter migration. And the differentiator is Unity integration, not gateway mechanics: if you've already standardized on LiteLLM or a cloud gateway that works, don't rip it out for this. Scope adoption to what Unity uniquely buys you.
 
-- The genuinely useful idea is **treating AI spend and access like any other governed resource** — attribution and hard caps solve a real, painful problem, and they shipped GA.
-- A gateway only governs what passes through it, and "smart routing" on quality is exactly the claim to validate. Shadow AI and self-served endpoints will leak around it.
-- **Hype level: Medium.** Strong FinOps hook with GA cost controls; MCP governance and contextual policies are still Beta.
-- **Bottom line:** Adopt for cost control and attribution today; pilot the routing intelligence and MCP-governance pieces as they exit Beta.
+**Bottom line:** Turn on cost controls and attribution now; pilot the routing intelligence and MCP governance as they exit Beta — and keep watching for the shadow-AI leaks the gateway can't see.

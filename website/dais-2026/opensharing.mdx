@@ -6,47 +6,39 @@ description: "The next evolution of Delta Sharing — share data, models, agents
 
 # OpenSharing & SecureConnect
 
-> Delta Sharing grows up: share not just data but models, agents, and governed Genie Agents across clouds and vendors — and a Databricks-managed proxy kills the per-recipient firewall dance.
+> Delta Sharing grows up: share models, agents, and governed Genie Agents across clouds and vendors — and a Databricks-managed proxy finally kills the per-recipient firewall dance that stalls most external sharing deals.
 
 *Announced at Data + AI Summit 2026 (June 16–17, 2026). Sources: [Databricks blog — OpenSharing](https://www.databricks.com/blog/introducing-opensharing-next-evolution-delta-sharing-agentic-era) · [Databricks blog — SecureConnect](https://www.databricks.com/blog/introducing-opensharing-secureconnect).*
 
 **Stage:** <StatusBadge stage="Public Preview" /> — SecureConnect is Public Preview; the OpenSharing spec is open (Linux Foundation).
 
-## Overview
-- The **next evolution of Delta Sharing** — share data (Delta, Iceberg, Parquet), AI models, autonomous agents, and **Genie Agents** across any cloud, vendor, and on-prem, governed by Unity Catalog.
-- **No data copying** — recipients query live data directly at the source, with end-to-end governance and audit logging in Unity Catalog.
-- Open posture: the protocol is now **hosted by the Linux Foundation** at opensharing.io, with an open spec plus Databricks' enterprise implementation.
-- **Iceberg REST Catalog API** support, so any Iceberg-compatible client can read shares; providers can also share from external catalogs (AWS Glue, Hive Metastore, Snowflake Horizon).
-- On-prem storage partners: **MinIO (GA)**; **Everpure (Private Preview)**, **Qumulo** and **VAST Data** coming soon; **Cohesity, Commvault, NetApp, Nutanix** by year-end — together managing hundreds of exabytes of enterprise data.
-- **SecureConnect (Public Preview)** — a Databricks-managed proxy that routes storage access for recipients, ending per-recipient IP allowlisting: providers allowlist Databricks endpoints once.
-- SecureConnect specifics: **zero config for serverless recipients**, optional NCC private link to provider storage, **mutual TLS**, and **data stays in the provider's storage bucket** (recipients never touch the bucket directly). Works across regions and clouds, with customer-managed or Databricks Default Storage.
-- Delta Sharing today: **28,000+ recipients**, and **33% of shares are cross-platform**.
+## What shipped
+- OpenSharing extends Delta Sharing beyond tables: share data (Delta, Iceberg, Parquet), AI models, autonomous agents, and **Genie Agents** across any cloud, vendor, or on-prem, all governed by Unity Catalog.
+- No copies — recipients query live data at the source, with end-to-end governance and audit logging in Unity Catalog.
+- The protocol now lives at the **Linux Foundation** (opensharing.io): an open spec plus Databricks' enterprise implementation.
+- **Iceberg REST Catalog API** support means any Iceberg client can read shares; providers can also share from external catalogs (AWS Glue, Hive Metastore, Snowflake Horizon).
+- On-prem storage partners: **MinIO (GA)**, **Everpure (Private Preview)**, with Qumulo and VAST Data next, and Cohesity, Commvault, NetApp, Nutanix by year-end.
+- **SecureConnect (Public Preview)** — a Databricks-managed proxy that routes storage access for recipients: providers allowlist Databricks endpoints once instead of per-recipient IPs. Zero config for serverless recipients, optional NCC private link, mutual TLS, and data never leaves the provider's bucket.
+- Scale today: **28,000+ recipients**, and **33% of shares are cross-platform**.
 
 ## Where it fits
-- **Data collaboration layer** — the outbound edge of the lakehouse for partners, subsidiaries, and customers.
-- Teams sharing across **multiple clouds or vendors** who currently hand-maintain firewall allowlists for every recipient.
-- **Productizing analytics**: ship a governed Genie Agent to a customer instead of raw tables.
-- **Model and agent distribution** — internal platform teams handing curated models/agents to downstream business units.
-- Pairs with **Unity Catalog** (single governance plane) and **serverless recipients** that get the zero-config SecureConnect path.
-- Fits **on-prem / hybrid** shops via the MinIO/VAST/Qumulo partner story and Iceberg REST Catalog interop.
-- SecureConnect suits orgs where **security review of firewall changes** is the real bottleneck to any data share.
+- The outbound edge of the lakehouse — the collaboration layer for partners, subsidiaries, and customers.
+- Teams sharing across multiple clouds or vendors who currently hand-maintain firewall allowlists for every single recipient.
+- Productizing analytics: ship a governed Genie Agent to a customer instead of raw tables.
+- Model and agent distribution — platform teams handing curated models and agents to downstream business units.
+- Pairs with **Unity Catalog** as the single governance plane and with **serverless recipients** that get the zero-config SecureConnect path.
+- Fits hybrid and on-prem shops via the MinIO/VAST/Qumulo partner story plus Iceberg REST interop.
 
-## Where it fails
-- **Sharing agents across vendors raises governance and liability questions** — who owns a bad answer, whose logs, whose prompt policy wins? Largely unaddressed.
-- **The managed proxy is a new dependency and trust boundary** — SecureConnect becomes a single control point and potential single point of failure for all external sharing.
-- **"Open" is in tension with a Databricks-managed control plane** — the spec is Linux Foundation, but SecureConnect is Databricks-operated infrastructure; recipients still lean on it.
-- **Zero-config only for serverless recipients** — everyone else still touches NCC/private link, so the "configure once" promise is partial.
-- **Preview and partner maturity risk** — SecureConnect is Public Preview; most on-prem partners are Private Preview or "coming soon", and cross-vendor agent sharing is novel, so expect early gaps in RBAC, audit, and revocation semantics.
-- **Egress economics are unstated** — the posts don't quantify egress or storage cost implications of live cross-cloud reads; model your own.
+## Where it falls short
+- **Cross-vendor agent sharing has no governance or liability story.** Who owns a bad answer, whose audit logs, whose prompt policy wins when a Genie Agent runs on someone else's platform? Largely unaddressed — and that is the whole flashy part.
+- **The managed proxy is a new dependency and trust boundary.** SecureConnect becomes a single control point in the path of every external share — convenient until it is the thing that is down.
+- **"Open" sits in tension with a Databricks-managed control plane.** The spec is Linux Foundation, but SecureConnect is Databricks-operated infrastructure recipients lean on. The portable part and the useful part are not the same part.
+- **Zero-config is serverless-only.** Everyone else still touches NCC and private link, so "configure once" is partial.
+- **Preview and partner maturity risk.** SecureConnect is Public Preview, most on-prem partners are Private Preview or "coming soon", and cross-vendor agent sharing is new enough that RBAC, audit, and revocation semantics will have early gaps. Egress economics of live cross-cloud reads go unquantified — model your own.
 
-## Response
-- **Verdict: Pilot** SecureConnect + data/model sharing — the network-config elimination is a concrete, real pain removed with low blast radius.
-- **Watch** cross-vendor Genie Agent sharing — genuinely new, but wait for clear liability, audit, and revocation answers before exposing agents externally.
-- Treat SecureConnect as **Public Preview** — validate failure modes and support posture before it sits in the path of production shares.
-- Market context: this competes with **Snowflake Data Sharing / cloud-native shares (AWS Data Exchange, BigQuery Analytics Hub)**; the differentiator is agent/Genie sharing plus managed networking, not raw data sharing.
-- Keep a **portable fallback** — the Linux Foundation OpenSharing spec is the open part; lean on it so you are not fully bound to the managed proxy.
+## My take
+SecureConnect is the quietly useful piece, and it is the reason to pay attention. Per-recipient firewall coordination is a boring, real problem that kills external sharing deals in security review, not in engineering. Removing it — allowlist Databricks once, data stays in the provider's bucket, mutual TLS — is a concrete win with low blast radius. **Pilot it** alongside data and model sharing, but validate failure modes and support posture first: it is Public Preview, and it is about to sit in the path of your production shares.
 
-## Personal impression
-- SecureConnect is the quietly useful piece — killing per-recipient firewall coordination solves a boring, real problem that stalls most external sharing deals.
-- Sharing **governed Genie Agents** is the flashy bet, and also the riskiest: cross-vendor conversational analytics without settled liability is a lawyer's field day.
-- **Hype level: Medium.** **Bottom line:** pilot the managed-networking and model/data sharing now; treat cross-vendor agent sharing as a Watch until governance and liability are spelled out.
+Cross-vendor Genie Agent sharing is the flashy bet and the riskiest. Shipping a governed conversational agent to a customer instead of raw tables is a genuinely good idea; doing it across vendors before liability, audit, and revocation are spelled out is a lawyer's field day. **Watch this one** — do not expose agents externally until those answers exist. Competitively this is up against Snowflake Data Sharing and cloud-native shares (AWS Data Exchange, BigQuery Analytics Hub); the differentiator is agent/Genie sharing plus managed networking, not raw data sharing, which everyone already does. Lean on the Linux Foundation spec as your portable fallback so you are not fully bound to the proxy.
+
+**Bottom line:** pilot the managed networking and data/model sharing now; treat cross-vendor agent sharing as a Watch until governance and liability are in writing.

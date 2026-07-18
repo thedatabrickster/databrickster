@@ -6,47 +6,34 @@ description: "Deeper Microsoft integrations — Unity Catalog external locations
 
 # Azure Databricks at DAIS 2026
 
-> Positioned as the best data + AI platform on Azure: deeper Microsoft integrations (OneLake, ADME) and a set of customer modernization stories — mostly integrations and proof points, not net-new tech.
+> The real headline here isn't a feature — it's Databricks planting a flag as the default lakehouse on Azure, and backing it with governance plumbing (OneLake) and customer logos rather than net-new tech.
 
 *Announced at Data + AI Summit 2026 (June 16–17, 2026). Source: [Databricks blog](https://www.databricks.com/blog/azure-databricks-data-ai-summit-2026-featuring-industry-leaders-and-partners).*
 
 **Stage:** <StatusBadge stage="Coming soon" /> — OneLake external locations are coming soon; the ADME solution is available.
 
-## Overview
-- Pitch: **the best data + AI platform on Azure**, leaning on first-party status and deeper Microsoft integration.
-- **Unity Catalog external locations for OneLake** (**coming soon**) — extends Unity Catalog governance to Microsoft OneLake storage, joining existing support for S3, ADLS, GCS, and Cloudflare R2. UC governs everything built on top — managed tables, views, and other assets — without setting up an ETL pipeline.
-- **Zero-copy federated analytics for Azure Data Manager for Energy (ADME)** — a jointly developed Microsoft-Databricks solution that runs analytics on ADME data without copying massive datasets downstream, bringing Databricks compute directly to the data with native governance and serverless scale while ADME stays the single source of truth.
-- Customer story — **GEODIS**: modernized data/AI platform on Azure Databricks with Apache Iceberg and Spark integration.
-- Customer story — **TK Elevator**: consolidated a fragmented data lake, connecting management reporting with field operations.
-- Customer story — **Lippert**: production-grade AI automation for finance workflows using Azure Document Intelligence, delivered with partner Lovelytics.
-- No performance benchmarks were published for these capabilities.
+## What shipped
+- **Unity Catalog external locations for OneLake** (coming soon) — extends UC governance to Microsoft OneLake storage, joining existing S3, ADLS, GCS, and Cloudflare R2 support. UC then governs everything built on top (managed tables, views, other assets) with no ETL pipeline to stand up.
+- **Zero-copy federated analytics for Azure Data Manager for Energy (ADME)** — a jointly built Microsoft-Databricks solution that runs analytics on ADME data in place. Databricks compute comes to the data with native governance and serverless scale; ADME stays the single source of truth, no massive downstream copies.
+- **GEODIS** — modernized its data/AI platform on Azure Databricks using Apache Iceberg and Spark.
+- **TK Elevator** — consolidated a fragmented data lake, wiring management reporting to field operations.
+- **Lippert** — production-grade AI automation for finance workflows on Azure Document Intelligence, delivered with partner Lovelytics.
+- No performance benchmarks were published.
 
 ## Where it fits
 - **Governance + integration layer** for shops already standardized on Azure and Microsoft Fabric.
-- Enterprises with data landing in **OneLake** who want Databricks/Unity Catalog governance without a second copy.
-- **Energy-sector** teams on ADME wanting analytics over operational/subsurface data in place.
-- **Logistics and manufacturing** modernizers (GEODIS, TK Elevator) consolidating siloed lakes.
+- Teams with data landing in **OneLake** who want UC governance over it without a second copy.
+- **Energy** teams on ADME wanting analytics over operational/subsurface data in place, no downstream duplication.
+- **Logistics and manufacturing** modernizers (GEODIS, TK Elevator) collapsing siloed lakes.
 - **Finance/FP&A** teams (Lippert) automating document-heavy workflows with governed AI.
-- Pairs with **Unity Catalog** (single governance plane), **Delta/Iceberg** interop, and existing **Microsoft 365 / Power BI** estates.
-- Best fit where the buyer wants **one Azure-native stack** rather than stitching multiple analytics vendors.
+- Pairs with **Unity Catalog** as the single governance plane, **Delta/Iceberg** interop, and existing **Microsoft 365 / Power BI** estates.
+- Best fit where the buyer wants **one Azure-native stack** over stitching multiple analytics vendors.
 
-## Where it fails
-- **Microsoft Fabric is both partner and competitor** — OneLake integration deepens reliance on a platform Microsoft also positions against Databricks; the alignment can shift.
-- **OneLake external locations are coming soon, not shipped** — no GA date; validate write paths, permission mapping, and performance before planning production around it.
-- **First-party Azure Databricks has real nuances** — billing, identity (Entra), networking, and feature-parity timing differ from AWS/GCP Databricks; assumptions do not transfer cleanly.
-- **Mostly integrations + customer stories, not net-new technology** — value is packaging and proof points, so differentiation is thinner than the framing suggests.
-- **ADME zero-copy federation is narrow** — energy-specific; federated queries also carry latency and pushdown limits versus co-located data.
-- **Customer stories lack detail** — GEODIS/TK Elevator/Lippert outcomes ship without independent metrics, cost, or timeline data.
-- **Lock-in tension** — leaning into Azure-first integrations trades multi-cloud portability for convenience.
+## My take
+If you're Azure-committed, this is a genuinely useful update — but read it for what it is: a go-to-market package, not a platform release. The technology underneath (Unity Catalog, Delta/Iceberg, serverless) already existed. What's new is the wrapping — OneLake reach, an energy vertical solution, and three logos to point at.
 
-## Response
-- **Verdict: Watch** the OneLake external-location integration — promising for Fabric shops, but it is coming soon; confirm GA, write support, and permission fidelity before committing.
-- **Pilot** ADME zero-copy federation **only if** you are an energy customer already on that stack — otherwise it is not relevant.
-- **Adopt** the underlying **Unity Catalog + governance** story regardless — that is stable and valuable independent of the Azure-specific packaging.
-- Market context: this is the **Databricks vs. Microsoft Fabric** frontier — evaluate Fabric's native lakehouse and Synapse alternatives head-to-head, not just the Databricks framing.
-- Treat customer stories as **reference calls to request**, not proof — ask GEODIS/TK Elevator/Lippert peers for real cost and migration effort.
+The **OneLake external-location** work is the one to actually track, and it's also where I'd hold the line. It's *coming soon*, not GA, so there's no date, and the OneLake tie deepens your dependence on Microsoft Fabric — which Microsoft simultaneously sells *against* Databricks. Partner and competitor in the same breath. Validate write paths, permission mapping, and performance yourself before you plan production around it, and evaluate Fabric's native lakehouse head-to-head rather than taking the Databricks framing at face value.
 
-## Personal impression
-- This reads less like an announcement and more like an Azure go-to-market update — solid integrations wrapped in customer logos, with little genuinely new underneath.
-- The OneLake tie-in is the one to watch precisely because the partner-and-competitor dynamic with Fabric makes its depth and durability uncertain.
-- **Hype level: Low-Medium.** **Bottom line:** useful if you are Azure-committed, but the headline OneLake integration is still coming soon and the Fabric relationship cuts both ways — this is integration and proof points, not net-new platform capability.
+Everything else nets out cleanly: **adopt** the Unity Catalog governance story now — it's stable and pays off independent of the Azure packaging. **Pilot** ADME zero-copy federation only if you're already an energy customer on that stack; otherwise it's noise. And treat GEODIS/TK Elevator/Lippert as reference calls to *request* — the outcomes ship without independent cost, timeline, or migration-effort data, so mine peers for the real numbers.
+
+**Bottom line:** solid if you're Azure-first, but the headline OneLake integration is still coming soon and the Fabric relationship cuts both ways — bank the Unity Catalog governance, watch the rest.

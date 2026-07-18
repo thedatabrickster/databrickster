@@ -6,50 +6,43 @@ description: "Unity Catalog reframed around Control, Context, and Choice — now
 
 # Unity Catalog — Agentic-Era Governance
 
-> Governance for the agentic era, organized into three pillars — **Control, Context, Choice** — extending Unity Catalog to govern models, agents, and MCP services, not just tables.
+> Governance stopped being a data-only problem. Unity Catalog now treats models, agents, and MCP services as first-class governed objects — organized into three pillars: **Control, Context, Choice.**
 
 *Announced at Data + AI Summit 2026 (June 16–17, 2026). Source: [Databricks blog](https://www.databricks.com/blog/whats-new-unity-catalog-data-ai-summit-2026).*
 
 **Stage:** <StatusBadge stage="Mixed" /> — most updates are GA; a few are Beta / Preview (called out below).
 
-## Overview
+## What shipped
 
-- Unity Catalog is framed as **governance for the agentic era**, structured around three pillars: **Control**, **Context**, and **Choice**.
-- **Control:** Unity AI Gateway (GA), Contextual Service Policies (Beta), AI Gateway Budgets / spend caps (GA), Unified Agent Tracing (GA), ABAC (GA; ABAC Grant Policies for models in Beta), and RBAC (Public Preview coming soon).
-- **Context:** business Glossary (Preview coming soon), Domains (Public Preview), Metrics (GA), external lineage (GA), and column-level popularity (GA).
-- **Choice / Openness:** four-level namespace (GA), managed disaster recovery (GA, requires the Mission Critical add-on), a multimodal `FILE` type (Beta), geospatial types (GA), and OpenSharing (now a Linux Foundation project).
-- Governance scope now explicitly covers **models, agents, and MCP services** as first-class governed objects.
-- Databricks cites **14,000+ organizations** governing data and AI on Unity Catalog, with **hundreds of thousands of agents** now acting on enterprise data.
+- The whole thing is reframed as **governance for the agentic era**, sorted into three pillars: **Control, Context, Choice** — and governance scope now explicitly covers **models, agents, and MCP services**, not just tables.
+- **Control:** Unity AI Gateway (GA), AI Gateway Budgets / spend caps (GA), Unified Agent Tracing (GA), ABAC (GA; ABAC Grant Policies for models in Beta), Contextual Service Policies (Beta), and RBAC (Public Preview soon).
+- **Context:** Metrics (GA), external lineage (GA), column-level popularity (GA), Domains (Public Preview), and a business Glossary (Preview soon).
+- **Choice / Openness:** four-level namespace (GA), managed disaster recovery (GA, needs the Mission Critical add-on), geospatial types (GA), a multimodal `FILE` type (Beta), and OpenSharing (now a Linux Foundation project).
+- Databricks cites **14,000+ organizations** on Unity Catalog and **hundreds of thousands of agents** already acting on enterprise data.
 
 ## Where it fits
 
-- The **governance and security layer** of the stack: the control plane under agents, Genie, and the AI platform.
-- Teams building **agentic workloads** who need one place to set who/what an agent may touch, and to trace what it did.
-- **AI Gateway Budgets** and the Unity AI Gateway land where finance and platform teams worry about runaway agent/model costs.
-- **ABAC + Contextual Service Policies** fit orgs that have outgrown pure RBAC and need attribute- and context-driven access.
-- **Glossary, Domains, Metrics** pair with Genie and BI — shared semantics so natural-language and agent queries mean the same thing.
-- **External lineage + column-level popularity** help data platform and governance teams see impact and prune unused assets.
-- **Multimodal `FILE` type, geospatial, four-level namespace** suit multi-cloud and unstructured/spatial data shops.
+- This is the **governance and security layer** — the control plane sitting under agents, Genie, and the AI platform. If agents touch enterprise data, they touch this.
+- Best fit for teams building **agentic workloads** who need one place to set what an agent may touch and to trace what it actually did.
+- **AI Gateway Budgets** and the Unity AI Gateway land exactly where finance and platform teams lose sleep — runaway agent and model spend.
+- **ABAC + Contextual Service Policies** are for orgs that have outgrown pure RBAC and need attribute- and context-driven access.
+- **Metrics, Domains, Glossary** pair with Genie and BI so natural-language and agent queries resolve the same business terms the same way.
+- **External lineage + column-level popularity** give governance teams impact analysis and a way to prune dead assets.
 
-## Where it fails
+## Where it falls short
 
-- **Breadth is complexity.** Three pillars spanning roughly 15 features is a lot of surface area; most orgs will adopt a fraction and still owe migration and training.
-- **Mixed maturity.** Core pieces are GA (Unity AI Gateway, Metrics, external lineage, geospatial, four-level namespace), but several land as Beta or Preview (Contextual Service Policies, `FILE` type, RBAC, Glossary) — sequence adoption to real status, not the headline.
-- **Four-level namespace migration is not free.** Changing the namespace model ripples through code, grants, and integrations; expect a real project, not a toggle.
-- **Governing autonomous agents is genuinely hard.** Policy plus tracing help, but non-deterministic agents acting on live data create audit, blast-radius, and accountability gaps that governance UI does not fully close.
-- **Spend caps need honest granularity** — per-agent, per-team, hard vs soft — or AI Gateway Budgets become dashboards, not guardrails.
-- **Lock-in tension.** Deep Unity Catalog features cut against open catalogs — **Iceberg REST catalog** and **Apache Polaris / Snowflake Open Catalog** — so weigh portability before committing governance logic here.
+- **Breadth is complexity.** Three pillars spanning roughly 15 features is a large surface. Most orgs adopt a fraction and still owe the migration and training bill for the whole model.
+- **Preview-vs-GA sprawl.** The core is genuinely GA (Gateway, Metrics, external lineage, geospatial, four-level namespace), but Contextual Service Policies, the `FILE` type, RBAC, and Glossary are Beta or Preview. Sequence adoption to real status, not to the keynote slide.
+- **Four-level namespace migration is not a toggle.** Changing the namespace model ripples through code, grants, and integrations. Budget it as a project.
+- **Governing autonomous agents is genuinely hard.** Policy and tracing help, but non-deterministic agents acting on live data leave audit, blast-radius, and accountability gaps that no governance UI fully closes. The honest test is whether spend caps and tracing constrain a *misbehaving* agent — not whether they render a clean lineage graph.
+- **Open-catalog lock-in.** Deep Unity Catalog features cut against open catalogs — **Iceberg REST catalog**, **Apache Polaris / Snowflake Open Catalog**. The more governance logic you push in here, the harder it is to leave. Keep table formats interoperable even if you centralize policy.
 
-## Response
+## My take
 
-- **Adopt now (core):** if you are already on Unity Catalog, ABAC, Glossary-adjacent metadata, Metrics, and external lineage are the low-risk, high-value GA pieces — keep investing.
-- **Pilot:** Unity AI Gateway, agent tracing, and AI Gateway Budgets — valuable and largely GA, but new; run them against one real agentic workload before standardizing.
-- **Watch (pre-GA):** Contextual Service Policies (Beta), the `FILE` type (Beta), RBAC and Glossary (Preview) — plan around them but confirm timelines before you depend on them.
-- **Market context:** the open-catalog camp (Iceberg REST, Polaris, plus Snowflake Horizon) is the real competitive check — keep table formats interoperable even if you centralize policy in Unity Catalog.
+The Control/Context/Choice framing is a clean story, and it's pointed the right way. Governance for tables was a solved problem; governance for hundreds of thousands of agents acting on live data is not, and that is where the risk is actually moving. Extending first-class governance to models, agents, and MCP is the correct bet.
 
-## Personal impression
+**Adopt the GA core now** if you're already on Unity Catalog. Metrics, external lineage, ABAC, and the four-level namespace are low-risk, high-value, and mostly just work. **Pilot the agent-governance pieces** — Unity AI Gateway, Unified Agent Tracing, AI Gateway Budgets — against one real agentic workload before you standardize. They're largely GA but new, and their value lives entirely in whether the guardrails actually bite. **Watch the pre-GA edges** — Contextual Service Policies, `FILE` type, RBAC, Glossary — and confirm timelines before you build a dependency on them.
 
-- The **Control/Context/Choice** framing is a clean story, and extending governance to agents and MCP is the right direction — that is where the risk is moving.
-- But "govern the agentic era" is easy to slide and hard to deliver; the honest test is whether spend caps and agent tracing actually constrain a misbehaving agent, not whether they render a nice lineage graph.
-- The GA-heavy core (Gateway, Metrics, lineage, geospatial, namespace) is more shipped than not — the agent-policy edges (Contextual Service Policies, RBAC) are where the maturity gap sits.
-- **Hype level: Medium.** **Bottom line:** strong, coherent governance vision — adopt the mature GA core, pilot the agent-governance pieces, and keep your table formats open so the catalog stays a choice, not a cage.
+The one thing I'd hold firm on: the open-catalog camp (Iceberg REST, Polaris, Snowflake Horizon) is the real competitive check. Centralize *policy* in Unity Catalog if you like, but keep your *table formats* open so the catalog stays a choice.
+
+**Bottom line:** Strong, coherent governance vision — adopt the mature GA core, pilot the agent-governance pieces, and keep your table formats open so the catalog stays a choice, not a cage.

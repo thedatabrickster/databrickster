@@ -6,46 +6,40 @@ description: "Databricks' agentic SIEM on the lakehouse: 100% security telemetry
 
 # Lakewatch — Agentic SIEM
 
-> An agentic SIEM rebuilt on the lakehouse: 100% security telemetry in your own cloud storage on open OCSF, storage/compute decoupled, and threat hunting in natural language via Genie — positioned against traditional SIEMs.
+> A SIEM rebuilt on the lakehouse: keep 100% of your telemetry in your own OCSF buckets, decouple storage from compute to kill the retention bill, and hunt in natural language via Genie. The economics are the wedge — detection content is the open question.
 
 *Announced at Data + AI Summit 2026 (June 16–17, 2026). Source: [Databricks blog](https://www.databricks.com/blog/databricks-announces-lakewatch-new-agentic-siem).*
 
 **Stage:** <StatusBadge stage="Private Preview" />
 
-## Overview
-- **Lakewatch** is Databricks' agentic SIEM built on the lakehouse, launched in **Private Preview** with **Adobe** and **Dropbox** among initial customers.
-- Ingests and retains **100% of security telemetry** on the **open OCSF schema** (Open Cybersecurity Schema Framework), stored as **Delta Lake / Apache Iceberg** in your own cloud storage.
-- **Decoupling compute from storage** lets you keep petabytes for years while **reducing costs by up to 80%** versus traditional SIEMs.
-- **Genie**-powered natural-language queries and **Genie Spaces** let analysts threat-hunt without writing code.
-- Detection is **Detection-as-Code** in YAML with **SQL / Python**, plus custom **ML models via MLflow**; **Claude** (Anthropic) powers threat correlation.
-- Two acquisitions announced: **Antimatter** (provably secure authN/authZ for AI agents) and **SiftD.ai** (founded by the creator of Splunk's SPL; large-scale detection engineering).
+## What it is
+- Databricks' agentic SIEM on the lakehouse, in **Private Preview** with **Adobe** and **Dropbox** among initial customers.
+- Ingests and retains **100% of security telemetry** on the open **OCSF** schema, stored as **Delta Lake / Apache Iceberg** in your own cloud storage — not a vendor index.
+- **Decouples compute from storage** so you keep petabytes for years at a claimed **up to 80% lower cost** than traditional SIEMs.
+- **Genie** and **Genie Spaces** let analysts threat-hunt in natural language, no SPL or KQL required.
+- Detection is **Detection-as-Code** (YAML + SQL/Python), custom **ML models via MLflow**, and **Claude** (Anthropic) driving threat correlation.
+- Backed by two acquisitions: **Antimatter** (provable authN/authZ for AI agents) and **SiftD.ai** (founded by the creator of Splunk's SPL; large-scale detection engineering).
 
 ## Where it fits
-- **Security analytics / detection-and-response layer** — sits on Unity Catalog governance, drawing telemetry already landing in the lakehouse.
-- **SOC and threat-hunting teams**: OCSF normalization plus Genie natural-language querying lowers the barrier to ad-hoc hunts over huge log volumes.
-- **Cost-pressured security orgs** drowning in Splunk/Sentinel ingest and retention bills — decoupled storage/compute driving up to 80% savings is the core economic pitch.
-- **Cross-domain investigations**: co-locating security telemetry with other governed data enables insider-risk and fraud correlation classic SIEMs handle poorly.
-- **Regulated / data-residency shops**: telemetry stays in your own cloud buckets (Delta / Iceberg), not a vendor's index.
-- Pairs with **Genie**, **Genie Spaces**, **Unity Catalog**, **MLflow**, and **Claude** for cross-domain reasoning.
+- The **security analytics / detection-and-response layer** on top of Unity Catalog governance, feeding on telemetry already landing in the lakehouse.
+- **SOC and threat-hunting teams** who want ad-hoc hunts over huge log volumes without SPL/KQL fluency — OCSF normalization plus Genie lowers the barrier.
+- **Cost-pressured security orgs** bleeding on Splunk/Sentinel ingest and retention; decoupled storage/compute is the whole economic pitch.
+- **Cross-domain investigations** — co-locating security telemetry with other governed data enables insider-risk and fraud correlation that siloed SIEMs handle poorly.
+- **Regulated / data-residency shops** that need telemetry to stay in their own buckets on open formats.
+- Pairs naturally with **Genie**, **Unity Catalog**, **MLflow**, and **Claude**.
 
-## Where it fails
-- **SIEM is deeply entrenched**: Splunk, Microsoft Sentinel, Google Chronicle/SecOps, and Panther own the market with mature detection content and SOC integrations.
-- **Detection-content maturity is the moat, and it's the hardest to bootstrap** — incumbents ship thousands of tuned rules, ATT&CK mappings, and threat-intel feeds; a new platform starts near zero (the SiftD.ai acquisition is a direct bet on closing this gap).
-- **Agentic detection cuts both ways**: LLM-assisted hunting and rules risk **false negatives** (missed attacks) and noisy **false positives**.
-- **Metrics need context**: the mean-time-to-exploit collapse (23.2 days in 2025 to 1.6 days in 2026) and "500+ zero days found by LLMs" argue urgency but come without per-customer methodology.
-- **Tool inertia is brutal in security**: SOCs are built around existing consoles, runbooks, SOAR wiring, and analyst muscle memory — rip-and-replace is rare and slow.
-- **Full lakehouse query latency vs a purpose-built SIEM index** is unproven for interactive, real-time triage at petabyte scale.
-- **Private Preview**: limited availability, small initial customer set, and evolving detection library mean production readiness is still ahead.
+## Where it falls short
+- **SIEM is deeply entrenched.** Splunk, Microsoft Sentinel, and Google Chronicle/SecOps own the market on mature detection content and SOC integrations — this is a contested category, not a greenfield.
+- **Detection content is the real moat, and it's the hardest thing to bootstrap.** Incumbents ship thousands of tuned rules, ATT&CK mappings, and threat-intel feeds; a new platform starts near zero. The **SiftD.ai** acquisition is a direct, honest bet on closing that gap — but a bet, not a shipped library.
+- **Agentic detection cuts both ways.** LLM-assisted rules and hunting risk **false negatives** (missed attacks) and noisy **false positives** — and a confident-but-wrong rule is worse than no rule in a SOC.
+- **The urgency metrics lack per-customer methodology.** The mean-time-to-exploit collapse (23.2 days in 2025 to 1.6 days in 2026) and "500+ zero days found by LLMs" make the case for speed but aren't your benchmarks.
+- **Tool inertia in security is brutal.** SOCs are wired to existing consoles, runbooks, SOAR playbooks, and analyst muscle memory. Rip-and-replace is rare and slow, and interactive triage latency over petabytes vs a purpose-built index is unproven.
 
-## Response
-- **Verdict: Watch — with a narrow Pilot for cost.** The economics of decoupled storage/compute on OCSF are genuinely compelling; detection maturity is what to prove out.
-- **Pilot as a security data lake / cold-and-warm tier** behind your existing SIEM — offload retention and threat-hunting, keep incumbent detection running.
-- **Do not rip out Splunk/Sentinel/Chronicle** yet; detection content and SOC workflow are years of accumulated value, and Lakewatch is in Private Preview.
-- **Track the ecosystem**: partners include Akamai, Anvilogic, Arctic Wolf, Cribl, Deloitte, Obsidian, Okta, 1Password, Palo Alto Networks, Panther, Proofpoint, Rearc, Slack, TrendAI, Wiz, and Zscaler.
-- Market context: the "security data lake" pattern (Snowflake + Panther, Amazon Security Lake on OCSF, Cribl routing) already exists — Databricks is entering a real, contested category, not inventing it.
+## My take
+The strategic read is correct: SIEM economics are broken, OCSF is the right open bet, and keeping 100% of telemetry in your own storage at up-to-80% lower cost is a wedge incumbents genuinely can't match without cannibalizing their ingest revenue. That part I believe.
 
-## Personal impression
-- The strategic logic is sound — SIEM economics are broken, OCSF is the right open bet, and up-to-80% cost cuts on your own storage is a real wedge incumbents can't easily match.
-- The Antimatter and SiftD.ai acquisitions show Databricks knows the hard part is detection engineering and agent security, not storage — buying the creator of Splunk's SPL is a pointed move.
-- Agentic detection is the seductive claim and the riskiest; in security a confident-but-wrong LLM rule is worse than no rule.
-- **Hype level: High.** **Bottom line:** A credible, officially-launched security-data-lake and threat-hunting platform worth piloting alongside your SIEM — but it's Private Preview, and detection-content maturity and SOC trust are what to validate before it displaces an incumbent.
+What Databricks clearly understands — and the **Antimatter** and **SiftD.ai** acquisitions prove it — is that the hard part was never storage. It's detection engineering and agent security. Buying the creator of Splunk's SPL is a pointed, self-aware move. But acquisitions are potential, not tuned rules in production, and detection maturity is exactly what a Private Preview can't yet demonstrate.
+
+So: **pilot for cost, watch for detection.** Stand Lakewatch up as a security data lake — the warm/cold retention and threat-hunting tier — behind your existing SIEM. Offload the petabyte retention bill, run Genie hunts against it, and keep Splunk/Sentinel/Chronicle doing detection until Lakewatch's content and your SOC's trust catch up. Do not rip anything out yet; years of accumulated rules and workflow don't transfer on a slide.
+
+**Bottom line:** A credible, well-architected security data lake with the right open bet and the right acquisitions — pilot it for retention economics now, but let detection-content maturity and SOC trust earn the displacement of an incumbent.
