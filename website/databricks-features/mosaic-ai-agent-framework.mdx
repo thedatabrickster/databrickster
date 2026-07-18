@@ -1,0 +1,248 @@
+---
+sidebar_position: 20
+title: "Mosaic AI Agent Framework — Architecture Guide"
+description: "Code-first toolkit to author, trace, evaluate, and deploy tool-using agents on Databricks using ResponsesAgent, MLflow tracing, LLM-judge evaluation, and Model Serving."
+---
+
+# Mosaic AI Agent Framework
+
+## 1. Executive Summary
+
+A code-first framework for authoring, tracing, evaluating, and deploying tool-using LLM agents on Databricks, packaged with MLflow and served on Model Serving under Unity Catalog governance.
+
+## 2. Primary Purpose
+
+- **Why it exists:** give engineers full programmatic control over agent logic, tools, and prompts while inheriting Databricks governance, tracing, and serving.
+- **Business problem:** move GenAI from prototype notebooks to governed, evaluated, production-deployed agents without stitching a bespoke platform.
+- **Technical problem:** standardize agent authoring (ResponsesAgent), observability (MLflow tracing), quality gates (LLM-judge eval), and rollout (Model Serving) in one lifecycle.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Users / Apps / Other agents
+        ↓
+Agent endpoint (Model Serving) → AI Gateway (rate limits, safety, logging)
+        ↓
+Agent code (ResponsesAgent: reasoning loop + tool calls)
+        ↓
+Tools: UC functions · Vector Search · Genie · MCP · external APIs
+        ↓
+MLflow (tracing, logging, evaluation, model registry)
+        ↓
+Unity Catalog (permissions, lineage) → Delta Lake / Volumes
+```
+
+- Sits in the **AI** layer as the code-first authoring runtime beneath higher-level surfaces.
+- Wraps foundation models with an explicit tool-calling loop the developer owns end to end.
+- Every tool call and model span is captured as an MLflow trace for eval and monitoring.
+
+## 4. Typical Architecture Placement
+
+```
+☐ User Interface
+☑ Developer Experience
+☐ Data Engineering
+☐ Data Governance
+☑ AI
+☐ Machine Learning
+☐ Storage
+☐ Security
+☐ Monitoring
+```
+
+- Primary home is AI: authoring the agent's reasoning and tool orchestration in code.
+- Strong Developer Experience surface (Python authoring, local iteration, Git, tracing).
+- Governance, serving, and ML lifecycle are inherited from Unity Catalog, Model Serving, and MLflow, not owned here.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+| --- | --- | --- |
+| Multi-step tool-using agent with custom logic | ✅ | Core purpose; full control of the reasoning loop |
+| Agent that calls governed UC functions | ✅ | Tools resolve under Unity Catalog permissions and lineage |
+| RAG agent over Vector Search indexes | ✅ | Retrieval as a first-class, traced tool |
+| Natural-language analytics via Genie as a tool | ✅ | Wrap a Genie space so the agent queries structured data |
+| Agent needing rigorous quality evaluation | ✅ | LLM-judge and custom scorers via MLflow eval |
+| Production deployment with versioning/rollback | ✅ | Log to MLflow, register in UC, serve as an endpoint |
+| Deep observability of agent behavior | ✅ | MLflow tracing captures every span and tool call |
+| Custom orchestration patterns (branching, loops) | ✅ | Arbitrary Python control flow, not a fixed template |
+| Composing multiple sub-agents in code | ✅ | Call other agents/endpoints as tools |
+| Streaming, tool-calling chat interfaces | ✅ | ResponsesAgent supports streamed, tool-aware output |
+| Integrating external/MCP tools | ✅ | Register external APIs or MCP servers as agent tools |
+| Team wants a low-code, auto-tuned agent | ⚠️ | Agent Bricks fits better; less code to own |
+| Simple single-shot prompt, no tools | ⚠️ | Foundation Model APIs alone may suffice |
+| Deterministic ETL disguised as an "agent" | ❌ | Use Lakeflow / SQL, not an LLM loop |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+| --- | --- | --- |
+| Low-code authoring for non-engineers | ⚠️ | Agent Bricks targets that audience |
+| One-shot text generation, no tools/state | ⚠️ | Call Foundation Model APIs directly |
+| Deterministic SQL/ETL transformation | ❌ | Wrong tool; use Lakeflow or Databricks SQL |
+| Exact aggregate analytics over tables | ❌ | Query directly; an agent adds cost and nondeterminism |
+| Multi-cloud, Databricks-independent agents | ⚠️ | Serving and governance are Databricks-bound |
+| Sub-second, ultra-high-QPS inference | ⚠️ | Validate serving limits, model latency, and cost |
+| No governed data or tools available yet | ❌ | Land and govern data/tools first |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+| --- | --- |
+| Data Engineers | 3 |
+| Analytics Engineers | 2 |
+| Platform Engineers | 3 |
+| Data Scientists | 4 |
+| BI Teams | 1 |
+| AI Engineers | 5 |
+| Executives | 2 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+| --- | --- |
+| Developer Productivity | 4 |
+| Implementation Speed | 3 |
+| Governance | 5 |
+| Security | 4 |
+| Maintainability | 4 |
+| Scalability | 4 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 3 |
+| Business Value | 4 |
+| Innovation | 5 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+| --- | --- |
+| MLflow | Traces, logs, evaluates, and versions the agent as a model artifact. |
+| Unity Catalog | Governs tools, functions, indexes, and the registered agent with permissions and lineage. |
+| Mosaic AI Model Serving | Hosts the deployed agent as a scalable REST endpoint. |
+| AI Gateway | Adds rate limits, payload logging, and safety guardrails in front of endpoints. |
+| Foundation Model APIs | Supply the base and embedding models the agent reasons with. |
+| Mosaic AI Vector Search | Provides retrieval indexes exposed to the agent as tools. |
+| UC Functions | SQL/Python functions the agent calls as governed, typed tools. |
+| Genie | Natural-language-to-SQL space wrapped as a structured-data tool. |
+| Git Folders / Repos | Source control and CI for agent code. |
+| Databricks Apps | Front-ends the served agent in a governed web application. |
+| Lakeflow (Jobs/Pipelines) | Prepares and refreshes data and indexes upstream of the agent. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+| --- | --- | --- |
+| Agent Bricks | In-Databricks | Low-code and auto-optimized; less control, fixed patterns. |
+| LangChain / LangGraph | External / OSS | Rich ecosystem and portability; you wire governance, tracing, serving. |
+| LlamaIndex | External / OSS | Strong RAG primitives; you own eval, deployment, and governance. |
+| DIY (Foundation Model APIs + custom code) | In-Databricks | Lightest abstraction; you rebuild tracing, eval, and packaging. |
+| External agent platforms | External SaaS | Broad connectors and UIs; separate governance, egress, and cost model. |
+| Cloud-native agent services | External SaaS | Native to a hyperscaler; weaker Lakehouse data/governance integration. |
+
+## 11. Strengths
+
+- Full code-level control of the reasoning loop, prompts, tools, and state.
+- ResponsesAgent standardizes streaming, tool-calling, and message contracts.
+- MLflow tracing captures every model and tool span for debugging and audit.
+- LLM-judge and custom scorers turn quality into repeatable, gated evaluation.
+- Tools are governed: UC functions, Vector Search, and Genie inherit permissions and lineage.
+- One lifecycle from author to log to register to serve, all inside Databricks.
+- Framework-agnostic: wrap LangChain, LlamaIndex, or plain Python inside the agent.
+- Supports composing sub-agents and external/MCP tools as callable functions.
+- Endpoints get AI Gateway guardrails, rate limits, and payload logging.
+- Versioning and rollback via the MLflow model registry in Unity Catalog.
+
+## 12. Limitations
+
+- Code-first: requires engineering skill; not for business authors.
+- More assembly than Agent Bricks — you own prompts, tools, and eval wiring.
+- Quality depends on your evaluation design; LLM judges need calibration.
+- Serving, retrieval, and eval compute incur cost even at low volume.
+- Tied to the Databricks Mosaic AI stack; limited cross-cloud portability.
+- Agent nondeterminism makes regression testing and SLOs harder.
+- Trace/eval volume can grow large and needs retention management.
+- Debugging multi-tool, multi-hop failures still demands effort.
+- Latency stacks across model calls and tool round-trips.
+- Fast-moving APIs; pin versions and expect surface changes.
+
+## 13. Common Mistakes
+
+- Shipping without an evaluation set or scorers — flying blind on quality.
+- Treating LLM-judge scores as ground truth without human calibration.
+- Skipping MLflow tracing, then unable to debug production behavior.
+- Granting agents broad tool/data access instead of least privilege.
+- Building an agent for deterministic work that SQL or ETL should do.
+- Hand-building when Agent Bricks would have shipped the pattern faster.
+- Ignoring token/latency cost of long tool-calling loops.
+- Not pinning model and library versions, causing silent behavior drift.
+- Logging sensitive payloads without gateway controls or masking.
+
+## 14. Design Recommendations
+
+- ✔ Author with ResponsesAgent so streaming and tool contracts stay standard.
+- ✔ Enable MLflow autolog/tracing from the first prototype, not after incidents.
+- ✔ Build a labeled eval set early and gate releases on scorer thresholds.
+- ✔ Expose tools as governed UC functions, Vector Search, or Genie — least privilege.
+- ✔ Register agents in Unity Catalog and deploy via Model Serving for versioning.
+- ✔ Put AI Gateway in front for rate limits, logging, and safety.
+- ✔ Combine LLM judges with human review and a few deterministic checks.
+- ✔ Start with Agent Bricks; drop to the framework when it constrains you.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+| --- | --- |
+| Custom multi-step, tool-using agent | ✅ Core purpose |
+| Full control of prompts and orchestration | ✅ Code-first design |
+| Governed tools (functions, search, Genie) | ✅ Native integration |
+| Rigorous LLM-judge evaluation | ✅ Via MLflow eval |
+| Production serving with rollback | ✅ Registry + Model Serving |
+| Deep tracing and observability | ✅ MLflow tracing |
+| Low-code agent for non-engineers | ⚠️ Prefer Agent Bricks |
+| Single-shot prompt, no tools | ⚠️ Use Foundation Model APIs |
+| Deterministic ETL / SQL | ❌ Wrong tool |
+| Multi-cloud portability | ❌ Databricks-bound |
+
+## 16. Quick Comparison
+
+| Criterion | Agent Framework | Agent Bricks | LangChain/LangGraph | DIY (FM APIs) |
+| --- | --- | --- | --- | --- |
+| Build effort | Medium–high | Low | High | High |
+| Control | Very high | Medium | Very high | Very high |
+| Auto-tuning | Manual | Built-in | Manual | Manual |
+| Tracing/eval | MLflow built-in | Built-in | You wire | You build |
+| Governance | Unity Catalog | Unity Catalog | You build | Unity Catalog |
+| Deployment | Model Serving | Model Serving | You build | Model Serving |
+
+## 17. Maturity
+
+| Dimension | Rating |
+| --- | --- |
+| Technology Readiness | High |
+| Enterprise Readiness | Medium |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | High |
+
+## 18. Cost Considerations
+
+- **Licensing:** consumption-based via Databricks DBUs; no separate license. Verify current pricing.
+- **Compute:** served agent endpoint (always-on), foundation-model inference per call, plus evaluation and tracing runs.
+- **Storage:** MLflow traces/artifacts, eval datasets, and Vector Search indexes add footprint.
+- **Operational Overhead:** you own agent code, eval design, and endpoint sizing; effort shifts to quality and monitoring.
+- **Training:** meaningful for teams new to agents — tool design, evaluation, and tracing are the learning curve. Verify current pricing.
+
+:::note[Cost model]
+The main levers are the **served endpoint** (always-on capacity), **per-call model inference** across tool-calling loops, and **trace/eval** volume. Long loops multiply token cost — verify current pricing.
+:::
+
+## 19. Executive Takeaway
+
+- ✔ **Best for:** engineering teams building custom, tool-using agents that need full control, rigorous evaluation, and governed production deployment on Databricks.
+- ✔ **Avoid when:** you want low-code authoring (use Agent Bricks), need only single-shot generation, or require multi-cloud portability.
+- ✔ **Biggest benefit:** one governed lifecycle — author in code, trace and evaluate with MLflow, serve via Model Serving under Unity Catalog.
+- ✔ **Biggest limitation:** code-first effort and agent nondeterminism, with Databricks-stack lock-in.
+- ✔ **Overall recommendation:** the default for teams that have outgrown low-code patterns and want control plus built-in tracing, evaluation, and governed serving.
+
+See the full [feature catalog](/databricks-features) for related components.

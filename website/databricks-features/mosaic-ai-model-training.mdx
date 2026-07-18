@@ -1,0 +1,248 @@
+---
+sidebar_position: 20
+title: "Mosaic AI Model Training — Architecture Guide"
+description: "Managed fine-tuning of foundation and open LLMs on governed lakehouse data, with results registered to Unity Catalog and deployed via Model Serving."
+---
+
+# Mosaic AI Model Training
+
+## 1. Executive Summary
+
+Mosaic AI Model Training is a managed service for fine-tuning and continued pre-training of foundation and open-source LLMs on your governed data, producing a Unity Catalog model ready for Model Serving.
+
+## 2. Primary Purpose
+
+- **Why it exists:** adapt a base LLM to a domain, task, or style using in-house data without building a training stack.
+- **Business problem:** off-the-shelf models miss company terminology, tone, and formats; API fine-tuning ships proprietary data to third parties.
+- **Technical problem:** self-managed GPU training (data prep, distributed orchestration, checkpointing, evaluation) is slow and error-prone.
+- **Governance angle:** training data, run lineage, and the output model stay inside Unity Catalog under existing permissions.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Users / Data Scientists / AI Engineers
+        ↓
+Developer Experience   (Notebooks, SDK, MLflow API)
+        ↓
+AI & Machine Learning  (Mosaic AI: Model Training ◀ HERE → Model Serving, Agents)
+        ↓
+Governance             (Unity Catalog: registered model, data, lineage)
+        ↓
+Data Engineering       (Lakeflow, Feature tables, MLflow tracking)
+        ↓
+Storage                (Delta Lake, Volumes)
+```
+
+- Sits in the **model-production** part of the AI/ML layer — the step before serving, not the serving edge.
+- Reads training data from **Delta tables or Volumes** and writes the resulting model to **Unity Catalog** via MLflow.
+- Consumes governed data in place; it does not expose endpoints — that is **Model Serving**.
+- Runs on Databricks-managed GPU capacity; no cluster fleet to size or maintain.
+
+## 4. Typical Architecture Placement
+
+```
+☐ User Interface
+☑ Developer Experience
+☐ Data Engineering
+☑ Data Governance
+☑ AI
+☑ Machine Learning
+☐ Storage
+☐ Security
+☐ Administration
+☐ Monitoring
+```
+
+- Primarily an **AI/ML** production service driven from developer surfaces (SDK, notebooks, MLflow).
+- Governance is integral: input data and output model are Unity Catalog assets with lineage.
+- Not a serving, storage, or UI component — it feeds those layers.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+|---|---|---|
+| Domain adaptation (legal, clinical, finance jargon) | ✅ | Teaches vocabulary and patterns prompting cannot reliably inject |
+| Enforcing a fixed output format or schema | ✅ | Fine-tuning bakes structure in more consistently than prompts |
+| Consistent brand voice / tone at scale | ✅ | Style transfers into weights, shrinking prompt overhead |
+| Classification / extraction with labeled data | ✅ | Small tuned model can beat a large prompted one on cost and accuracy |
+| Shrinking a large prompted model to a smaller one | ✅ | Distill behavior into a cheaper base to cut inference cost |
+| Keeping proprietary training data in-house | ✅ | Training runs inside the governance boundary, not a vendor API |
+| Continued pre-training on a large private corpus | ✅ | Instruction tuning alone cannot absorb broad new knowledge |
+| Reducing latency/tokens by trimming few-shot prompts | ✅ | Learned behavior removes long in-context examples |
+| Teaching a niche task with thousands of examples | ✅ | Enough labeled data to move base-model behavior |
+| Multilingual or code-dialect specialization | ✅ | Targeted data shifts model competence in a domain |
+| Rapidly changing facts / fresh knowledge | ⚠️ | RAG updates instantly; retraining lags and costs more |
+| Very small dataset (few hundred examples) | ⚠️ | May overfit; try prompting or RAG first |
+| Need transparent, per-answer source citations | ⚠️ | Retrieval gives provenance; weights do not |
+| One-off or exploratory task | ⚠️ | Prompt engineering is faster and cheaper to iterate |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Injecting frequently updated knowledge | ❌ | Use RAG / Vector Search; retraining cannot keep pace |
+| Requirement for citable, auditable sources | ❌ | Fine-tuned weights offer no provenance trail |
+| Tiny or low-quality labeled dataset | ❌ | Insufficient signal; overfitting and regression risk |
+| Fixing a single bad prompt output | ❌ | Prompt/few-shot iteration is faster and reversible |
+| Real-time personalization per user | ❌ | Retraining cadence is far too slow; use context/retrieval |
+| No ML skills or evaluation discipline on team | ⚠️ | Tuning without eval harms quality silently |
+| Base model already meets quality with prompting | ⚠️ | Added cost and lifecycle with little marginal gain |
+| Highly volatile requirements | ⚠️ | Each change implies a new run and re-eval cycle |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 3 |
+| Analytics Engineers | 2 |
+| Platform Engineers | 3 |
+| Data Scientists | 5 |
+| BI Teams | 1 |
+| AI Engineers | 5 |
+| Executives | 2 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 4 |
+| Implementation Speed | 3 |
+| Governance | 5 |
+| Security | 5 |
+| Maintainability | 3 |
+| Scalability | 4 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 3 |
+| Business Value | 4 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Unity Catalog | Governs training data and registers the output model with lineage. |
+| Delta Lake / Volumes | Store the training and validation datasets consumed by a run. |
+| MLflow | Tracks runs, metrics, and checkpoints and versions the final model. |
+| Mosaic AI Model Serving | Deploys the tuned model as a governed endpoint after training. |
+| Foundation Model APIs | Provide the base models available for fine-tuning and comparison. |
+| Serverless GPU Compute | Supplies the managed distributed capacity that runs training. |
+| Databricks SDK / Notebooks | Launch, monitor, and script training runs. |
+| Lakeflow Jobs | Schedule and automate periodic retraining pipelines. |
+| Mosaic AI Agent Evaluation | Scores tuned models against baselines before promotion. |
+| Feature Engineering | Curates and joins the labeled data used for supervised tuning. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| RAG / Vector Search | In-Databricks | Fresh, citable knowledge with no training; weaker on style/format/behavior. |
+| Prompt / few-shot engineering | In-Databricks | Fastest and cheapest to iterate; costs tokens and caps consistency. |
+| Foundation Model APIs (as-is) | In-Databricks | Zero training effort; no domain adaptation. |
+| OpenAI / Together / Fireworks fine-tuning | External | Managed and simple; proprietary data leaves the governance boundary. |
+| Self-managed GPU training (PyTorch, DeepSpeed) | External / OSS | Maximum control; you own orchestration, scaling, and reliability. |
+| Cloud vendor tuning (SageMaker, Vertex) | External | Deep cloud integration; model and lineage live outside Unity Catalog. |
+
+## 11. Strengths
+
+- Managed distributed training — no GPU cluster, orchestration, or checkpoint plumbing to run.
+- Training data and output model stay inside the Unity Catalog governance boundary.
+- Supports full fine-tuning, instruction tuning, and continued pre-training on open models.
+- Direct MLflow-to-Unity-Catalog-to-Model-Serving path shortens time to production.
+- Run lineage links dataset, base model, and resulting version for audit.
+- Output is a portable, self-owned model — no per-call dependence on a tuning vendor.
+- Smaller tuned models can cut inference cost versus a large prompted base.
+- Integrates with Agent Evaluation to gate promotion on measured quality.
+- Retraining pipelines can be scheduled through Lakeflow Jobs.
+- Data never leaves for a third-party fine-tuning API.
+
+## 12. Limitations
+
+- Requires ML skill: dataset design, hyperparameters, and evaluation discipline.
+- Fine-tuning teaches behavior, not fresh facts — knowledge goes stale between runs.
+- No per-answer source citations, unlike retrieval-based approaches.
+- GPU training cost and run time are significant versus prompting or RAG.
+- Supported base models and regions are constrained to the managed catalog.
+- Overfitting and capability regression are real risks with small or skewed data.
+- Each requirement change implies a new run, re-eval, and redeploy cycle.
+- Results are hard to explain; weight changes are opaque.
+- Iteration loop is slower than editing a prompt or retrieval index.
+- Tightly coupled to the Databricks platform for the training path.
+
+## 13. Common Mistakes
+
+- Fine-tuning to inject knowledge that RAG would handle better and fresher.
+- Training on a dataset too small or noisy to move behavior reliably.
+- Skipping a held-out evaluation set, so quality regressions go unnoticed.
+- No baseline comparison against the prompted base model before committing.
+- Confusing style/format goals (good fit) with factual recall (poor fit).
+- Ignoring data quality and label consistency — garbage in, garbage out.
+- Underestimating retraining cadence and its recurring compute cost.
+- Bypassing Unity Catalog registration, breaking lineage and access control.
+- Not versioning datasets, making runs irreproducible.
+- Treating a tuned model as static and never re-evaluating against drift.
+
+## 14. Design Recommendations
+
+- ✔ Exhaust prompting and RAG first; fine-tune only for behavior they cannot deliver.
+- ✔ Curate and version training data as Delta tables under Unity Catalog.
+- ✔ Hold out a labeled evaluation set and gate promotion on measured gains.
+- ✔ Always benchmark the tuned model against the prompted base model.
+- ✔ Register every run and model in Unity Catalog via MLflow for lineage.
+- ✔ Start with the smallest base that can meet quality to control cost.
+- ✔ Deploy tuned models through Model Serving, not ad-hoc hosting.
+- ✔ Automate periodic retraining with Lakeflow Jobs when data shifts.
+- ✔ Pair fine-tuning with RAG when both behavior and fresh facts are needed.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+|---|---|
+| Domain vocabulary / style adaptation | ✅ Core fine-tuning use case |
+| Consistent output format at scale | ✅ Behavior baked into weights |
+| Fresh or fast-changing knowledge | ❌ Use RAG / Vector Search |
+| Citable, auditable sources | ❌ Retrieval gives provenance |
+| Keep proprietary data in-house | ✅ Trains inside governance boundary |
+| Cut inference cost via smaller model | ✅ Distill into cheaper base |
+| Quick one-off task fix | ❌ Prompt engineering is faster |
+| Governed, versioned model lifecycle | ✅ Unity Catalog + MLflow |
+| Team lacks ML / eval discipline | ⚠️ Build evaluation first |
+| Large private corpus knowledge absorption | ✅ Continued pre-training |
+| Real-time per-user personalization | ❌ Too slow; use context/retrieval |
+
+## 16. Quick Comparison
+
+| Criterion | Mosaic AI Model Training | RAG / Vector Search | Prompt Engineering | External Fine-tuning (OpenAI/Together) |
+|---|---|---|---|---|
+| Best at | Style, format, behavior | Fresh, citable knowledge | Fast iteration | Managed tuning, less setup |
+| Data governance | In Unity Catalog | In Unity Catalog | In-context only | Data leaves boundary |
+| Knowledge freshness | Stale between runs | Real-time | Real-time | Stale between runs |
+| Cost profile | High upfront, cheaper inference | Ongoing retrieval | Higher per-call tokens | Vendor training + hosting fees |
+| Setup effort | Medium–high | Medium | Low | Low–medium |
+| Model ownership | You own weights | N/A | N/A | Vendor-hosted |
+
+## 17. Maturity
+
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | Medium |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | High |
+
+## 18. Cost Considerations
+
+- **Licensing:** consumption-based via DBUs; no separate license. Verify current pricing.
+- **Compute:** GPU training billed by run duration and model size; the dominant, spiky cost. Amortize over inference savings from a smaller tuned model.
+- **Storage:** training datasets, checkpoints, and model versions consume Delta/Volume storage — set retention.
+- **Operational Overhead:** medium — managed training removes infra work, but data curation, evaluation, and retraining cadence are ongoing.
+- **Training (skills):** requires data scientists / AI engineers fluent in dataset design and evaluation; budget for that capability, not just compute.
+
+## 19. Executive Takeaway
+
+- ✔ **Best for:** adapting an open or foundation LLM's style, format, or domain behavior on governed in-house data.
+- ✔ **Avoid when:** the need is fresh, citable knowledge, a quick prompt fix, or you lack labeled data and evaluation discipline.
+- ✔ **Biggest benefit:** a self-owned, governed model produced without a training stack and without shipping data to a tuning vendor.
+- ✔ **Biggest limitation:** teaches behavior, not facts — knowledge goes stale, and each change means a new run, re-eval, and redeploy.
+- ✔ **Overall recommendation:** reach for it after prompting and RAG fall short on consistency, format, or cost; pair with RAG when both behavior and fresh facts matter.

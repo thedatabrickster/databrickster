@@ -1,0 +1,219 @@
+---
+sidebar_position: 20
+title: "Model Registry (Unity Catalog) — Architecture Guide"
+description: "Governing, versioning, aliasing, and deploying ML and GenAI models as first-class Unity Catalog objects with lineage and a direct path to Model Serving."
+---
+
+# Model Registry (Unity Catalog)
+
+## 1. Executive Summary
+The Model Registry in Unity Catalog manages ML and GenAI models as governed catalog objects — versioned, aliased, permissioned, and lineage-tracked — on the path from experiment to Model Serving.
+
+## 2. Primary Purpose
+- **Why it exists:** models need the same governance, discovery, and access control as tables and volumes; the legacy workspace registry sat outside that plane.
+- **Business problem solved:** provides one auditable system of record for which model version is approved, where it runs, and who can access it.
+- **Technical problem solved:** stores registered models under the three-level namespace (`catalog.schema.model`), manages versions and aliases, and captures data-to-model-to-endpoint lineage.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Data Scientists / AI Engineers
+        ↓
+MLflow Tracking (runs, params, artifacts)
+        ↓
+Model Registry in Unity Catalog  (catalog.schema.model → versions, aliases)
+        ↓
+Mosaic AI Model Serving  (real-time / batch / agent endpoints)
+        ↓
+Delta Lake  (training data, feature tables, inference logs)
+```
+- Sits in the **governance** band between authoring-time tracking and runtime serving.
+- Models become first-class UC assets alongside tables, volumes, and functions.
+- Grants, lineage, and audit apply uniformly — no separate model access model.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☑ Developer Experience
+☐ Data Engineering
+☑ Data Governance
+☑ AI
+☑ Machine Learning
+☐ Storage
+☑ Security
+☐ Administration
+☑ Monitoring
+```
+- Primarily a **Governance** capability applied to **ML/AI** assets.
+- Grants and lineage put it in **Security**; version/alias state supports **Monitoring** of what is deployed.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+| --- | --- | --- |
+| Version classical ML models | ✅ | Immutable numbered versions per model |
+| Govern models like tables | ✅ | Three-level namespace, UC grants |
+| Promote dev → staging → prod | ✅ | Aliases (e.g. champion/challenger) |
+| Reference a model without pinning a number | ✅ | Alias resolves to current version |
+| Deploy to Model Serving | ✅ | Endpoints read UC model versions directly |
+| Track data-to-model lineage | ✅ | UC records training inputs and outputs |
+| Share models across workspaces | ✅ | UC objects are metastore-wide |
+| Audit who accessed/changed a model | ✅ | UC audit logs and system tables |
+| Register GenAI/agent models | ✅ | Agents logged as UC models |
+| Tag models for discovery | ✅ | Tags and Catalog Explorer search |
+| Enforce approval before prod | ⚠️ | Use aliases plus external gating; no native workflow |
+| Cross-cloud/region model access | ⚠️ | Governed via UC; replication is deliberate |
+| Store large training datasets | ❌ | Use Delta/Volumes, not the registry |
+| Serve low-latency traffic itself | ❌ | Registry stores; Model Serving serves |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+| --- | --- | --- |
+| Feature computation/storage | ❌ | Use Feature Engineering / feature tables |
+| Real-time inference execution | ❌ | Use Mosaic AI Model Serving |
+| General table/data cataloging | ⚠️ | Same catalog, but that is Unity Catalog broadly |
+| Vector storage/retrieval | ❌ | Use Mosaic AI Vector Search |
+| Heavy artifact/blob store | ⚠️ | Backed by storage; not a data lake |
+| Experiment tracking UI | ⚠️ | That is MLflow Tracking, not the registry |
+| Built-in multi-step approval flow | ⚠️ | Aliases plus CI/CD; no native gate |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+| --- | --- |
+| Data Engineers | 3 |
+| Analytics Engineers | 2 |
+| Platform Engineers | 4 |
+| Data Scientists | 5 |
+| BI Teams | 1 |
+| AI Engineers | 5 |
+| Executives | 2 |
+| Architects | 5 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+| --- | --- |
+| Developer Productivity | 4 |
+| Implementation Speed | 4 |
+| Governance | 5 |
+| Security | 5 |
+| Maintainability | 4 |
+| Scalability | 4 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 4 |
+| Business Value | 4 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+| --- | --- |
+| Unity Catalog | Hosts registered models and enforces grants, lineage, and audit. |
+| MLflow | Logs runs and writes model versions into the registry. |
+| Mosaic AI Model Serving | Deploys registered versions (by alias or number) to endpoints. |
+| Delta Lake | Provides training/eval data captured as lineage inputs. |
+| Feature Engineering | Supplies governed features recorded as model dependencies. |
+| Lakeflow Jobs | Schedules training, registration, and promotion steps. |
+| Object storage | Backs the underlying model artifacts. |
+| Catalog Explorer | Browses, searches, and manages model permissions and tags. |
+| Databricks Asset Bundles | Codifies model registration/promotion in CI/CD. |
+| System tables / Audit logs | Report access, changes, and usage of models. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+| --- | --- | --- |
+| Workspace Model Registry | Legacy Databricks | Familiar API; workspace-scoped, no UC grants/lineage, being retired. |
+| Self-hosted MLflow registry | Same API, DIY | Full control; you run the server/DB/auth and lose UC governance. |
+| SageMaker Model Registry | AWS-native | Tight AWS integration; separate governance, weak fit outside AWS. |
+| Vertex AI Model Registry | GCP-native | Good on GCP; distinct grants/lineage model from Databricks. |
+| Azure ML registry | Azure-native | Strong on Azure; separate control plane from the Lakehouse. |
+| DIY (Git + object store) | Lightweight | Minimal infra; no versions/aliases, lineage, grants, or serving handoff. |
+
+## 11. Strengths
+- Models are first-class UC objects under the `catalog.schema.model` namespace.
+- One governance plane for models, tables, volumes, and functions.
+- Immutable, numbered versions with human-readable aliases for promotion.
+- Aliases decouple consumers from specific version numbers.
+- Automatic lineage: data → run → model version → serving endpoint.
+- Standard UC grants control read, deploy, and manage access.
+- Metastore-wide visibility enables cross-workspace model reuse.
+- Direct, alias-based promotion path to Mosaic AI Model Serving.
+- Discovery and tagging via Catalog Explorer and system tables.
+- Successor to the workspace registry with a clear migration path.
+
+## 12. Limitations
+- No native multi-step approval workflow; gating relies on aliases plus CI/CD.
+- Requires Unity Catalog; not available on legacy non-UC workspaces.
+- Governance depth depends on correct catalog/schema and grant design.
+- Aliases replace the old stage transitions, requiring a mindset shift.
+- Cross-region/cross-metastore sharing needs deliberate setup.
+- It stores and governs models — it does not serve or evaluate them.
+- Large artifact volumes accrue object-storage cost if unmanaged.
+- Migration from the workspace registry needs planning and re-pointing of code.
+- Deletion of versions/aliases is governed but can break live endpoints if careless.
+- Feature depth can differ from self-hosted MLflow release cadence.
+
+## 13. Common Mistakes
+- Staying on the legacy workspace registry after Unity Catalog is available.
+- Referencing models by hardcoded version number instead of aliases.
+- Flat catalog/schema design that ignores environment or team boundaries.
+- Over-granting manage permissions instead of scoped read/deploy grants.
+- Treating aliases as governance and skipping any review gate.
+- Loading raw datasets as model artifacts rather than using Delta/Volumes.
+- Not wiring registration/promotion into CI/CD, so state drifts by hand.
+- Deleting or reassigning aliases without checking dependent endpoints.
+
+## 14. Design Recommendations
+- ✔ Use Unity Catalog as the single registry; retire the workspace registry.
+- ✔ Structure catalogs/schemas by environment and domain (e.g. `prod.risk.*`).
+- ✔ Promote with aliases such as `champion` and `challenger`, not version numbers.
+- ✔ Grant least privilege: separate read, deploy, and manage roles.
+- ✔ Add a review/approval gate in CI/CD before flipping the prod alias.
+- ✔ Codify registration and promotion in Databricks Asset Bundles.
+- ✔ Keep large data in Delta/Volumes; register models, not datasets.
+- ✔ Use tags and lineage for discovery, audit, and impact analysis.
+- ✔ Check dependent endpoints before deleting versions or moving aliases.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+| --- | --- |
+| Model versioning | ✅ Immutable numbered versions |
+| Governed model access | ✅ Unity Catalog grants |
+| Environment promotion | ✅ Aliases (champion/challenger) |
+| Data-to-model lineage | ✅ Captured by UC |
+| Cross-workspace reuse | ✅ Metastore-wide objects |
+| Serving models | ⚠️ Hand off to Model Serving |
+| Multi-step approvals | ⚠️ Add CI/CD gating |
+| Experiment tracking | ❌ Use MLflow Tracking |
+| Feature storage | ❌ Use Feature Engineering |
+| Vector retrieval | ❌ Use Vector Search |
+
+## 16. Quick Comparison
+| Criterion | UC Model Registry | Workspace Registry (legacy) | SageMaker Registry | Vertex AI Registry |
+| --- | --- | --- | --- | --- |
+| Scope | Metastore-wide | Single workspace | AWS account | GCP project |
+| Namespace | catalog.schema.model | Flat model name | Group/package | Registry resource |
+| Governance | UC grants + lineage | Workspace ACLs | IAM | IAM |
+| Promotion | Aliases | Stages (deprecated) | Approval status | Aliases/versions |
+| Serving handoff | Model Serving | Model Serving | SageMaker | Vertex endpoints |
+
+## 17. Maturity
+| Dimension | Rating |
+| --- | --- |
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | High |
+
+## 18. Cost Considerations
+- **Licensing:** included with Unity Catalog on the Databricks platform; no separate registry charge. Verify current pricing.
+- **Compute:** billed via the compute that trains, registers, and serves models — not the registry itself.
+- **Storage:** model artifacts consume object storage; cost grows with versions and retention.
+- **Operational Overhead:** low when managed; concentrated in catalog/grant design and CI/CD wiring.
+- **Training:** low for basics; moderate to adopt namespace design, alias-based promotion, and migration from the workspace registry.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** teams governing ML and GenAI models as first-class Unity Catalog assets with lineage and controlled promotion.
+- ✔ **Avoid when:** you have no Unity Catalog, or you need serving, feature storage, or experiment tracking — those are separate features.
+- ✔ **Biggest benefit:** one governance plane for models and data, with alias-based promotion straight into Model Serving.
+- ✔ **Biggest limitation:** no native approval workflow and no serving execution; both are added around it.
+- ✔ **Overall recommendation:** adopt as the default registry, migrate off the workspace registry, and drive promotion by aliases through CI/CD.
+
+See the full [feature catalog](/databricks-features) for related components.

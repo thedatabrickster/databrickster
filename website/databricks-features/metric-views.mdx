@@ -1,0 +1,228 @@
+---
+sidebar_position: 20
+title: "Metric Views — Architecture Guide"
+description: "Unity Catalog objects that define business metrics and dimensions once in YAML so BI, Genie, and SQL return the same governed numbers."
+---
+
+# Metric Views
+
+## 1. Executive Summary
+Metric Views are Unity Catalog objects that capture reusable, governed definitions of business measures and dimensions in YAML, so every consumer — BI, Genie, and SQL — computes the same numbers from one source of truth.
+
+## 2. Primary Purpose
+- **Why it exists:** put the semantic layer inside the lakehouse instead of scattering metric logic across tools.
+- **Business problem:** the same KPI (revenue, churn, active users) is defined differently per dashboard, so numbers disagree in meetings.
+- **Technical problem:** aggregation, join, and filter logic gets copy-pasted into SQL, BI tools, and prompts, then drifts.
+- **Scope:** a governed definition object over existing tables — measures, dimensions, joins — queried like a table but computed consistently.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Users / BI / Genie / SQL / Notebooks / Apps
+        ↓
+Compute (Serverless SQL Warehouses, Photon)
+        ↓
+┌──────────────────────────────────────────────┐
+│  UNITY CATALOG                                 │
+│   ┌────────────────────────────────────────┐  │
+│   │  METRIC VIEW (YAML)                      │ │
+│   │  source · joins · dimensions · measures  │ │
+│   │  MEASURE() aggregations, semantic layer  │ │
+│   └────────────────────────────────────────┘  │
+│  grants · lineage · tags · certification       │
+└──────────────────────────────────────────────┘
+        ↓
+Delta Lake tables on object storage
+```
+- Sits **above governed tables** as a semantic object; consumers query the metric, not raw SQL.
+- Aggregations resolve **at query time** through the `MEASURE()` function, so grain is chosen by the consumer.
+- Governed by Unity Catalog **grants, lineage, and tags** like any other securable.
+- One definition feeds **AI/BI dashboards, Genie spaces, and ad-hoc SQL** identically.
+
+## 4. Typical Architecture Placement
+```
+☑ User Interface
+☐ Developer Experience
+☐ Data Engineering
+☑ Data Governance
+☑ AI
+☐ Machine Learning
+☐ Storage
+☐ Security
+☐ Administration
+☐ Monitoring
+```
+- A **Data Governance** control: it is the certified definition of each business metric.
+- Serves the **User Interface** layer (BI, Genie) and grounds **AI** natural-language answers in trusted logic.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+|---|---|---|
+| One certified definition of core KPIs | ✅ | Measures defined once, consumed everywhere |
+| Consistent numbers across BI and Genie | ✅ | Both read the same metric object |
+| Grounding natural-language Q&A in trusted logic | ✅ | Genie queries the metric, not ad-hoc SQL |
+| Non-additive metrics (ratios, distinct counts) | ✅ | `MEASURE()` recomputes correctly at each grain |
+| Star-schema fact + dimension modeling | ✅ | Declarative joins map dimensions to the fact |
+| Reusable dimensions across many reports | ✅ | Shared dimension definitions avoid re-derivation |
+| Governing metric access with UC grants | ✅ | Metric is a securable with lineage and tags |
+| Time-based aggregation at flexible grain | ✅ | Consumers pick day/month/quarter at query time |
+| Self-service analytics on curated semantics | ✅ | Business users query safe, named measures |
+| Deprecating conflicting dashboard formulas | ✅ | Consolidate to a single definition |
+| Certified source for regulatory reporting | ⚠️ | Strong fit; still validate figures and controls |
+| Very high-volume sub-second operational lookups | ⚠️ | Query-time aggregation adds cost vs a serving store |
+| Complex procedural transformation logic | ⚠️ | Belongs in pipelines, not the semantic layer |
+| Cross-platform metric reuse outside Databricks | ⚠️ | Enforcement is UC compute only |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Heavy ETL / data cleansing logic | ❌ | Use Lakeflow pipelines; metric views are semantic, not transformational |
+| Low-latency app serving at scale | ❌ | Aggregations run per query; use a serving table or Lakebase |
+| Row/column security enforcement | ❌ | Use ABAC, masks, or dynamic views; metrics are not a security primitive |
+| Governing non-Databricks query engines | ❌ | Only UC-aware compute resolves the definition |
+| Legacy Hive metastore without UC | ❌ | Metric views are a Unity Catalog object |
+| Freeform exploratory one-off analysis | ⚠️ | Ad-hoc SQL is faster than modeling a metric |
+| Metrics needing full imperative code | ⚠️ | YAML declarative model has expressiveness limits |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 3 |
+| Analytics Engineers | 5 |
+| Platform Engineers | 3 |
+| Data Scientists | 3 |
+| BI Teams | 5 |
+| AI Engineers | 4 |
+| Executives | 4 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 4 |
+| Implementation Speed | 4 |
+| Governance | 5 |
+| Security | 3 |
+| Maintainability | 4 |
+| Scalability | 4 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 4 |
+| Business Value | 5 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Unity Catalog | Hosts the metric view as a governed securable with grants, lineage, and tags. |
+| Delta Lake | Provides the fact and dimension tables the metric reads. |
+| Databricks SQL / Serverless Warehouses | Photon compute that resolves `MEASURE()` aggregations at query time. |
+| AI/BI Dashboards | Consume metrics so visuals reflect the certified definition. |
+| Genie | Grounds natural-language answers in the metric's measures and dimensions. |
+| Lakeflow Pipelines / Jobs | Build and refresh the underlying tables the metric aggregates. |
+| Tags & Certification | Mark metrics as endorsed and discoverable in Catalog Explorer. |
+| Terraform / Asset Bundles | Version-control YAML definitions and grants as code. |
+| System Tables & Audit Logs | Record metric access and usage for review. |
+| Lineage | Shows table-to-metric-to-dashboard relationships for impact analysis. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Per-tool metric definitions (in each BI tool) | External | Fast to start, but each tool drifts; no shared source of truth |
+| Hand-written SQL / repeated CTEs | In-Databricks | Maximum flexibility, but logic is copied and diverges across queries |
+| dbt Semantic Layer / MetricFlow | External | Mature metric framework, but adds a build tool and runs outside UC governance |
+| LookML (Looker) | External | Rich BI semantic model, but Looker-only and not queryable by Genie/SQL natively |
+| Standard SQL views | In-Databricks | Reusable and governed, but fix grain; no flexible measure aggregation |
+| Materialized aggregate tables | In-Databricks | Fast reads, but pre-computed grains and refresh/storage overhead |
+| Cube / AtScale / other OLAP layers | External | Cross-platform semantics, but a separate product, cost, and integration |
+
+## 11. Strengths
+- Single, governed definition of each metric consumed by BI, Genie, and SQL alike.
+- `MEASURE()` recomputes aggregations correctly at any grain the consumer chooses.
+- Handles non-additive metrics — ratios, distinct counts — that break naive views.
+- Declarative YAML for measures, dimensions, and joins; readable and reviewable.
+- Native Unity Catalog securable with grants, lineage, tags, and certification.
+- Grounds AI natural-language answers in trusted logic, reducing wrong metrics.
+- No data duplication; metrics compute over existing Delta tables.
+- Definitions are codifiable in Terraform / Asset Bundles for PR review.
+- Star-schema joins map shared dimensions to fact tables once, reused widely.
+- Consolidates conflicting dashboard formulas into one endorsed object.
+
+## 12. Limitations
+- Aggregation runs at query time, so heavy metrics cost more than pre-materialized tables.
+- YAML declarative model is less expressive than full imperative SQL or code.
+- Enforcement is in-Databricks; external engines do not honor the definition.
+- Requires Unity Catalog and UC-compliant serverless/Photon compute.
+- Not a security primitive; row/column controls need ABAC, masks, or dynamic views.
+- Newer object than SQL views; some BI and tooling integrations still maturing.
+- Modeling correct measures and joins takes upfront analytics-engineering effort.
+- Poor fit for low-latency operational serving at high concurrency.
+- Underlying table quality is inherited; a bad source yields a bad metric.
+- Governance benefit is lost if teams keep parallel definitions in BI tools.
+
+## 13. Common Mistakes
+- Treating a metric view as an ETL layer and packing transformation logic into it.
+- Defining the same KPI again inside a BI tool, defeating the single source of truth.
+- Summing non-additive measures instead of using `MEASURE()` at the right grain.
+- Modeling joins that fan out the fact and silently double-count measures.
+- Skipping certification and tags, so consumers cannot tell trusted from draft metrics.
+- Expecting metric views to enforce row/column security.
+- Building on ungoverned or unstable base tables that change under the metric.
+- No version control on YAML, so definitions change without review or history.
+- Ignoring query cost on very large facts without pre-aggregation strategy.
+- Leaving legacy dashboard formulas live in parallel with the new metric.
+
+## 14. Design Recommendations
+- ✔ Define each core KPI **once** as a metric view and point all tools at it.
+- ✔ Keep metrics **semantic** — push cleansing and shaping into Lakeflow pipelines.
+- ✔ Use `MEASURE()` for aggregation; never hardcode a single grain into the metric.
+- ✔ Model joins carefully to **avoid fan-out** double counting; validate row counts.
+- ✔ **Certify and tag** endorsed metrics so they are discoverable and trusted.
+- ✔ Store YAML in **Terraform / Asset Bundles**; review changes via PRs.
+- ✔ Connect **Genie spaces and AI/BI dashboards** to the metric, not raw tables.
+- ✔ Retire duplicate BI-tool and hand-written definitions after migration.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+|---|---|
+| Single source of truth for KPIs | ✅ One governed definition |
+| Consistent numbers across BI and Genie | ✅ Shared metric object |
+| Grounding AI Q&A in trusted logic | ✅ Genie reads the metric |
+| Non-additive metrics at flexible grain | ✅ `MEASURE()` recomputes |
+| Governed, tagged, certified semantics | ✅ Native UC securable |
+| Heavy transformation / cleansing | ❌ Use Lakeflow pipelines |
+| Low-latency operational serving | ⚠️ Query-time cost; use serving store |
+| Row/column security | ❌ Use ABAC / masks |
+| Cross-engine reuse outside Databricks | ❌ UC compute only |
+| Legacy Hive metastore data | ❌ Requires Unity Catalog |
+
+## 16. Quick Comparison
+| Criterion | Metric Views | dbt Semantic Layer | LookML | Per-tool metrics |
+|---|---|---|---|---|
+| Lives in Unity Catalog governance | Yes | No | No | No |
+| Consumed by BI, Genie, and SQL | Yes | Partial | Looker mainly | No (per tool) |
+| Flexible grain via measures | Yes | Yes | Yes | Varies |
+| Grounds native AI Q&A | Yes | Limited | No | No |
+| Extra product/build tool required | No | Yes | Yes | No |
+| Risk of definition drift | Low | Low | Low (in Looker) | High |
+
+## 17. Maturity
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | Medium–High |
+| Enterprise Readiness | Medium |
+| Production Readiness | Medium–High |
+| Governance Readiness | High |
+| AI Readiness | High |
+
+## 18. Cost Considerations
+- **Licensing:** part of Unity Catalog; no separate license. Verify current pricing.
+- **Compute:** aggregations resolve at query time on serverless/Photon warehouses (billed as compute); complex measures on large facts add per-query cost.
+- **Storage:** none directly; metric views are metadata over existing Delta tables.
+- **Operational Overhead:** the real cost is analytics-engineering effort to model measures, dimensions, and joins, then keep them current.
+- **Training:** upskilling on the YAML schema, `MEASURE()` semantics, and semantic-layer modeling practices.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** establishing one governed, reusable definition of business metrics that BI, Genie, and SQL all compute identically.
+- ✔ **Avoid when:** you need heavy transformation, low-latency operational serving, or enforcement outside Databricks.
+- ✔ **Biggest benefit:** a single source of truth in Unity Catalog that ends conflicting KPI numbers across tools and AI answers.
+- ✔ **Biggest limitation:** query-time aggregation and a declarative YAML model that is less expressive and costlier than pre-materialized tables for heavy metrics.
+- ✔ **Overall recommendation:** adopt for core certified KPIs and semantic consistency; model measures carefully, certify and version them, and retire duplicate per-tool definitions.

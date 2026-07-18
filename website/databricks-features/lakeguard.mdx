@@ -1,0 +1,228 @@
+---
+sidebar_position: 20
+title: "Lakeguard — Architecture Guide"
+description: "The enforcement layer that applies Unity Catalog governance on shared and standard-access compute, isolating users so data access respects UC even for multi-language and UDF workloads on shared clusters."
+---
+
+# Lakeguard
+
+## 1. Executive Summary
+Lakeguard is the isolation and enforcement layer that lets Databricks apply Unity Catalog permissions on shared compute — running each user's code in an isolated sandbox so multiple users, languages, and UDFs can share one cluster without escaping UC governance.
+
+## 2. Primary Purpose
+- **Why it exists:** make shared, multi-user compute governable under Unity Catalog without falling back to one cluster per user.
+- **Business problem:** single-user clusters are safe but costly and hard to scale; teams want shared compute that is still auditable and least-privilege.
+- **Technical problem:** arbitrary user code (Python, Scala, UDFs) on the JVM can read credentials, memory, or files of other users and bypass table ACLs.
+- **What it enforces:** UC table, view, row, column, and volume permissions at query and code execution time, per identity, on shared compute.
+- **Scope:** underpins Standard access mode (formerly "shared" access mode) clusters and SQL warehouses; largely implicit — you rarely configure it directly.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Users / Analysts / Data Engineers / Service Principals
+        ↓  (submit query, notebook cell, or UDF)
+Standard-access cluster / SQL warehouse
+        ↓
+┌───────────────────────────────────────────────┐
+│  LAKEGUARD  (per-user isolation + UC enforce)   │
+│  sandbox user code · check identity vs UC ACL   │
+└───────────────────────────────────────────────┘
+        ↓  (only authorized data returned)
+Unity Catalog (permissions, lineage, audit)
+        ↓
+Delta / Parquet in cloud storage
+```
+- Sits **inside the compute runtime**, between user code execution and the data access path — it is the mechanism that makes UC binding on shared clusters.
+- Isolates each user's code (including Python/Scala UDFs) from other users and from cluster-wide credentials.
+- Evaluates the requesting identity against UC grants for every data access, not just at connection time.
+- Mostly invisible: enabling Standard access mode enables Lakeguard behavior; there is no separate "Lakeguard" toggle for most users.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☐ Developer Experience
+☐ Data Engineering
+☑ Data Governance
+☐ AI
+☐ Machine Learning
+☐ Storage
+☑ Security
+☑ Administration
+☑ Monitoring
+```
+- **Security** core: process/user isolation and credential protection on shared JVMs.
+- **Governance** because it is the runtime enforcement point that makes Unity Catalog permissions real on shared compute.
+- **Administration + Monitoring** because it enables standardized shared-compute estates whose access is uniformly audited via UC.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+|---|---|---|
+| Multi-user shared cluster with per-user data access | ✅ | Isolation enforces UC grants per identity |
+| Standard access mode as the workspace default | ✅ | Lakeguard underpins its governance guarantees |
+| SQL analysts sharing a warehouse on governed tables | ✅ | UC ACLs enforced without per-user compute |
+| Running Python/pandas UDFs on governed data | ✅ | UDF code sandboxed from other users |
+| Scala workloads that must respect UC | ✅ | Scala now supported on Standard access mode |
+| Row-filter and column-mask policies at scale | ✅ | Enforced at runtime for every reader |
+| Cost consolidation off single-user clusters | ✅ | Many users safely per cluster reduces sprawl |
+| Mixed-team notebooks on one interactive cluster | ✅ | Each user constrained to their own grants |
+| Enforcing least privilege for ad-hoc exploration | ✅ | No shared cluster-wide credentials to abuse |
+| Auditable shared compute for compliance | ✅ | Access flows through UC lineage and audit |
+| Serverless notebooks and SQL | ✅ | Same isolation model applied by default |
+| Streaming reads on governed sources (shared) | ✅ | Supported patterns respect UC identity |
+| Third-party / untrusted user code on a cluster | ⚠️ | Sandbox helps, but review still needed |
+| Legacy libraries needing full JVM/root access | ⚠️ | Isolation restricts low-level operations |
+| Custom Spark data sources / low-level RDD ops | ⚠️ | Some APIs restricted under isolation |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Workloads needing unrestricted JVM/OS access | ❌ | Isolation blocks arbitrary native/system calls |
+| Non-UC (Hive metastore) data governance | ❌ | Lakeguard enforces UC, not legacy metastore |
+| Single-tenant job needing max raw throughput | ⚠️ | Dedicated access mode may be simpler/faster |
+| Certain unsupported ML/Spark APIs | ⚠️ | Some RDD/low-level APIs restricted on Standard mode |
+| Cluster-scoped init scripts requiring root | ⚠️ | Restricted; use allowlisted or global patterns |
+| Replacing network/perimeter security | ❌ | It isolates code, not the network boundary |
+| Fine-grained per-query cost governance | ❌ | That is budgets/policies, not enforcement layer |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 4 |
+| Analytics Engineers | 4 |
+| Platform Engineers | 5 |
+| Data Scientists | 3 |
+| BI Teams | 4 |
+| AI Engineers | 3 |
+| Executives | 3 |
+| Architects | 5 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 4 |
+| Implementation Speed | 4 |
+| Governance | 5 |
+| Security | 5 |
+| Maintainability | 4 |
+| Scalability | 5 |
+| Cost Optimization | 4 |
+| Ease of Adoption | 4 |
+| Business Value | 4 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Unity Catalog | Supplies the permissions, row filters, and column masks that Lakeguard enforces. |
+| Standard access mode compute | The compute type whose isolation and enforcement Lakeguard provides. |
+| Clusters & SQL warehouses | The shared resources where per-user isolation is applied. |
+| Serverless compute | Applies the same isolation model by default across users. |
+| Delta Lake | The governed table format read/written under enforced access. |
+| Databricks Runtime | Hosts the sandboxing and enforcement mechanisms per version. |
+| Audit Logs / System Tables | Record the governed access that flows through UC. |
+| Cluster Policies | Steer users onto Standard access mode where Lakeguard applies. |
+| Lakeflow Jobs | Run production workloads on governed shared/standard compute. |
+| Volumes | Governed file access is also isolated and permission-checked. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Single-user (Dedicated) access mode | In-Databricks | Full language/API freedom, but one user per cluster — costlier, more sprawl. |
+| No-isolation / legacy shared clusters | In-Databricks (legacy) | Broad compatibility, but cannot safely enforce UC per user; being retired. |
+| Workspace-per-team isolation | In-Databricks | Strong blast-radius separation, but multiplies admin and cost overhead. |
+| External sandboxing (containers/VMs per user) | External | Fine-grained OS isolation, but self-built, UC-unaware, and heavy to operate. |
+| SQL-warehouse-only access | In-Databricks | Governed and isolated, but limits users to SQL — no Python/Scala. |
+| Cloud IAM / network segmentation | External | Controls infrastructure, but blind to table/row/column-level data grants. |
+
+## 11. Strengths
+- Makes Unity Catalog permissions enforceable on shared compute, not just single-user clusters.
+- Isolates each user's code so one user cannot read another's data, memory, or credentials.
+- Supports multi-language shared clusters, including Python and (now) Scala.
+- Sandboxes Python/Scala UDFs so custom code still respects UC grants.
+- Enables cost consolidation by putting many users safely on one cluster.
+- Underpins Standard access mode as a safe, governed default.
+- Enforces row filters and column masks at runtime for every reader.
+- Largely transparent — no per-query configuration for end users.
+- Applied consistently across interactive, jobs, and serverless compute.
+- Keeps access auditable through UC lineage and audit logs.
+
+## 12. Limitations
+- Restricts some low-level Spark, RDD, and native/OS operations for isolation.
+- Certain libraries and legacy APIs are unsupported on Standard access mode.
+- Enforces only Unity Catalog — Hive metastore data is not governed by it.
+- Isolation adds some execution overhead versus unrestricted dedicated compute.
+- Feature/language support is Databricks Runtime-version dependent and evolving.
+- Init scripts and JARs face allowlisting and permission constraints.
+- Not a network or perimeter control — complements, not replaces, them.
+- Debugging failures can be opaque when caused by isolation restrictions.
+- Migrating legacy no-isolation workloads may require code changes.
+- Implicit nature means teams may not realize what is (or isn't) enforced.
+
+## 13. Common Mistakes
+- Assuming shared clusters enforce UC without using Standard access mode.
+- Leaving workloads on legacy no-isolation clusters and believing they are governed.
+- Attributing isolation-driven code failures to bugs rather than access mode.
+- Expecting unrestricted JVM/OS access to work under isolation.
+- Governing data in the Hive metastore and expecting Lakeguard to apply.
+- Defaulting everyone to costly single-user clusters unnecessarily.
+- Not steering users onto Standard access mode via cluster policies.
+- Skipping runtime upgrades and missing newer language/API support.
+- Treating it as a network control instead of a data-access enforcement layer.
+- Ignoring that some ML/Spark APIs need Dedicated access mode.
+
+## 14. Design Recommendations
+- ✔ Default new compute to Standard access mode so Lakeguard applies.
+- ✔ Reserve Dedicated (single-user) access mode for workloads that truly need it.
+- ✔ Use cluster policies to steer users onto governed shared compute.
+- ✔ Model all governed data in Unity Catalog, not the Hive metastore.
+- ✔ Test UDF and library workloads on Standard mode before broad rollout.
+- ✔ Keep Databricks Runtime current for the widest language/API support.
+- ✔ Prefer serverless where possible — isolation is applied by default.
+- ✔ Document which APIs are unsupported so teams pick the right access mode.
+- ✔ Validate row-filter and column-mask policies with multiple test identities.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+|---|---|
+| Enforce UC on shared clusters | ✅ Core purpose |
+| Multi-user cluster with per-user access | ✅ Per-identity isolation |
+| Run Python/Scala UDFs on governed data | ✅ Sandboxed execution |
+| Consolidate off single-user clusters | ✅ Safe shared compute |
+| Row/column-level policy enforcement | ✅ Applied at runtime |
+| Govern Hive metastore data | ❌ UC only |
+| Unrestricted JVM/OS access | ❌ Use Dedicated mode |
+| Certain low-level Spark/RDD APIs | ⚠️ May need Dedicated mode |
+| Network/perimeter security | ❌ Not its layer |
+| Per-query cost limits | ❌ Use budgets/policies |
+
+## 16. Quick Comparison
+| Criterion | Lakeguard (Standard mode) | Single-user (Dedicated) | Legacy no-isolation | External sandboxing |
+|---|---|---|---|---|
+| UC enforced per user | Yes | Yes (one user) | No | Self-built |
+| Multi-user per cluster | Yes | No | Yes (unsafe) | Possible |
+| UDF / multi-language | Yes | Full | Yes | Depends |
+| Low-level API freedom | Limited | Full | Full | Full |
+| Cost efficiency | High | Low | High | Low–Medium |
+| Operational effort | Low (implicit) | Low | Low | High |
+
+## 17. Maturity
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+- **Licensing:** no separate license; it is intrinsic to Unity Catalog and Standard access mode compute. Verify current pricing.
+- **Compute:** enables consolidation onto shared clusters, reducing sprawl; isolation adds modest per-workload overhead.
+- **Storage:** none directly — enforcement acts on the access path, not stored data.
+- **Operational Overhead:** low and largely implicit; effort is mainly choosing access modes and adapting unsupported workloads.
+- **Training:** teach teams the access-mode model and which APIs require Dedicated mode to avoid surprises.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** running governed, multi-user shared compute where Unity Catalog permissions must hold per identity, including UDFs.
+- ✔ **Avoid when:** workloads need unrestricted JVM/OS access or unsupported low-level APIs — use Dedicated (single-user) access mode.
+- ✔ **Biggest benefit:** safe cost consolidation — many users on one cluster with UC enforced and each user isolated.
+- ✔ **Biggest limitation:** it restricts some low-level and legacy APIs and governs only Unity Catalog, not the Hive metastore.
+- ✔ **Overall recommendation:** default to Standard access mode so Lakeguard applies, reserve Dedicated mode for genuine exceptions, and model all governed data in Unity Catalog.

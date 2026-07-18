@@ -1,0 +1,228 @@
+---
+sidebar_position: 20
+title: "Materialized Views — Architecture Guide"
+description: "Precomputed, incrementally refreshed query results in Databricks SQL and Lakeflow that accelerate repeated aggregation and BI workloads."
+---
+
+# Materialized Views
+
+## 1. Executive Summary
+
+A materialized view stores the precomputed result of a query as a managed Delta table that is kept current through incremental refresh, so repeated aggregation and BI queries read finished results instead of recomputing them.
+
+## 2. Primary Purpose
+
+- **Why it exists:** avoid recomputing the same expensive aggregation or join on every query or dashboard load.
+- **Business problem solved:** slow, costly BI dashboards and repeated reporting queries that scan large tables each time.
+- **Technical problem solved:** manual maintenance of summary tables — schedules, upsert logic, and staleness tracking.
+- **Rename note:** built on the **Lakeflow** engine (formerly Delta Live Tables / DLT); managed refresh runs as a Lakeflow pipeline.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Sources → Ingest → Delta (Bronze→Silver→Gold) → Materialized View (precomputed result) → SQL / BI / Genie
+  (DBs, files)   (Lakeflow)   (governed base tables)     (incremental refresh)              (fast consumers)
+```
+
+- Sits at the **serving edge** between curated Gold tables and BI/SQL consumers.
+- Reads from governed Delta base tables; materializes an aggregated or joined result as Delta.
+- Refresh is orchestrated by a Lakeflow pipeline, incrementally where the query pattern allows.
+- Registered in Unity Catalog like any table — governed, lineage-tracked, and queryable by name.
+
+## 4. Typical Architecture Placement
+
+```
+☐ User Interface
+☐ Developer Experience
+☑ Data Engineering
+☐ Data Governance
+☐ AI
+☐ Machine Learning
+☐ Storage
+☐ Security
+☐ Administration
+☑ Monitoring
+```
+
+- Core home is **Data Engineering** — a declarative, self-maintaining transformation at the serving layer.
+- Overlaps **Monitoring** via refresh history, row-count metrics, and pipeline event logs.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+|---|---|---|
+| Repeated BI dashboard aggregations | ✅ | Precomputed result, no recompute per load |
+| Rollups (daily/hourly summaries) | ✅ | Incremental refresh on new data |
+| Star-schema fact aggregation for reporting | ✅ | Joins and group-bys materialized once |
+| Slowly changing source, frequent reads | ✅ | Read-heavy pattern amortizes refresh cost |
+| Genie / natural-language BI over summaries | ✅ | Stable, fast-serving semantic tables |
+| Replacing hand-built scheduled summary tables | ✅ | Managed refresh removes custom code |
+| Cross-team shared metric tables | ✅ | Single governed source of a computed metric |
+| Expensive multi-table joins queried often | ✅ | Join cost paid at refresh, not query time |
+| Filtered/curated subsets for analysts | ✅ | Narrow, fast tables over wide base data |
+| SQL warehouse cost reduction on hot queries | ✅ | Fewer scans of large base tables |
+| Near-real-time dashboards (seconds fresh) | ⚠️ | Refresh cadence adds latency |
+| Highly volatile base tables (constant churn) | ⚠️ | Frequent refresh may full-recompute |
+| Row-level ad-hoc exploration | ⚠️ | Better served by base tables or plain views |
+| Very complex non-incremental logic | ⚠️ | May fall back to full refresh, higher cost |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Sub-second freshness on streaming data | ❌ | Refresh is batch-oriented, not continuous serving |
+| Point lookups / OLTP access patterns | ❌ | Use Lakebase or a serving store, not an MV |
+| Always-changing ad-hoc query shapes | ❌ | No fixed query to precompute |
+| Write-through / transactional updates | ❌ | MVs are read-only derived results |
+| One-time or rarely-run reports | ⚠️ | Refresh overhead not amortized |
+| Logic needing full recompute every refresh | ⚠️ | Loses incremental cost advantage |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 4 |
+| Analytics Engineers | 5 |
+| Platform Engineers | 3 |
+| Data Scientists | 2 |
+| BI Teams | 5 |
+| AI Engineers | 3 |
+| Executives | 3 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 4 |
+| Implementation Speed | 5 |
+| Governance | 4 |
+| Security | 4 |
+| Maintainability | 5 |
+| Scalability | 4 |
+| Cost Optimization | 4 |
+| Ease of Adoption | 4 |
+| Business Value | 4 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Unity Catalog | Registers, governs, and tracks lineage of the MV. |
+| Delta Lake | Storage format for the materialized result and base tables. |
+| Lakeflow Declarative Pipelines | Runs the managed incremental refresh behind the MV. |
+| Databricks SQL / Serverless | Creates, queries, and (optionally) schedules the MV. |
+| Lakeflow Jobs | Schedules or triggers refresh on a cadence or event. |
+| AI/BI Dashboards & Genie | Primary downstream consumers of the fast result set. |
+| Change Data Feed | Enables incremental refresh by exposing base-table changes. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Plain (logical) view | In-Databricks | Always fresh, zero storage, but recomputes every query. |
+| Scheduled summary table (Jobs + MERGE) | In-Databricks | Full control, but custom refresh/upsert code to maintain. |
+| Standard Delta table via ETL | In-Databricks | Flexible, but no managed staleness or incremental logic. |
+| Query result cache | In-Databricks | Free reuse, but invalidates on any base change or new query. |
+| BI extract (Power BI / Tableau) | External | Offloads to BI tool, but duplicates data outside governance. |
+| Snowflake / BigQuery MV | External warehouse | Similar model, but locks compute and data to that platform. |
+
+## 11. Strengths
+
+- Precomputes expensive aggregations and joins once, read many times.
+- Incremental refresh updates only changed data where the query supports it.
+- Managed refresh — no hand-written schedules, checkpoints, or MERGE logic.
+- Governed like a table in Unity Catalog: permissions, lineage, discovery.
+- Cuts SQL warehouse cost by reducing repeated scans of large base tables.
+- Consistent, single source for shared computed metrics across teams.
+- Declarative: define the query, the engine handles maintenance.
+- Refresh history and row metrics give clear observability.
+- Works uniformly across Databricks SQL and Lakeflow pipelines.
+- Ideal serving layer for AI/BI Dashboards and Genie.
+
+## 12. Limitations
+
+- Not continuously fresh — data is only as current as the last refresh.
+- Complex queries can fall back to full recompute, losing incremental savings.
+- Incremental refresh supports a limited set of operators and query shapes.
+- Storage and refresh compute add cost beyond a plain view.
+- Highly volatile base tables force frequent, expensive refreshes.
+- No sub-second serving or point-lookup access pattern.
+- Refresh scheduling and cost need active tuning for large results.
+- Read-only — cannot be written to directly by consumers.
+- Cross-workspace or federated base sources may limit incremental refresh.
+- Schema changes on base tables can require full refresh or recreation.
+
+## 13. Common Mistakes
+
+- Treating an MV as real-time when refresh cadence lags dashboards.
+- Building complex logic that silently full-recomputes each refresh.
+- Over-materializing rarely-queried results — paying refresh cost for no reuse.
+- Refreshing far more often than base data actually changes.
+- Using an MV where a plain view (always fresh) would suffice.
+- Ignoring refresh history, so staleness and cost go unnoticed.
+- Skipping Change Data Feed on base tables and blocking incremental refresh.
+- Materializing at row grain instead of the aggregation consumers need.
+
+## 14. Design Recommendations
+
+- ✔ Use MVs for stable, repeated aggregation/BI queries, not ad-hoc exploration.
+- ✔ Design queries to qualify for incremental refresh; verify the plan.
+- ✔ Enable Change Data Feed on base tables to support incremental updates.
+- ✔ Match refresh cadence to base-data change rate and BI freshness needs.
+- ✔ Aggregate to the grain consumers actually query.
+- ✔ Monitor refresh history for full-recompute fallbacks and cost.
+- ✔ Prefer plain views when freshness matters more than query speed.
+- ✔ Govern MVs in Unity Catalog with least-privilege grants.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+|---|---|
+| Fast repeated BI aggregations | ✅ Precomputed, low query cost |
+| Always-current data on read | ❌ Use a plain view |
+| Incremental refresh on new data | ✅ Core capability |
+| Sub-second streaming freshness | ❌ Not a serving store |
+| Reduce warehouse scan cost | ✅ Fewer base-table scans |
+| Shared governed metric table | ✅ Single computed source |
+| Ad-hoc exploratory queries | ⚠️ Query base tables instead |
+| Replace custom summary jobs | ✅ Managed refresh |
+| Point-lookup / OLTP access | ❌ Use Lakebase |
+
+## 16. Quick Comparison
+
+| Criterion | Materialized View | Plain View | Scheduled Summary Table |
+|---|---|---|---|
+| Freshness | As of last refresh | Always current | As of last job run |
+| Query speed | Fast (precomputed) | Slow (recompute) | Fast (precomputed) |
+| Maintenance | Managed | None | Custom code |
+| Incremental update | Yes (where supported) | N/A | Manual (MERGE) |
+| Storage cost | Yes | None | Yes |
+| Best for | Repeated aggregations | Simple logical reuse | Bespoke rollup logic |
+
+## 17. Maturity
+
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+
+- **Licensing:** part of Databricks SQL / Lakeflow; no separate license. Verify current pricing.
+- **Compute:** refresh consumes serverless or pipeline compute; incremental refresh is cheaper than full.
+- **Storage:** the materialized result occupies Delta storage in addition to base tables.
+- **Operational Overhead:** low — managed refresh replaces custom schedules and upsert code.
+- **Training:** minimal for SQL users; understanding incremental-refresh eligibility is the main learning curve.
+
+## 19. Executive Takeaway
+
+- ✔ **Best for:** repeated aggregation and BI queries over stable base data.
+- ✔ **Avoid when:** you need always-current data, sub-second freshness, or point lookups.
+- ✔ **Biggest benefit:** precompute once, read fast, with managed incremental refresh.
+- ✔ **Biggest limitation:** freshness lags refresh cadence and complex logic may full-recompute.
+- ✔ **Overall recommendation:** adopt as the default serving layer for hot, repeated BI aggregations; use plain views when freshness outweighs speed.

@@ -1,0 +1,214 @@
+---
+sidebar_position: 20
+title: "Lakehouse Monitoring — Architecture Guide"
+description: "Unity Catalog-native monitoring for data and ML/AI quality over time — profile and drift metrics, auto-generated metric tables and dashboards, and alerting on Delta tables and inference logs."
+---
+
+# Lakehouse Monitoring
+
+## 1. Executive Summary
+Lakehouse Monitoring is a Unity Catalog-native service that tracks the statistical quality and drift of Delta tables and model inference logs over time, materializing profile and drift metrics into governed tables with an auto-generated dashboard and alerting.
+
+## 2. Primary Purpose
+- **Why it exists:** data and model quality degrade silently; teams need continuous, governed observability without building bespoke pipelines.
+- **Business problem solved:** catches bad data and model drift before they reach reports, decisions, or customer-facing predictions.
+- **Technical problem solved:** computes profile stats (nulls, distributions, cardinality) and drift (vs baseline or prior window) on a schedule, and exposes them as queryable Delta tables plus a dashboard.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Producers (Lakeflow pipelines · Jobs · Model Serving)
+        ↓
+Delta Tables · Inference Logs (UC-governed)
+        ↓
+Lakehouse Monitor  →  Profile Metrics Table + Drift Metrics Table
+        ↓
+Auto-generated Dashboard  ·  SQL Alerts
+        ↓
+Delta Lake (metric history retained as tables)
+```
+- Sits at the **observability** layer, downstream of the tables and endpoints it watches.
+- Reads production data in place; writes metrics back as first-class UC tables.
+- Complements, not replaces, in-pipeline expectations that block bad rows at write time.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☐ Developer Experience
+☐ Data Engineering
+☑ Data Governance
+☑ AI
+☑ Machine Learning
+☐ Storage
+☐ Security
+☑ Monitoring
+```
+- Primary home is **Monitoring** — continuous quality and drift signals over time.
+- Touches **Governance** (metrics are UC assets with lineage) and **ML/AI** (inference-log monitoring closes the loop on served models).
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+| --- | --- | --- |
+| Track null rates / distributions on a gold table | ✅ | Profile metrics computed per window |
+| Detect data drift vs a baseline dataset | ✅ | Baseline drift comparison built in |
+| Monitor time-series drift window over window | ✅ | Consecutive-window drift metrics |
+| Model quality / accuracy over time | ✅ | InferenceLog profile with label join |
+| Prediction drift on served models | ✅ | InferenceLog on Model Serving output |
+| Fairness / slice metrics by segment | ✅ | Slicing expressions per dimension |
+| Schema and cardinality change tracking | ✅ | Captured in profile metrics table |
+| Freshness / volume anomaly signals | ⚠️ | Derivable from counts; not purpose-built |
+| Alert on threshold breach | ✅ | SQL Alerts over metric tables |
+| Executive data-health dashboard | ✅ | Auto-generated dashboard, customizable |
+| Custom domain metrics (e.g., revenue skew) | ✅ | Custom metric definitions supported |
+| Regulated audit trail of quality | ✅ | Metric history persists as UC tables |
+| Monitor a streaming Delta table | ✅ | Runs on the table; schedule-based refresh |
+| Row-level quality gating in ETL | ❌ | Use pipeline expectations instead |
+| Sub-minute real-time anomaly detection | ❌ | Batch/scheduled, not event-time streaming |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+| --- | --- | --- |
+| Blocking bad rows at ingest | ❌ | Monitoring observes; it does not gate writes |
+| Real-time (sub-second) alerting | ❌ | Runs on a schedule, not per-event |
+| Non-Delta / external sources | ⚠️ | Targets UC Delta tables; federate first |
+| Full data-lineage / catalog discovery | ❌ | That is Unity Catalog's job |
+| Application / infra telemetry (APM) | ❌ | Not logs, traces, or system metrics |
+| Ad-hoc one-off data profiling | ⚠️ | Works, but a notebook may be cheaper |
+| GenAI trace/eval quality | ⚠️ | Use MLflow tracing/evaluation for LLM apps |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+| --- | --- |
+| Data Engineers | 5 |
+| Analytics Engineers | 4 |
+| Platform Engineers | 4 |
+| Data Scientists | 4 |
+| BI Teams | 3 |
+| AI Engineers | 4 |
+| Executives | 3 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+| --- | --- |
+| Developer Productivity | 4 |
+| Implementation Speed | 5 |
+| Governance | 5 |
+| Security | 4 |
+| Maintainability | 4 |
+| Scalability | 4 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 4 |
+| Business Value | 4 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+| --- | --- |
+| Unity Catalog | Governs the monitored table, metric tables, and dashboard as first-class assets. |
+| Delta Lake | Underlying format for monitored tables and materialized metric outputs. |
+| Serverless compute | Runs the scheduled metric-refresh jobs. |
+| Lakeflow Jobs | Orchestrates or triggers monitor refreshes alongside pipelines. |
+| Mosaic AI Model Serving | Produces the inference logs consumed by InferenceLog monitors. |
+| MLflow | Supplies model versions/aliases referenced in inference monitoring. |
+| Databricks SQL / Alerts | Powers the dashboard and threshold-based alerting. |
+| AI/BI Dashboards | Rendering layer for the auto-generated monitoring dashboard. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+| --- | --- | --- |
+| Pipeline expectations (Lakeflow Declarative Pipelines) | In-Databricks | Gates rows at write time; no drift history or dashboard. |
+| DIY SQL profiling jobs | In-Databricks | Full control; you build scheduling, storage, dashboards, alerts. |
+| Great Expectations / Soda | External OSS/SaaS | Rich assertion DSL; separate infra, not UC-native metric tables. |
+| Monte Carlo / Anomalo / Bigeye | External SaaS | Broader data-observability suite; added cost and vendor integration. |
+| Evidently / whylogs | External OSS | Strong ML drift tooling; you host, schedule, and govern it. |
+| Custom drift jobs (Spark + MLflow) | In-Databricks | Maximum flexibility; highest build and maintenance burden. |
+
+## 11. Strengths
+- UC-native: metrics, baseline, and dashboard are governed assets with lineage.
+- No pipeline to build — point it at a table and get profile plus drift metrics.
+- Metric outputs are plain Delta tables, so any SQL/BI tool can consume them.
+- Three profile types cover snapshot tables, time series, and model inference logs.
+- Slicing expressions give per-segment fairness and cohort views.
+- Custom metrics extend beyond built-ins without leaving the framework.
+- Auto-generated dashboard gives immediate visibility with no BI work.
+- Alerting reuses Databricks SQL Alerts on the metric tables.
+- Baseline-vs-current and window-vs-window drift both supported.
+- Metric history is retained, enabling trend analysis and audit.
+
+## 12. Limitations
+- Scheduled/batch by design — not real-time or per-event detection.
+- Targets UC-managed Delta tables; external sources need federation first.
+- Refresh compute cost scales with data volume, granularity, and frequency.
+- Observes only — it cannot block or quarantine bad rows.
+- InferenceLog accuracy metrics need labels joined back, often delayed.
+- Dashboard customization is limited compared with hand-built BI.
+- Not a full data-observability suite (no incident management, RCA workflows).
+- Metric-table growth needs retention management over time.
+- High-cardinality slicing can inflate cost and metric-table size.
+- Coverage is per-table; there is no single cross-catalog health rollup out of the box.
+
+## 13. Common Mistakes
+- Using it as a write-time gate instead of pairing it with pipeline expectations.
+- Over-scheduling refreshes on large tables, driving avoidable compute cost.
+- Adding too many slicing dimensions, exploding metric-table cardinality.
+- No baseline defined, so drift comparisons are weaker than they could be.
+- Building alerts but assigning no owner or runbook for breaches.
+- Ignoring label latency, then distrusting inference accuracy metrics.
+- Monitoring raw bronze noise instead of the curated tables that matter.
+- Letting metric tables grow unbounded with no retention policy.
+
+## 14. Design Recommendations
+- ✔ Monitor curated silver/gold tables and served-model inference logs, not every table.
+- ✔ Define a representative baseline dataset for meaningful drift comparison.
+- ✔ Match refresh cadence to how fast the data actually changes.
+- ✔ Keep slicing dimensions few and high-value; add more only when needed.
+- ✔ Pair with pipeline expectations: gate at write, observe with monitoring.
+- ✔ Wire alerts to an on-call owner and a documented response runbook.
+- ✔ Set retention on metric tables to control growth and cost.
+- ✔ Add custom metrics for domain KPIs the built-ins do not cover.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+| --- | --- |
+| Ongoing data-quality visibility | ✅ Purpose-built for it |
+| Data / prediction drift tracking | ✅ Native profile and drift metrics |
+| Model quality over time | ✅ InferenceLog with labels |
+| Governed, queryable metric history | ✅ Metrics are UC Delta tables |
+| Threshold alerting | ✅ Via Databricks SQL Alerts |
+| Block bad rows at ingest | ❌ Use pipeline expectations |
+| Real-time anomaly detection | ❌ Scheduled, not event-time |
+| Full data-observability platform | ⚠️ Consider a dedicated SaaS |
+| Monitor non-Delta sources | ⚠️ Federate into UC first |
+
+## 16. Quick Comparison
+| Criterion | Lakehouse Monitoring | Pipeline Expectations | Great Expectations | Monte Carlo |
+| --- | --- | --- | --- | --- |
+| UC-native | Yes | Yes | No | No |
+| Drift over time | Yes | No | Partial | Yes |
+| Blocks bad rows | No | Yes | Yes (assertions) | No |
+| Auto dashboard | Yes | No | No | Yes |
+| Inference/model monitoring | Yes | No | Limited | Partial |
+| Infra to run | Managed | Managed | Self-hosted | SaaS |
+
+## 17. Maturity
+| Dimension | Rating |
+| --- | --- |
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | Medium-High |
+
+## 18. Cost Considerations
+- **Licensing:** part of the Databricks platform; no separate license. Verify current pricing.
+- **Compute:** serverless refresh jobs billed by frequency, data volume, and granularity — the main cost lever.
+- **Storage:** profile and drift metric tables consume Delta storage; apply retention.
+- **Operational Overhead:** low to set up; ongoing tuning of cadence, slices, and alert ownership.
+- **Training:** modest — SQL and UC familiarity suffice; no new runtime to learn.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** continuous, governed quality and drift monitoring on curated Delta tables and served-model inference logs.
+- ✔ **Avoid when:** you need write-time row gating or sub-second real-time anomaly detection.
+- ✔ **Biggest benefit:** UC-native, low-build observability whose metrics are queryable Delta tables with an auto dashboard and alerts.
+- ✔ **Biggest limitation:** batch/scheduled and observe-only — it reports problems rather than preventing them.
+- ✔ **Overall recommendation:** adopt as the default quality/drift observability layer, paired with pipeline expectations for enforcement.
