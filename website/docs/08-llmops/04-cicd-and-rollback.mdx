@@ -258,7 +258,7 @@ jobs:
         run: databricks bundle deploy --target prod
 ```
 
-Here's the story of this file. GitHub checks out your code, installs the Databricks CLI, and deploys the bundle to staging. Then comes the gate: it runs the evaluation job. Your eval notebook is written to **exit with an error code** if the quality score is below your bar. Because each step only runs if the previous one succeeded, a failing eval means the "Promote to prod" step **never runs**. That's the whole safety net, and it's just ordinary CI behavior you already trust.
+Here's the story of this file. GitHub checks out your code, installs the Databricks CLI, and deploys the bundle to staging. Then comes the gate: it runs the evaluation job. Your eval notebook is written to **exit with an error code** if the quality score is below your bar. Because each step only runs if the previous one succeeded, a failing eval means the "Promote to prod" step **never runs**. That's the whole safety net.
 
 **3. A traffic-split (canary) config on the serving endpoint**
 
@@ -390,10 +390,6 @@ No. As long as the old version is still registered and served on the endpoint, r
 Because the eval notebook exits with a non-zero (error) code when the quality score is below your bar. In a CI pipeline, a failing step stops the steps that come after it, so the "promote to prod" step never runs. It's the same mechanism as a failing unit test blocking a merge.
 
 </details>
-
-## Summary
-
-Shipping an agent safely is the same discipline you already use for data pipelines. You describe the agent and its endpoint **as code** with Databricks Asset Bundles, and you promote that code through **dev → staging → prod** with a CI/CD pipeline. Every promotion passes through an automated **evaluation gate** that stops quality regressions before they reach customers. In production, you roll out **gradually with a canary** - a small slice of traffic to the new version while you watch monitoring - and you **roll back instantly** by routing traffic back to the last known-good version (or moving a prompt alias back). Versioned models, versioned prompts, and monitoring are what make all of this possible.
 
 ## Key Takeaways
 

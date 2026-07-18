@@ -356,10 +356,6 @@ Because output tokens are generated *sequentially*, one at a time, each dependin
 
 </details>
 
-## Summary
-
-Making serving fast and affordable is the same discipline you already apply to clusters and jobs: find what drives the number, then pull the right lever. Latency splits into time-to-first-token (reading the prompt) and the per-token streaming rate (generating the answer one token at a time), and because generation is sequential, output length is usually the biggest driver of total time. Streaming doesn't speed up the model but dramatically improves *perceived* speed, so use it for anything interactive. Cost is metered in tokens, input plus output, so the levers are: shorten prompts, cap `max_tokens`, right-size the model, cache repeats, batch with `ai_query`, choose pay-per-token vs provisioned throughput by traffic shape, and scale-to-zero idle endpoints. A ten-line back-of-envelope estimate turns "the AI bill is scary" into a number you can defend and shrink.
-
 ## Key Takeaways
 
 - **Latency = TTFT + streaming.** Time to the first token, then the per-token rate for the rest.

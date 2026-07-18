@@ -59,9 +59,7 @@ Throughout this lesson we'll follow **Northwind Trust**, a fictional financial-s
 
 Here's the whole idea in one picture: **opening a service window.**
 
-Your registered agent is a food truck parked in the garage. Fully built, recipes finalized, but the window is shut. Deploying is driving it to the corner and opening that window so customers can walk up and order.
-
-And because you're careful, you don't open to the public first. You invite a handful of trusted tasters, your experts, to sample everything and tell you what's good and what's off. That tasting room is the **Review App**. Their notes and ratings get written down for you automatically. That's **feedback capture**.
+Back to the food truck: deploying drives it to the corner and opens the window so customers can order. And because you're careful, you don't open to the public first. You invite a handful of trusted tasters, your experts, to sample everything and tell you what's good and what's off. That tasting room is the **Review App**, and their notes and ratings get written down for you automatically. That's **feedback capture**.
 
 So "deploy" really means two things at once:
 
@@ -181,7 +179,7 @@ print("Endpoint:", deployment.endpoint_name)
 print("Review App:", deployment.review_app_url)
 ```
 
-Step by step: they import the `agents` helper, call `deploy` with the name and version, and then print two addresses. The first is the serving endpoint, the front window apps will call. The second is the Review App URL, the tasting room they'll send to their support experts. That's the whole deploy. One call, two doors opened.
+Step by step: they import the `agents` helper, call `deploy` with the name and version, and then print two addresses. The first is the serving endpoint, the front window apps will call. The second is the Review App URL, the tasting room they'll send to their support experts.
 
 :::note
 The exact attribute names on the returned object can vary by version. If `deployment.review_app_url` isn't available in your environment, the Review App link also appears in the deploy output and in the Serving UI for the endpoint. Check the [official deploy docs](https://docs.databricks.com/aws/en/generative-ai/agent-framework/deploy-agent) for the current shape.
@@ -333,15 +331,9 @@ The tradeoff is a **cold-start delay**: the first request after an idle period w
 
 </details>
 
-## Summary
-
-Deploying is the moment your agent stops being a stored artifact and becomes a service people can reach. You did the hard work already by logging and registering it. This step is one call: `agents.deploy(name, version)`.
-
-That call opens the serving window, a live, OpenAI-compatible, Unity-Catalog-governed endpoint, and it opens the tasting room, a Review App with feedback capture where your experts sample the agent first. It wires up credentials for the resources you declared, turns on scale-to-zero, and starts logging, all without you building any of it. From here, you query the endpoint like any chat model, gather expert feedback, and iterate by deploying new versions.
-
 ## Key Takeaways
 
-- **One call deploys.** `agents.deploy(name, version)` promotes a registered agent to a live Model Serving endpoint.
+- **Deploying turns a stored artifact into a service people can reach**, and it's one call: `agents.deploy(name, version)` promotes a registered agent to a live Model Serving endpoint.
 - **You get four things for free:** a serving endpoint, scoped short-lived credentials, scale-to-zero, and a Review App with feedback capture.
 - **The endpoint is OpenAI-compatible.** Query it with the same client you use for any chat model; the `model` argument is the endpoint name.
 - **Governance is built in.** Unity Catalog controls access and the AI Gateway applies rate limits and guardrails.

@@ -352,10 +352,6 @@ The **AI Gateway**. It sits in front of the backend and applies governance to ev
 
 </details>
 
-## Summary
-
-You learned two ways to serve models that are not Databricks pay-per-token foundation models. **External models** proxy a third-party vendor through Databricks, keeping the key in a secret and every call governed by the AI Gateway, so you can swap providers without touching app code. **Custom models** let you bring your own MLflow-logged model, register it in Unity Catalog, and serve it on the same platform. The big idea tying it all together: **one governed serving layer, many backends**, all called the same way.
-
 ## Key Takeaways
 
 - External model = a governed pass-through to an outside vendor. Key in a secret, calls through the Gateway.

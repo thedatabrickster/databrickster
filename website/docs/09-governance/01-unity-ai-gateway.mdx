@@ -60,9 +60,7 @@ Throughout this lesson we'll follow **Northwind Trust** as they put all of their
 
 Here's the whole idea in one picture: **a security checkpoint at the building entrance.**
 
-Two ways to run building security. In the first, you trust every office upstairs to lock its own door, check its own visitors, and keep its own logbook. Some do it well. Some forget. You have no single view, and one careless room puts the whole building at risk.
-
-In the second, you put **one desk at the entrance.** Everyone signs in there. The rules live in one spot. You can see the whole logbook. You can change a policy once and it covers everyone instantly.
+You can trust every office upstairs to lock its own door, check its own visitors, and keep its own logbook — some do it well, some forget, and one careless room puts the whole building at risk. Or you put **one desk at the entrance:** everyone signs in there, the rules live in one spot, you can see the whole logbook, and you can change a policy once and have it cover everyone instantly.
 
 The Gateway is the second way. Every request to any model goes through it first. Before a request reaches a model, the Gateway can check it for unsafe content, strip out sensitive data, confirm the caller is allowed and hasn't blown past their limits, and write the whole exchange to a log. Only then does the request continue to the model.
 
@@ -201,13 +199,11 @@ Notice the order: **see first, then limit, then protect, then harden.** You don'
 
 ## Hands-on Examples
 
-You won't run much code in *this* lesson, and that's intentional. A lot of the Gateway is configuration you set in the Databricks UI or a config block, not application logic you write. That's the point: you set it once, in one place, rather than coding it into every app.
-
-So the "hands-on" mindset here is: **think of the Gateway as settings on your serving endpoint, not as code in your app.** When Northwind's chatbot calls a model, the chatbot code doesn't change at all. The governance is applied by the door the request passes through. Below are conceptual snippets to show the *shape* of enabling a couple of these features. Treat them as illustrative; the exact fields evolve, so always confirm against the current docs.
+You won't run much code in *this* lesson, and that's intentional. Most of the Gateway is configuration you set in the Databricks UI or a config block, not application logic you write. When Northwind's chatbot calls a model, the chatbot code doesn't change at all; the governance is applied by the door the request passes through. The snippets below show the *shape* of enabling a couple of these features. Treat them as illustrative; the exact fields evolve, so always confirm against the current docs.
 
 ## Code Examples
 
-Let's look at two small, conceptual examples. Both are about *configuring the door*, not changing your app.
+Let's look at two small, conceptual examples of *configuring the door*.
 
 **Example 1: Enabling a rate limit on an endpoint's Gateway (conceptual).**
 
@@ -352,10 +348,6 @@ It duplicates work three times and relies on every team getting it right. The Ga
 False. It scans both directions. Models can generate unsafe content or leak sensitive data in their responses, so guardrails and PII handling apply to the response as well as the request.
 
 </details>
-
-## Summary
-
-The Unity AI Gateway is the single governed front door for all AI traffic. Instead of hoping every app enforces its own safety, limits, and logging, you route every request through one checkpoint and set the rules there, once. It centralizes guardrails and PII handling, rate limits, budgets, traffic splitting and fallbacks, request and response logging to inference tables, and permissions via Unity Catalog, and it governs Databricks-hosted models, external models, and agents alike. For a data engineer, it's the same instinct that put all data access behind Unity Catalog, now applied to models: an API gateway, a policy engine, and an audit log fused into one layer. The single choke point is what makes security, cost control, and audit tractable.
 
 ## Key Takeaways
 

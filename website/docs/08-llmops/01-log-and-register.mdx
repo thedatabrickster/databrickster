@@ -178,25 +178,11 @@ Let us narrate what actually happens, step by step, so it stops feeling like mag
 6. **You register that URI to Unity Catalog.** You set the registry to Unity Catalog, then call register with the model URI and a three-level name. Unity Catalog copies the snapshot in and assigns a version number.
 7. **You read the version back.** The registration returns the version (1, 2, 3, ...). That number is what you will point the deployment at in the next lesson.
 
-## Step-by-Step Walkthrough
-
-Here is the whole flow in words, before we look at code:
-
-1. Write your agent in a file, for example `agent.py`. (You did this in the previous lesson.)
-2. In a notebook, tell MLflow to use Unity Catalog as its model registry.
-3. Declare the resources your agent uses: the model endpoint, the vector search index, any UC functions.
-4. **Log** the agent with models-from-code, passing the file path, an input example, and the resources.
-5. Grab the **model URI** from the object you get back.
-6. **Register** that URI to a three-level Unity Catalog name.
-7. Read the **version number** from the result. Done. Your agent is now a governed, versioned, deployable artifact.
-
 ## Hands-on Examples
 
 Let us make it concrete with Northwind Trust's support agent. We will assume their agent lives in a file called `agent.py` and is written with `ResponsesAgent`.
 
 We will build this up one small piece at a time, and narrate after every block. You do not need to memorize anything. Read for understanding.
-
-## Code Examples
 
 ### Step 1: Point MLflow at Unity Catalog
 
@@ -388,11 +374,9 @@ Agents hold connections to endpoints, tools, and retrievers that do not serializ
 
 </details>
 
-## Summary
-
-You learned the packaging step that turns loose agent code into a real, deployable artifact. **Logging** takes a reproducible MLflow snapshot of your agent, capturing its code, dependencies, input/output signature, and the resources it depends on, just like a git commit. **Registering** publishes that snapshot to Unity Catalog as a model with a three-level name and a version number, giving it governance, versioning, and lineage, just like pushing to a governed registry. You saw why declaring `resources` is the quietly critical step: it is the checklist Databricks reads at deploy time to grant the agent exactly the credentials it needs. And you walked through the code end to end: set the registry, declare resources, log with models-from-code, read the model URI, and register to a three-level name.
-
 ## Key Takeaways
+
+This lesson is the packaging step that turns loose agent code into a real, deployable artifact.
 
 - **Log = commit.** A reproducible MLflow snapshot: code, dependencies, signature, resources.
 - **Register = publish.** A named, versioned, governed model in Unity Catalog (`catalog.schema.model`).

@@ -82,7 +82,7 @@ The key difference in one line: **prompting and RAG add something at request tim
 
 Let's make the three levers precise, because the difference is really about *where* and *when* the change lives.
 
-- **Prompting** changes behavior through the **instructions and examples you send in the request.** Nothing about the model changes. You're steering a fixed model with words. It's the cheapest lever, instant to adjust, and your first resort.
+- **Prompting** changes behavior through the **instructions and examples you send in the request.** Nothing about the model changes — you're steering a fixed model with words.
 - **RAG (Retrieval-Augmented Generation)** supplies **knowledge at request time.** You fetch relevant documents and paste them into the prompt so the model can read them before answering. The model still doesn't change; you're just handing it the right pages each time. This is how you get fresh, factual, or private knowledge into an answer.
 - **Fine-tuning** further **trains a base model on your examples so the customization is baked into the model's weights.** After fine-tuning, you have a new, customized model. The behavior isn't supplied per request — it's part of the model now.
 
@@ -363,12 +363,9 @@ No, not to start. This is a job for a multi-modal (vision-capable) model, which 
 
 </details>
 
-## Summary
-
-There are three levers for changing how a model behaves, and knowing which to pull is the whole skill. **Prompting** steers a fixed model with instructions — cheapest, instant, your first resort. **RAG** supplies knowledge at request time by handing the model the right documents — the tool for anything fresh, factual, or private. **Fine-tuning** further trains a base model on your examples so a skill or style is baked into the weights — the deliberate, later step for consistent style, narrow-task specialization, domain language, or shortening long prompts at scale. On Databricks, fine-tuning runs on the GPU-backed AI Runtime and the customized model is served via provisioned throughput, called just like any other model. Multi-modal models extend all of this to images and audio, served the same way, powering document understanding. And the most reassuring takeaway: most projects never need fine-tuning — prompting and RAG go a very long way.
-
 ## Key Takeaways
 
+- Knowing which of the three levers to pull is the whole skill.
 - **Three levers:** prompting (instructions, cheapest, first resort), RAG (knowledge at request time), fine-tuning (a skill baked into the weights).
 - **Prompting and RAG act at request time; fine-tuning changes the model ahead of time.**
 - **Fine-tune for** consistent style/format/tone, task specialization, domain language, or shorter prompts at scale.
