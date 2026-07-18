@@ -1,0 +1,109 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.15em 0.6em;
+  margin: 0.15em 0.25em 0.15em 0;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  vertical-align: middle;
+}
+
+.label {
+  font-weight: 500;
+  opacity: 0.8;
+}
+.label::after {
+  content: ':';
+  margin-left: 0.05em;
+}
+
+.dot {
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.9;
+}
+
+/* GA — green */
+.s_ga {
+  color: #1a7f4b;
+  background: #e7f6ee;
+  border-color: #b7e4cd;
+}
+/* Public Preview — blue */
+.s_public {
+  color: #1667c7;
+  background: #e8f1fd;
+  border-color: #bcd7f7;
+}
+/* Private Preview — amber */
+.s_private {
+  color: #9a6a00;
+  background: #fbf1da;
+  border-color: #f0dca8;
+}
+/* Beta — orange */
+.s_beta {
+  color: #b0560f;
+  background: #fcefe4;
+  border-color: #f4d4b8;
+}
+/* Alpha — purple */
+.s_alpha {
+  color: #7a3bd0;
+  background: #f2ebfc;
+  border-color: #ddccf5;
+}
+/* Coming soon — slate */
+.s_soon {
+  color: #5a6572;
+  background: #eef1f4;
+  border-color: #d7dde3;
+}
+/* Mixed / muted — neutral */
+.s_mixed,
+.s_muted {
+  color: #5a6572;
+  background: #eef1f4;
+  border-color: #d7dde3;
+}
+
+/* Dark theme: use translucent fills so pills sit well on dark surfaces. */
+[data-theme='dark'] .s_ga {
+  color: #6ede9f;
+  background: rgba(46, 160, 100, 0.16);
+  border-color: rgba(46, 160, 100, 0.4);
+}
+[data-theme='dark'] .s_public {
+  color: #7fb2f5;
+  background: rgba(40, 110, 210, 0.18);
+  border-color: rgba(40, 110, 210, 0.45);
+}
+[data-theme='dark'] .s_private {
+  color: #f0c86a;
+  background: rgba(190, 140, 20, 0.18);
+  border-color: rgba(190, 140, 20, 0.45);
+}
+[data-theme='dark'] .s_beta {
+  color: #f0a878;
+  background: rgba(190, 100, 40, 0.18);
+  border-color: rgba(190, 100, 40, 0.45);
+}
+[data-theme='dark'] .s_alpha {
+  color: #c4a3f0;
+  background: rgba(140, 90, 220, 0.18);
+  border-color: rgba(140, 90, 220, 0.45);
+}
+[data-theme='dark'] .s_soon,
+[data-theme='dark'] .s_mixed,
+[data-theme='dark'] .s_muted {
+  color: #aab4c0;
+  background: rgba(140, 150, 165, 0.15);
+  border-color: rgba(140, 150, 165, 0.35);
+}
