@@ -1,0 +1,246 @@
+---
+sidebar_position: 20
+title: "Mosaic AI Gateway — Architecture Guide"
+description: "Centralized governance layer in front of model-serving endpoints for rate limits, usage tracking, payload logging, guardrails, provider routing, and credential management."
+---
+
+# Mosaic AI Gateway
+
+## 1. Executive Summary
+
+Mosaic AI Gateway is a governance and control layer that sits between applications/agents and model-serving endpoints, adding rate limits, usage tracking, payload logging, safety guardrails, provider routing/fallbacks, and centralized credential management.
+
+## 2. Primary Purpose
+
+- **Why it exists:** apply one consistent governance policy to all LLM traffic — internal models and external providers alike.
+- **Business problem:** LLM cost, safety, and access sprawl across teams when every app calls providers directly with its own keys.
+- **Technical problem:** centralizes quotas, key rotation, PII/toxicity filtering, and audit logging instead of re-implementing them per app.
+- **Consolidation:** one policy plane for OpenAI, Anthropic, Google, Azure, AWS Bedrock, and Databricks-hosted models.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Users / Apps / Agents / Executives
+        ↓
+User Interfaces        (Databricks Apps, AI Playground, Genie, BI tools)
+        ↓
+AI & Machine Learning  (Agent Framework, Vector Search, Model Serving)
+        ↓
+Governance / Gateway   (Mosaic AI Gateway ◀ HERE: limits, guardrails, routing, keys)
+        ↓
+Model Endpoints        (Custom, Foundation, and External models)
+        ↓
+Storage / Audit        (Inference Tables, Delta Lake, Unity Catalog)
+```
+
+- Sits at the **policy boundary** in front of model-serving endpoints — a configuration layer, not a separate deployed service.
+- Governs both **Databricks-hosted** endpoints and **external provider** routes behind one interface.
+- Writes request/response payloads to **Inference Tables** (Delta) for audit and evaluation.
+- Attaches to endpoints managed by **Model Serving**; it does not host or train models itself.
+
+## 4. Typical Architecture Placement
+
+```
+☐ User Interface
+☐ Developer Experience
+☐ Data Engineering
+☑ Data Governance
+☑ AI
+☐ Machine Learning
+☐ Storage
+☑ Security
+☑ Administration
+☑ Monitoring
+```
+
+- Primarily a **governance, security, and administration** control for AI traffic.
+- Monitoring is integral — usage metrics and payload logs flow to Inference Tables.
+- Not a UI, storage, or data-engineering component; it configures policy on serving endpoints.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+|---|---|---|
+| Central rate limits across many teams | ✅ | Per-endpoint and per-user quotas prevent runaway spend |
+| Standardizing access to external LLMs | ✅ | External-model routes centralize keys and policy |
+| PII / toxicity filtering on prompts and responses | ✅ | Built-in guardrails apply uniformly |
+| Cost attribution per team or app | ✅ | Usage tracking tags consumption for chargeback |
+| Provider failover (primary to backup model) | ✅ | Fallback routing improves availability |
+| Audit trail for regulated AI workloads | ✅ | Payload logging to Inference Tables for review |
+| Rotating and hiding provider API keys | ✅ | Credentials held centrally, not in app code |
+| Multi-provider A/B or traffic splitting | ✅ | Route across models without app changes |
+| Blocking unsafe topics in customer-facing bots | ✅ | Safety guardrails enforced at the gateway |
+| Enforcing token budgets on agent workloads | ✅ | Rate limits cap tokens per minute/user |
+| Unified logging across internal + external models | ✅ | One audit surface regardless of provider |
+| Sub-millisecond hard-real-time model paths | ⚠️ | Added policy hop increases latency |
+| Single app, single model, no governance need | ⚠️ | Overhead may exceed benefit at small scale |
+| Deep custom routing logic (semantic, per-token) | ⚠️ | Policy set is fixed; complex logic needs a proxy |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Non-LLM generic API traffic (payments, REST) | ❌ | Purpose-built for model inference, not general APIs |
+| Air-gapped / disconnected environments | ❌ | Depends on Databricks control plane |
+| Ultra-low-latency paths with no policy needs | ⚠️ | Every request pays the governance hop |
+| Bespoke per-request routing algorithms | ⚠️ | Fixed policy model; use a code-level proxy |
+| Traffic that never touches model endpoints | ❌ | Only governs serving-endpoint calls |
+| Teams unwilling to route through Databricks | ⚠️ | Value depends on all traffic passing the gateway |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 2 |
+| Analytics Engineers | 2 |
+| Platform Engineers | 5 |
+| Data Scientists | 3 |
+| BI Teams | 1 |
+| AI Engineers | 5 |
+| Executives | 4 |
+| Architects | 5 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 4 |
+| Implementation Speed | 5 |
+| Governance | 5 |
+| Security | 5 |
+| Maintainability | 4 |
+| Scalability | 4 |
+| Cost Optimization | 5 |
+| Ease of Adoption | 4 |
+| Business Value | 4 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Mosaic AI Model Serving | Hosts the endpoints the gateway attaches policy to. |
+| Unity Catalog | Governs endpoint permissions and secures stored credentials. |
+| Inference Tables (Delta) | Persist request/response payloads for audit and analysis. |
+| External Models | Provide the OpenAI/Anthropic/Google/Bedrock routes the gateway fronts. |
+| Foundation Model APIs | Databricks-hosted models governed through the same policy layer. |
+| Agent Framework | Agents call governed endpoints through the gateway. |
+| Databricks Apps | Front ends whose LLM calls pass through the gateway. |
+| Lakehouse Monitoring | Analyzes usage and payload data captured by the gateway. |
+| Databricks Secrets | Backs credential storage for provider keys. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| DIY API proxy | External / custom | Full control, but you build and maintain limits, logging, and keys. |
+| LiteLLM | External / OSS | Broad provider support; self-hosted ops and no lakehouse-native audit. |
+| Kong / APIGee | External | Mature API management; generic, not LLM-aware (no token limits, guardrails). |
+| AWS Bedrock Guardrails | External | Strong on Bedrock models; separate governance from the lakehouse. |
+| Azure API Management for OpenAI | External | Good Azure tie-in; policy and audit live outside Unity Catalog. |
+| Cloud AI gateways (Cloudflare, etc.) | External | Edge routing and caching; limited lakehouse data governance. |
+| No gateway (direct provider calls) | Baseline | Simplest to start; no central quotas, keys, guardrails, or audit. |
+
+## 11. Strengths
+
+- One policy plane for internal, foundation, and external models.
+- LLM-aware controls — token-based rate limits, not just request counts.
+- Built-in **guardrails** for PII masking and toxicity/safety filtering.
+- Centralized **credential management** keeps provider keys out of app code.
+- **Provider routing and fallbacks** improve availability without app changes.
+- Usage tracking enables per-team cost attribution and chargeback.
+- Payload logging to Inference Tables gives a native audit trail.
+- Enforced through Unity Catalog permissions and lineage.
+- Configuration-level — attaches to existing endpoints with no new infrastructure.
+- Traffic splitting across models supports A/B and gradual migration.
+
+## 12. Limitations
+
+- Adds a policy hop, increasing per-request latency versus direct calls.
+- Value depends on all traffic actually routing through the gateway.
+- Guardrail set is fixed — limited compared to custom safety pipelines.
+- Complex per-request or semantic routing needs a code-level proxy.
+- Tightly coupled to the Databricks control plane — limited portability.
+- Governs only model-serving endpoints, not arbitrary API traffic.
+- External-provider limits and outages still apply upstream of the gateway.
+- Payload logging raises storage and data-residency considerations.
+- Guardrail filtering adds processing overhead on each request.
+- Feature availability varies by cloud, region, and model type.
+
+## 13. Common Mistakes
+
+- Letting teams keep calling providers directly, bypassing the gateway.
+- Scattering provider keys in app code instead of central credentials.
+- Not enabling payload logging, losing the audit and evaluation trail.
+- Setting no rate limits, so a single app can exhaust budgets or quotas.
+- Ignoring guardrail latency in tight SLA paths.
+- Treating it as a general API gateway for non-LLM traffic.
+- No fallback route configured, so a provider outage breaks the app.
+- Skipping cost attribution tags, making chargeback impossible later.
+- Over-relying on built-in guardrails for domain-specific safety needs.
+- Forgetting data-residency rules when logging prompts and responses.
+
+## 14. Design Recommendations
+
+- ✔ Route every LLM call — internal and external — through the gateway.
+- ✔ Store all provider keys as central credentials, never in app code.
+- ✔ Set token-based rate limits per endpoint and per user from day one.
+- ✔ Enable payload logging to Inference Tables for audit and evaluation.
+- ✔ Configure fallback routes for critical external-provider dependencies.
+- ✔ Turn on PII and safety guardrails for customer-facing traffic.
+- ✔ Tag usage by team/app to support cost attribution and chargeback.
+- ✔ Set payload-log retention to meet residency and storage policy.
+- ✔ Load-test guardrail and routing latency before production SLAs.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+|---|---|
+| Central rate limiting for LLMs | ✅ Token-aware quotas |
+| Governing external provider access | ✅ External-model routes |
+| Safety / PII guardrails | ✅ Built-in filters |
+| Cost attribution per team | ✅ Usage tracking |
+| Provider failover | ✅ Fallback routing |
+| Audit of AI requests | ✅ Payload logging |
+| Credential centralization | ✅ Managed keys |
+| Non-LLM API management | ❌ Use Kong/APIGee |
+| Sub-millisecond latency paths | ❌ Policy hop overhead |
+| Bespoke semantic routing | ⚠️ Needs custom proxy |
+| Air-gapped deployment | ❌ Control-plane dependent |
+
+## 16. Quick Comparison
+
+| Criterion | Mosaic AI Gateway | LiteLLM | Kong / APIGee | DIY Proxy |
+|---|---|---|---|---|
+| LLM-aware token limits | Yes | Yes | No | Build it |
+| Built-in guardrails | Yes | Partial | No | Build it |
+| Lakehouse-native audit | Native (Inference Tables) | External | External | External |
+| Operational burden | Low | Medium | Medium | High |
+| Multi-provider routing | Yes | Yes | Manual | Build it |
+| Governance with UC | Native | None | None | Manual |
+
+## 17. Maturity
+
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | High |
+
+## 18. Cost Considerations
+
+- **Licensing:** no separate license; consumption-based with the endpoints it governs. Verify current pricing.
+- **Compute:** minimal direct cost; guardrail and routing processing add small per-request overhead on the serving endpoint.
+- **Storage:** payload logging consumes Delta storage in Inference Tables — set retention to control growth.
+- **Operational Overhead:** low — configuration on existing endpoints; effort shifts to policy design and key management.
+- **Training:** minimal for teams already on Model Serving and Unity Catalog; main effort is defining limits and guardrail policy.
+
+## 19. Executive Takeaway
+
+- ✔ **Best for:** centralizing governance, cost control, safety, and audit across all LLM traffic on Databricks.
+- ✔ **Avoid when:** you need to govern non-LLM APIs, run air-gapped, or cannot tolerate any added latency.
+- ✔ **Biggest benefit:** one LLM-aware policy plane for limits, guardrails, keys, routing, and audit across internal and external models.
+- ✔ **Biggest limitation:** governs only model-serving endpoints and offers a fixed policy set versus a custom proxy.
+- ✔ **Overall recommendation:** default governance layer for Databricks LLM workloads; compare with LiteLLM, Kong/APIGee, or a DIY proxy only when routing is highly custom or traffic must stay outside Databricks.

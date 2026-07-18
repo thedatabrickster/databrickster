@@ -1,0 +1,246 @@
+---
+sidebar_position: 20
+title: "Agent Bricks — Architecture Guide"
+description: "Declarative, auto-optimized way to build and evaluate Mosaic AI agents on Databricks, built on Vector Search, Model Serving, MLflow, and Unity Catalog."
+---
+
+# Agent Bricks
+
+## 1. Executive Summary
+
+A low-code, auto-optimized way to build, evaluate, and deploy common Mosaic AI agent patterns on Databricks by describing the task and connecting governed data, without hand-wiring the underlying ML plumbing.
+
+## 2. Primary Purpose
+
+- **Why it exists:** let teams ship production agents by declaring intent, while the platform tunes retrieval, prompts, and models automatically.
+- **Business problem:** shorten time-to-value for GenAI and reduce the specialist headcount needed to reach a deployable, evaluated agent.
+- **Technical problem:** remove repetitive plumbing — chunking, index sync, model choice, prompt/eval loops — and keep it all under one governance model.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Users / Apps / Business Teams
+        ↓
+Agent Bricks (declarative agent: task + data + guidance)
+        ↓
+Auto-optimization: retrieval tuning · prompt/model selection · eval loop
+        ↓
+Mosaic AI: Vector Search · Model Serving · Agent Framework · MLflow
+        ↓
+Unity Catalog (governance, lineage, permissions)
+        ↓
+Delta Lake / Volumes (source documents, tables, tools)
+```
+
+- Sits in the **AI** layer as an opinionated authoring surface over Mosaic AI building blocks.
+- Does not replace Vector Search, Model Serving, or MLflow — it orchestrates and tunes them.
+- Consumes governed Delta data and exposes agents as served endpoints for apps and tools.
+
+## 4. Typical Architecture Placement
+
+```
+☑ User Interface
+☑ Developer Experience
+☐ Data Engineering
+☐ Data Governance
+☑ AI
+☐ Machine Learning
+☐ Storage
+☐ Security
+☐ Administration
+☐ Monitoring
+```
+
+- Primary home is AI (agent authoring and auto-optimization).
+- Provides a low-code UI plus developer entry points, so it spans user interface and developer experience.
+- Governance, storage, and ML lifecycle are inherited from Unity Catalog, Delta, and MLflow, not owned here.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+| --- | --- | --- |
+| Knowledge assistant over internal docs | ✅ | Core pattern; auto-tuned RAG on governed Delta sources |
+| Q&A chatbot for support/policy content | ✅ | Declarative setup with built-in evaluation |
+| Structured extraction from documents | ✅ | Information Extraction pattern turns text into typed fields |
+| Routing across several specialized agents | ✅ | Multi-Agent Supervisor coordinates sub-agents |
+| Domain-tuned custom LLM without ML team | ✅ | Custom LLM pattern fine-tunes/optimizes for a task |
+| Team wants agents without deep ML plumbing | ✅ | Auto-optimization handles retrieval, prompts, models |
+| Fast prototype-to-production on governed data | ✅ | Endpoints and eval come built in |
+| Consolidating ad hoc RAG scripts | ✅ | Replaces bespoke chains with a managed pattern |
+| Agent that must call governed tools/functions | ✅ | Integrates UC functions and Vector Search as tools |
+| Business SME authoring with light IT support | ✅ | Low-code surface lowers the skill barrier |
+| Highly bespoke multi-step orchestration | ⚠️ | Possible, but hand-built Agent Framework gives more control |
+| Strict latency/cost SLOs per request | ⚠️ | Achievable; validate served-model sizing and eval results |
+| Non-Databricks data sources dominate | ⚠️ | Works, but you must land or federate data first |
+| Rapidly changing corpus needing freshness | ⚠️ | Fine, but confirm underlying index sync cadence |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+| --- | --- | --- |
+| Deterministic ETL or SQL transformation | ❌ | Use Lakeflow / Databricks SQL, not an agent |
+| Full control over every prompt and step | ⚠️ | Hand-built Agent Framework exposes more knobs |
+| Deep, novel orchestration research | ⚠️ | DIY LangChain/LlamaIndex may fit experimentation |
+| No governed data in the Lakehouse yet | ❌ | Land and govern data first; agents need sources |
+| Exact analytics over structured tables | ❌ | Query directly; an LLM adds cost and risk |
+| Multi-cloud agent portability requirement | ⚠️ | Tied to Databricks Mosaic AI stack |
+| Sub-second, ultra-high-QPS inference | ⚠️ | Validate serving limits and cost first |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+| --- | --- |
+| Data Engineers | 3 |
+| Analytics Engineers | 3 |
+| Platform Engineers | 3 |
+| Data Scientists | 4 |
+| BI Teams | 2 |
+| AI Engineers | 5 |
+| Executives | 3 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+| --- | --- |
+| Developer Productivity | 5 |
+| Implementation Speed | 5 |
+| Governance | 5 |
+| Security | 4 |
+| Maintainability | 4 |
+| Scalability | 4 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 5 |
+| Business Value | 4 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+| --- | --- |
+| Unity Catalog | Governs source data, tools, and agents under one permission and lineage model. |
+| Mosaic AI Vector Search | Provides the retrieval index behind knowledge-assistant patterns. |
+| Mosaic AI Model Serving | Hosts the LLMs and serves the resulting agent endpoints. |
+| MLflow | Tracks, evaluates, and versions agents, including LLM-judge quality metrics. |
+| Foundation Model APIs | Supply the base and embedding models the optimizer selects from. |
+| Agent Framework | Underlying runtime that Agent Bricks configures and can graduate to. |
+| Delta Lake / Volumes | Source of documents, tables, and files the agents ground on. |
+| Lakeflow (Jobs/Pipelines) | Prepares and refreshes source data upstream of the agent. |
+| Databricks Apps | Front-ends the agent in a governed web application. |
+| SDK / REST API | Programmatic creation, evaluation, and invocation of agents. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+| --- | --- | --- |
+| Mosaic AI Agent Framework (hand-built) | In-Databricks | Full control over steps/prompts; you own tuning and eval wiring. |
+| LangChain / LlamaIndex (DIY) | External / OSS | Maximum flexibility; you operate governance, sync, and serving. |
+| External agent platforms | External SaaS | Broad connectors; separate governance, data egress, and cost model. |
+| Foundation Model APIs + custom code | In-Databricks | Lightest abstraction; you build retrieval, prompts, and eval yourself. |
+| Cloud-native agent services | External SaaS | Native to a hyperscaler; weaker Lakehouse data/governance integration. |
+
+## 11. Strengths
+
+- Declarative authoring: describe the task and data instead of coding the pipeline.
+- Auto-optimization tunes retrieval, prompts, and model choice for the task.
+- Built-in evaluation, including LLM-judge quality signals, before you ship.
+- Covers common patterns: knowledge assistant, multi-agent supervisor, extraction, custom LLM.
+- Built on proven Mosaic AI components rather than a parallel stack.
+- Unity Catalog governance, lineage, and access control apply end to end.
+- Low skill barrier lets non-ML teams reach a deployable agent.
+- Output is a served endpoint consumable by apps, tools, and other agents.
+- Reduces glue code and the bespoke RAG scripts teams accumulate.
+- Can graduate to hand-built Agent Framework when needs outgrow the abstraction.
+
+## 12. Limitations
+
+- Less control over individual prompts, steps, and orchestration than a hand-built agent.
+- Opinionated patterns may not fit highly bespoke or novel workflows.
+- Tied to the Databricks Mosaic AI stack; limited cross-cloud portability.
+- Auto-optimization behavior is partly opaque; debugging tuning decisions is harder.
+- Data must be landed and governed in the Lakehouse first.
+- Ongoing serving and optimization compute incur cost even at low volume.
+- Newer surface: fewer community patterns than mature DIY frameworks.
+- Quality still depends on source data, chunking, and clear task guidance.
+- Advanced tool/agent topologies may still require dropping to code.
+- Cost attribution across sub-agents and endpoints can be hard to reason about.
+
+## 13. Common Mistakes
+
+- Expecting good answers from poorly curated or ungoverned source data.
+- Skipping the built-in evaluation and shipping on vibes.
+- Vague task descriptions that leave the optimizer under-constrained.
+- Choosing Agent Bricks for deterministic ETL/SQL that needs no LLM.
+- Reaching for a hand-built agent before trying the declarative pattern.
+- Ignoring Unity Catalog permissions and leaking out-of-scope context.
+- Over-provisioning serving for pilot-stage workloads.
+- Treating auto-optimization as a substitute for defining success criteria.
+
+## 14. Design Recommendations
+
+- ✔ Start declarative; graduate to Agent Framework only when you hit a real limit.
+- ✔ Curate and govern source data in Delta before building the agent.
+- ✔ Write clear, specific task guidance so auto-optimization has direction.
+- ✔ Use the built-in evaluation and MLflow tracking as release gates.
+- ✔ Define success metrics and acceptable cost/latency up front.
+- ✔ Scope agent access via Unity Catalog so retrieval respects permissions.
+- ✔ Match the pattern to the need: extraction, assistant, supervisor, or custom LLM.
+- ✔ Right-size serving endpoints and consolidate where sensible.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+| --- | --- |
+| Agent without deep ML plumbing | ✅ Core purpose |
+| Knowledge assistant on governed data | ✅ Native pattern |
+| Structured document extraction | ✅ Extraction pattern |
+| Coordinating multiple sub-agents | ✅ Supervisor pattern |
+| Domain-tuned custom LLM | ✅ Custom LLM pattern |
+| Governance/lineage on agents | ✅ Via Unity Catalog |
+| Full control of every prompt/step | ⚠️ Consider Agent Framework |
+| Novel research orchestration | ⚠️ DIY framework may fit |
+| Deterministic ETL / SQL | ❌ Wrong tool |
+| Multi-cloud portability | ❌ Databricks-bound |
+
+## 16. Quick Comparison
+
+| Criterion | Agent Bricks | Agent Framework (DIY) | LangChain/LlamaIndex | External platform |
+| --- | --- | --- | --- | --- |
+| Build effort | Low (declarative) | Medium–high | High | Medium |
+| Control | Medium | High | Very high | Medium |
+| Auto-tuning | Built-in | Manual | Manual | Varies |
+| Governance | Unity Catalog | Unity Catalog | You build | External |
+| Evaluation | Built-in | MLflow, you wire | You build | Varies |
+| Data integration | Native Lakehouse | Native Lakehouse | You build | Connectors |
+
+## 17. Maturity
+
+| Dimension | Rating |
+| --- | --- |
+| Technology Readiness | Medium |
+| Enterprise Readiness | Medium |
+| Production Readiness | Medium |
+| Governance Readiness | High |
+| AI Readiness | High |
+
+## 18. Cost Considerations
+
+- **Licensing:** consumption-based via Databricks DBUs; no separate license. Verify current pricing.
+- **Compute:** model serving for the agent plus optimization/evaluation runs; scales with traffic and pattern.
+- **Storage:** underlying vector indexes and source Delta tables add footprint.
+- **Operational Overhead:** low authoring effort; effort shifts to data curation, eval, and endpoint sizing.
+- **Training:** modest for teams on Databricks; main learning curve is task framing and evaluation, not ML internals.
+
+:::note[Cost model]
+The levers are the **served agent endpoint** (always-on capacity), the **optimization/evaluation runs**, and the underlying **retrieval indexes**. Always verify current pricing.
+:::
+
+## 19. Executive Takeaway
+
+- ✔ **Best for:** teams that want production Mosaic AI agents on governed Lakehouse data without deep ML plumbing.
+- ✔ **Avoid when:** you need full control of every step, deterministic ETL, or multi-cloud portability.
+- ✔ **Biggest benefit:** declarative, auto-optimized agents with built-in evaluation and Unity Catalog governance.
+- ✔ **Biggest limitation:** less control and transparency than hand-built agents, and Databricks-stack lock-in.
+- ✔ **Overall recommendation:** the default starting point for common agent patterns already standardized on Databricks; graduate to Agent Framework when the abstraction constrains you.
+
+See the full [feature catalog](/databricks-features) for related components.

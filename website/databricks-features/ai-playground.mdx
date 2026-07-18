@@ -1,0 +1,246 @@
+---
+sidebar_position: 20
+title: "AI Playground — Architecture Guide"
+description: "Interactive workspace UI for prototyping and comparing foundation models, prompts, and tool-calling before exporting code to production."
+---
+
+# AI Playground
+
+## 1. Executive Summary
+
+AI Playground is a governed, in-workspace UI for interactively testing and comparing foundation models and agents, tuning prompts, exercising tool/function calling, and exporting the equivalent code — a developer-experience tool, not a production serving surface.
+
+## 2. Primary Purpose
+
+- **Why it exists:** give developers a fast, no-setup way to try models and prompts before writing any code.
+- **Business problem:** model and prompt selection stalls in ad hoc scripts and vendor consoles, with no shared, governed starting point.
+- **Technical problem:** standardizes side-by-side comparison, parameter tuning, and tool-call testing against endpoints already governed by Unity Catalog.
+- **Bridge to code:** turns an interactive session into reproducible Python/REST snippets that call Model Serving.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Developers / AI Engineers
+        ↓
+Developer Experience   (AI Playground ◀ HERE, Notebooks, Git/Repos)
+        ↓
+AI & Machine Learning  (Foundation Model APIs, Agent Framework, Vector Search)
+        ↓
+Serving / Gateway      (Model Serving, AI Gateway, Unity Catalog, Inference Tables)
+        ↓
+Data Engineering       (Lakeflow, MLflow, Feature Tables)
+        ↓
+Storage                (Delta Lake, Volumes)
+```
+
+- Sits in the **developer-experience** layer — a client that drives serving endpoints, not part of the runtime path.
+- Calls **foundation, external, and custom models** already exposed through Model Serving and AI Gateway.
+- Every call inherits **Unity Catalog** permissions, quotas, and usage logging — no separate key store.
+- Output is **exported code**, so prototypes graduate into notebooks, jobs, or agents.
+
+## 4. Typical Architecture Placement
+
+```
+☐ User Interface
+☑ Developer Experience
+☐ Data Engineering
+☐ Data Governance
+☑ AI
+☐ Machine Learning
+☐ Storage
+☐ Security
+☐ Administration
+☐ Monitoring
+```
+
+- Primarily a **developer-experience / AI** tool — an authoring and evaluation client.
+- Governance and monitoring apply, but they are inherited from Model Serving, AI Gateway, and Unity Catalog rather than owned here.
+- Not a production endpoint, UI-hosting layer, or data-engineering component.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+|---|---|---|
+| Compare two or more foundation models on the same prompt | ✅ | Side-by-side responses in one view |
+| Choose a model for a new feature | ✅ | Quick quality/latency/cost read before committing |
+| Iterate on system and user prompts | ✅ | Live editing with immediate output |
+| Tune parameters (temperature, max tokens, top-p) | ✅ | Interactive sliders, no code round-trip |
+| Test tool / function calling behavior | ✅ | Exercise tool schemas and inspect call flow |
+| Prototype a retrieval or agent flow | ✅ | Attach tools and Vector Search before building |
+| Export a working prompt to Python or REST | ✅ | Generates code against Model Serving |
+| Onboard developers to available models | ✅ | Discover governed endpoints in one place |
+| Sanity-check an external LLM (OpenAI, Anthropic) | ✅ | Routed through governed external-model endpoints |
+| Reproduce and triage a bad model response | ✅ | Replay prompt/params to isolate the cause |
+| Demo model behavior to stakeholders | ✅ | No local setup or keys required |
+| Draft prompts for a Genie or BI use case | ⚠️ | Useful for wording; validate in that product |
+| Bulk / batch evaluation across a dataset | ⚠️ | Use MLflow evaluation or `ai_query` instead |
+| Regression testing a prompt over time | ⚠️ | Manual; move to automated eval harness |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Production or user-facing inference | ❌ | Interactive UI, not a served endpoint |
+| Programmatic / high-volume calls | ❌ | Use Model Serving REST or `ai_query` |
+| Automated CI/CD prompt regression | ❌ | No scripting or scheduling surface |
+| Large-scale offline batch scoring | ❌ | Not built for throughput |
+| Model training or fine-tuning | ❌ | Serving-side only; no training loop |
+| Systematic quantitative eval at scale | ⚠️ | MLflow evaluation is the right tool |
+| Long-lived multi-user shared sessions | ⚠️ | Session state is ephemeral, single-user |
+| Storing prompts as the system of record | ⚠️ | Persist in Git/Repos, not the Playground |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 3 |
+| Analytics Engineers | 2 |
+| Platform Engineers | 2 |
+| Data Scientists | 4 |
+| BI Teams | 2 |
+| AI Engineers | 5 |
+| Executives | 2 |
+| Architects | 3 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 5 |
+| Implementation Speed | 5 |
+| Governance | 4 |
+| Security | 4 |
+| Maintainability | 3 |
+| Scalability | 2 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 5 |
+| Business Value | 3 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Model Serving | Hosts the foundation, external, and custom endpoints the Playground calls. |
+| Foundation Model APIs | Provide pay-per-token access to hosted models for comparison. |
+| AI Gateway | Applies rate limits, routing, guardrails, and usage logging to each call. |
+| Unity Catalog | Enforces which endpoints and tools a user may invoke. |
+| Agent Framework | Defines the tools and agent logic exercised in tool-calling tests. |
+| Mosaic AI Vector Search | Supplies retrieval when prototyping RAG flows. |
+| MLflow | Receives exported prompts/traces for tracking and formal evaluation. |
+| Notebooks / Git & Repos | Destination for exported code and prompt version control. |
+| Inference Tables | Capture request/response payloads for downstream audit and eval. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Databricks Notebooks + SDK | In-Databricks | Full flexibility, but manual setup and no side-by-side UI. |
+| MLflow evaluation / LLM-as-judge | In-Databricks | Quantitative, repeatable eval vs interactive exploration. |
+| OpenAI Playground | External | Fast for OpenAI models, but outside UC governance and lineage. |
+| Vendor consoles (Anthropic, Google, Azure OpenAI) | External | Per-vendor UI; no unified access or exported Databricks code. |
+| Local notebooks / scripts | External | Total control, but scattered keys and no shared governance. |
+| Hosted prompt tools (e.g. LangSmith) | External / OSS | Rich prompt ops, but separate from lakehouse data and access. |
+
+## 11. Strengths
+
+- Zero setup — compare models and prompts in the browser, no code or keys.
+- Side-by-side model comparison on identical inputs in one view.
+- Interactive parameter tuning without code round-trips.
+- Tool / function-calling testing against real tool schemas.
+- Calls inherit Unity Catalog permissions, quotas, and logging automatically.
+- One place to reach foundation, external, and custom endpoints.
+- Export to Python/REST shortens the prototype-to-code path.
+- Lowers the barrier for developers new to available models.
+- Governed access to external LLMs without scattering vendor keys.
+- Useful for reproducing and triaging problematic model responses.
+
+## 12. Limitations
+
+- Not a production surface — no SLA, scheduling, or programmatic access.
+- Single-user, ephemeral sessions; state is not durably shared.
+- No built-in bulk or dataset-level evaluation.
+- Manual and qualitative — not a substitute for automated eval.
+- Limited to endpoints exposed through Model Serving.
+- No native prompt versioning; rely on Git/Repos externally.
+- Comparison depth is bounded by the UI, not scriptable.
+- Cost visibility per experiment is coarse without gateway reporting.
+- Advanced agent orchestration still needs the Agent Framework.
+- Feature and model availability vary by region and workspace tier.
+
+## 13. Common Mistakes
+
+- Treating exported snippets as production code without hardening.
+- Using it for batch or high-volume calls instead of `ai_query`.
+- Skipping Unity Catalog setup, so few or no endpoints appear.
+- Comparing models on one prompt and over-generalizing the result.
+- Not saving good prompts into Git/Repos before the session ends.
+- Confusing interactive tool tests with a fully built agent.
+- Relying on it for quantitative eval instead of MLflow.
+- Ignoring gateway quotas and hitting throttling mid-session.
+- Assuming external-model access without configured endpoints.
+- Sharing sensitive data in prompts without checking guardrails.
+
+## 14. Design Recommendations
+
+- ✔ Expose the models developers actually need via Model Serving first.
+- ✔ Front all endpoints with AI Gateway for quotas, guardrails, and logging.
+- ✔ Register external LLMs as external-model endpoints, never raw keys.
+- ✔ Use the Playground to shortlist, then confirm with MLflow evaluation.
+- ✔ Export prototypes to notebooks and commit prompts to Git/Repos.
+- ✔ Test tool schemas here before wiring them into an agent.
+- ✔ Set and communicate per-user quotas to control experimentation cost.
+- ✔ Treat it as a starting point, not the system of record for prompts.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+|---|---|
+| Compare models interactively | ✅ Core use case |
+| Tune prompts and parameters | ✅ Live iteration |
+| Test tool / function calling | ✅ Built-in support |
+| Governed access to endpoints | ✅ Inherits Unity Catalog |
+| Export prototype to code | ✅ Python/REST generation |
+| Onboard developers to models | ✅ One discovery surface |
+| Production inference | ❌ Use Model Serving |
+| Batch / high-volume scoring | ❌ Use `ai_query` |
+| Automated prompt regression | ❌ Use an eval harness |
+| Quantitative model evaluation | ⚠️ Prefer MLflow evaluation |
+| Prompt version control | ⚠️ Use Git/Repos |
+
+## 16. Quick Comparison
+
+| Criterion | AI Playground | OpenAI Playground | Vendor consoles | Local notebooks |
+|---|---|---|---|---|
+| Multi-vendor model comparison | Yes | No (OpenAI only) | No (per vendor) | Manual |
+| Unity Catalog governance | Native | None | None | Manual |
+| Tool / function-call testing | Yes | Partial | Varies | Manual |
+| Export to runnable code | Yes (Databricks) | Snippets | Varies | N/A |
+| Governed external-LLM access | Yes | N/A | N/A | Scattered keys |
+| Setup required | None | Account | Account | Full |
+
+## 17. Maturity
+
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | Medium |
+| Production Readiness | Low (by design) |
+| Governance Readiness | High |
+| AI Readiness | High |
+
+## 18. Cost Considerations
+
+- **Licensing:** no separate license; part of the workspace. Verify current pricing.
+- **Compute:** each call consumes model inference — per-token for foundation/external models, DBUs for provisioned endpoints; interactive use is low-volume but not free.
+- **Storage:** negligible; sessions are ephemeral. Inference Tables, if enabled, add Delta storage.
+- **Operational Overhead:** minimal — no infra to run; effort is endpoint setup and gateway quota policy.
+- **Training:** low — developers self-serve; teams already on Model Serving/Unity Catalog adopt quickly. External-model routes add per-provider token charges.
+
+## 19. Executive Takeaway
+
+- ✔ **Best for:** interactive prototyping and comparison of models, prompts, and tool calls before writing production code.
+- ✔ **Avoid when:** you need production inference, batch scoring, or automated evaluation.
+- ✔ **Biggest benefit:** zero-setup, governed exploration that exports straight into Databricks code.
+- ✔ **Biggest limitation:** developer-experience only — no SLA, scale, or programmatic surface.
+- ✔ **Overall recommendation:** adopt as the default starting point for model and prompt selection; hand off to Model Serving for runtime and MLflow for formal evaluation.

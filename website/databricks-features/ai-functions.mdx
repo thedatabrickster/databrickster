@@ -1,0 +1,225 @@
+---
+sidebar_position: 20
+title: "AI Functions — Architecture Guide"
+description: "SQL-native LLM inference on the Lakehouse — ai_query and task functions for batch and inline enrichment, governed by Unity Catalog and backed by Model Serving."
+---
+
+# AI Functions
+
+## 1. Executive Summary
+AI Functions are built-in Databricks SQL functions (`ai_query` plus task helpers like `ai_classify`, `ai_extract`, `ai_summarize`, and `ai_gen`) that call LLMs and embedding models set-based over tables, governed by Unity Catalog and served by Model Serving / Foundation Model APIs.
+
+## 2. Primary Purpose
+- **Why it exists:** bring LLM inference to where data already lives, callable in plain SQL without moving rows to an external service.
+- **Business problem solved:** lets analysts and ETL teams enrich, classify, and summarize large text/document sets without a data science team or bespoke API code.
+- **Technical problem solved:** batched, parallel, governed inference over columns — replacing per-row Python API loops with a set-based, retry-managed operator.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Analysts / ETL Pipelines / BI
+        ↓
+SQL Editor + Lakeflow (SQL / Declarative Pipelines) + Notebooks
+        ↓
+AI Functions  →  ai_query + ai_classify / ai_extract / ai_summarize / ai_gen / ai_embed
+        ↓
+Model Serving / Foundation Model APIs   (pay-per-token · provisioned · external models)
+        ↓
+Unity Catalog   (permissions · lineage · audit on functions, models, data)
+        ↓
+Delta Lake      (source tables · enriched output tables)
+```
+- Sits in the **transformation/enrichment layer** — invoked inside SELECT statements and ETL, not a standalone service.
+- The SQL engine handles batching and parallelism; Model Serving hosts the model; Unity Catalog governs access.
+- Output is written back to Delta like any other SQL expression, keeping enrichment inside the pipeline.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☐ Developer Experience
+☑ Data Engineering
+☑ Data Governance
+☑ AI
+☐ Machine Learning
+☐ Storage
+☐ Security
+☐ Administration
+☐ Monitoring
+```
+- **Data Engineering:** primary use is in-line and batch enrichment within SQL transforms and Lakeflow pipelines.
+- **AI:** the functions are the inference surface for LLMs and embeddings from SQL.
+- **Data Governance:** function calls, model endpoints, and data are all Unity Catalog objects with lineage and audit.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+|---|---|---|
+| Classify support tickets by category | ✅ | `ai_classify` over a column, one query |
+| Sentiment tagging on reviews at scale | ✅ | Set-based batch inference in SQL |
+| Extract entities/fields from free text | ✅ | `ai_extract` returns structured columns |
+| Summarize documents or call notes | ✅ | `ai_summarize` inline in ETL |
+| Translate text columns | ✅ | `ai_translate` batched over rows |
+| Generate embeddings for Vector Search | ✅ | `ai_embed` feeds retrieval indexes |
+| Mask or detect PII in text | ✅ | `ai_mask` inside governed pipelines |
+| Custom prompts over any model | ✅ | `ai_query` with a served endpoint |
+| Enrich Bronze→Silver in Lakeflow | ✅ | Runs as a normal SQL expression |
+| Analyst self-service enrichment | ✅ | No Python or API keys needed |
+| Structured JSON output at scale | ✅ | `ai_query` with `responseFormat` schema |
+| Batch scoring of millions of rows | ⚠️ | Works, but watch throughput and cost |
+| Low-latency single-record app calls | ⚠️ | Better served by direct Model Serving |
+| Multi-step agentic reasoning | ⚠️ | Use agents/notebooks, not SQL functions |
+| Fine-tuned proprietary model serving | ⚠️ | Host on Model Serving, then call via `ai_query` |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Sub-second interactive chat in an app | ❌ | SQL batch path adds latency; call the endpoint directly |
+| Complex multi-turn agent workflows | ❌ | No conversation state or tool orchestration in SQL |
+| Deterministic rule-based logic | ❌ | LLM cost/variance where plain SQL suffices |
+| Streaming per-event inference at ms latency | ⚠️ | Batching favors throughput over latency |
+| Training or fine-tuning models | ❌ | Functions are inference-only |
+| Regulated outputs needing exact reproducibility | ⚠️ | LLM responses vary; add validation/pinning |
+| Very large context per row (long docs) | ⚠️ | Token limits and cost grow fast; chunk first |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 5 |
+| Analytics Engineers | 5 |
+| Platform Engineers | 3 |
+| Data Scientists | 3 |
+| BI Teams | 4 |
+| AI Engineers | 4 |
+| Executives | 2 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 5 |
+| Implementation Speed | 5 |
+| Governance | 4 |
+| Security | 4 |
+| Maintainability | 4 |
+| Scalability | 4 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 5 |
+| Business Value | 4 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Unity Catalog | Governs access to functions, models, and source data with lineage and audit. |
+| Model Serving | Hosts the endpoints that `ai_query` and task functions invoke. |
+| Foundation Model APIs | Provide pay-per-token and provisioned throughput base models. |
+| Databricks SQL | Execution surface and warehouse compute for the functions. |
+| Delta Lake | Stores source text and enriched output tables. |
+| Lakeflow (Pipelines/Jobs) | Runs enrichment on a schedule in production ETL. |
+| Vector Search | Consumes `ai_embed` output for retrieval indexes. |
+| External Models | Route to third-party LLMs (OpenAI, Anthropic, etc.) via serving gateway. |
+| System Tables | Track usage, token spend, and payload logs for monitoring. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Python UDF calling an API | In-Databricks | Full control, but per-row loops, key handling, and no built-in batching/governance. |
+| Direct Model Serving REST calls | In-Databricks | Lower latency for apps; you build batching and orchestration. |
+| Notebook + client SDK | In-Databricks | Flexible for experimentation; not set-based or ETL-native. |
+| External batch inference (SageMaker/Vertex) | External | Scales, but data leaves the Lakehouse and governance splits. |
+| Dedicated LLM pipeline (LangChain, etc.) | External | Richer orchestration; more infra and separate access model. |
+| Agent Framework / Mosaic AI agents | In-Databricks | For multi-step reasoning and tools; heavier than a SQL call. |
+
+## 11. Strengths
+- Called in plain SQL — no Python, API keys, or client code.
+- Set-based and batched: parallel inference over whole columns.
+- Governed end-to-end by Unity Catalog (functions, models, data).
+- Runs inline in Lakeflow pipelines and SQL transforms.
+- Task functions cover common jobs without prompt engineering.
+- `ai_query` supports any served or external model, including fine-tuned ones.
+- Structured output via `responseFormat` JSON schema.
+- Automatic retries and error handling built into the operator.
+- Usage and token spend visible in system tables.
+- Lowers the barrier for analysts to use LLMs safely.
+
+## 12. Limitations
+- Inference-only — no training, fine-tuning, or state.
+- Batch orientation adds latency; not for interactive apps.
+- Token cost scales with rows and context length, easy to overrun.
+- LLM outputs are non-deterministic; need validation for critical use.
+- Long documents hit context limits and require chunking.
+- No native multi-turn or tool-calling orchestration.
+- Throughput bounded by endpoint capacity and rate limits.
+- Task functions expose limited prompt control vs raw `ai_query`.
+- Quality depends on the chosen base model.
+- External model routing adds egress and dependency on third parties.
+
+## 13. Common Mistakes
+- Running against millions of rows with no cost estimate first.
+- Passing entire documents instead of chunking to fit context.
+- Using LLM functions where deterministic SQL would do.
+- Ignoring `responseFormat`, then parsing messy free text downstream.
+- No validation/guardrails on outputs feeding production tables.
+- Choosing an oversized model when a smaller one meets accuracy.
+- Not monitoring token spend via system tables.
+- Treating pay-per-token endpoints as unlimited throughput.
+- Skipping Unity Catalog permissions on the model endpoint.
+- Re-running full enrichment instead of processing only new rows.
+
+## 14. Design Recommendations
+- ✔ Prototype on a sampled subset before full-table runs.
+- ✔ Use task functions for standard jobs; `ai_query` for custom prompts.
+- ✔ Enforce structured output with `responseFormat` JSON schemas.
+- ✔ Process incrementally — enrich only new or changed rows.
+- ✔ Right-size the model to the accuracy the task needs.
+- ✔ Add downstream validation before writing to trusted tables.
+- ✔ Choose provisioned throughput for large, predictable batches.
+- ✔ Govern model endpoints and functions through Unity Catalog.
+- ✔ Track token usage and cost in system tables from day one.
+- ✔ Chunk long text and aggregate results in SQL.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+|---|---|
+| Batch text enrichment in ETL | ✅ Set-based and native |
+| Analyst self-service LLM tasks | ✅ Plain SQL, no code |
+| Classification / extraction / summary | ✅ Purpose-built functions |
+| Embeddings for retrieval | ✅ `ai_embed` to Vector Search |
+| Low-latency app inference | ❌ Call Model Serving directly |
+| Multi-step agent workflows | ❌ Use Agent Framework |
+| Governed, auditable inference | ✅ Unity Catalog throughout |
+| Deterministic business logic | ❌ Use plain SQL |
+| Structured JSON at scale | ✅ Via `responseFormat` |
+| Millions of rows, cost-sensitive | ⚠️ Estimate spend, right-size model |
+
+## 16. Quick Comparison
+| Criterion | AI Functions | Python UDF + API | Direct Model Serving | External Batch Inference |
+|---|---|---|---|---|
+| Interface | SQL | Python | REST/SDK | Vendor SDK/API |
+| Batching | Built-in | Manual | Manual | Built-in |
+| Governance | Unity Catalog | Partial | Unity Catalog | External |
+| Latency profile | Batch | Batch | Low | Batch |
+| Best user | Analyst / ETL | Engineer | App developer | ML platform team |
+| Data movement | None | None | None | Leaves Lakehouse |
+
+## 17. Maturity
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | High |
+
+## 18. Cost Considerations
+- **Licensing:** consumed via DBSQL/serverless plus model inference; no separate license. Verify current pricing.
+- **Compute:** SQL warehouse compute to run queries, separate from model inference charges.
+- **Storage:** enriched output tables and embeddings add Delta storage; embeddings can be sizable.
+- **Model inference:** pay-per-token on Foundation Model APIs, or provisioned throughput for steady large batches; the dominant cost driver.
+- **Operational Overhead:** low — no infra to manage; main effort is cost monitoring and output validation.
+- **Training:** minimal for analysts (SQL); light prompt/schema design for engineers.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** set-based LLM enrichment (classify, extract, summarize, embed) inside SQL and ETL.
+- ✔ **Avoid when:** you need low-latency app inference or multi-step agent orchestration.
+- ✔ **Biggest benefit:** LLM inference in plain SQL, governed by Unity Catalog, with no external code or data movement.
+- ✔ **Biggest limitation:** batch latency and token cost that scales with volume and context length.
+- ✔ **Overall recommendation:** adopt for analyst and pipeline text enrichment; route real-time and agentic needs to Model Serving and the Agent Framework.

@@ -1,0 +1,227 @@
+---
+sidebar_position: 20
+title: "Audit Logs — Architecture Guide"
+description: "Databricks platform activity logging that records who did what across workspace and account, delivered to storage and queryable through System Tables for compliance, forensics, and monitoring."
+---
+
+# Audit Logs
+
+## 1. Executive Summary
+Audit Logs are the immutable record of who did what, when, and from where across every Databricks workspace and the account, delivered to cloud storage and queryable through the `system.access.audit` System Table.
+
+## 2. Primary Purpose
+- **Why it exists:** provide a tamper-evident, centralized trail of user, admin, and service-principal actions for compliance and security.
+- **Business problem:** regulators and auditors (SOX, HIPAA, GDPR, PCI, FedRAMP) require provable answers to "who accessed or changed this."
+- **Technical problem:** activity was previously scattered across UI, APIs, and cloud provider logs with no unified schema or retention.
+- **Scope:** workspace-level events (notebooks, jobs, clusters, SQL) and account-level events (identity, metastore, billing, settings).
+
+## 3. Where It Fits in the Lakehouse
+```text
+Users / Admins / Service Principals / APIs / BI / AI Agents
+        ↓  (every action emits an event)
+Control Plane (workspace + account operations)
+        ↓
+┌───────────────────────────────────────────────┐
+│  AUDIT LOGGING  (event capture + delivery)      │
+│  actor · action · resource · time · source IP   │
+└───────────────────────────────────────────────┘
+        ↓                          ↓
+system.access.audit          Log delivery to
+(System Table, SQL)          cloud storage (JSON)
+        ↓                          ↓
+SIEM / Dashboards / Alerts   Long-term retention
+```
+- Sits at the **observability edge** of the platform — it records actions, it does not enforce them.
+- Two delivery paths: **System Tables** (queryable Delta) and **log delivery** to object storage (raw JSON for archival/SIEM).
+- Captures both **workspace** and **account** planes; account-level events are essential for identity and billing forensics.
+- Reads through Unity Catalog grants when queried via System Tables.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☐ Developer Experience
+☐ Data Engineering
+☑ Data Governance
+☐ AI
+☐ Machine Learning
+☐ Storage
+☑ Security
+☑ Administration
+☑ Monitoring
+```
+- Core **Security + Governance** control: the evidence layer for access reviews and incident response.
+- **Administration + Monitoring** because admins configure delivery and build alerting/dashboards on the events.
+- Complements Unity Catalog: UC enforces access, Audit Logs prove and review it.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+|---|---|---|
+| Regulatory audit evidence (SOX, HIPAA, PCI) | ✅ | Immutable who-did-what trail |
+| Security incident forensics | ✅ | Reconstruct actor, action, source IP, time |
+| Detecting anomalous data access | ✅ | Query access events for outliers |
+| Feeding a SIEM (Splunk, Sentinel, Chronicle) | ✅ | Log delivery to storage or table export |
+| Periodic access certification / reviews | ✅ | Grant and login history queryable |
+| Tracking permission and grant changes | ✅ | UC and workspace ACL events logged |
+| Monitoring failed login / auth attempts | ✅ | Account-level authentication events |
+| Service-principal and token activity audit | ✅ | Non-human actors are logged |
+| Change tracking on jobs, clusters, warehouses | ✅ | Create/edit/delete events captured |
+| Billing and account-configuration audit | ✅ | Account-plane events recorded |
+| Data exfiltration investigation | ✅ | Download/export and query events |
+| Insider-threat monitoring | ⚠️ | Signals present but needs correlation logic |
+| Real-time blocking of malicious actions | ⚠️ | Logging is near-real-time, not preventive |
+| Row-level content of queries/results | ⚠️ | Metadata is logged, not full result data |
+| Sub-second detection SLAs | ⚠️ | Delivery latency measured in minutes |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Preventing an action in-line | ❌ | Not an enforcement point; use UC/network controls |
+| Application-level business audit trail | ❌ | Logs platform ops, not your app's domain events |
+| Capturing full query result contents | ❌ | Records metadata, not returned rows |
+| Real-time (sub-second) threat response | ⚠️ | Events arrive with minutes of latency |
+| Debugging job logic / stack traces | ⚠️ | Use job run logs and observability, not audit |
+| Sole source for cost analysis | ⚠️ | Use billing/usage System Tables instead |
+| Retention beyond default without a plan | ⚠️ | System Table retention is finite; archive to storage |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 3 |
+| Analytics Engineers | 3 |
+| Platform Engineers | 5 |
+| Data Scientists | 2 |
+| BI Teams | 2 |
+| AI Engineers | 2 |
+| Executives | 4 |
+| Architects | 5 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 2 |
+| Implementation Speed | 4 |
+| Governance | 5 |
+| Security | 5 |
+| Maintainability | 4 |
+| Scalability | 5 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 4 |
+| Business Value | 4 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Unity Catalog | Governs access to System Tables and is itself a rich audit source. |
+| System Tables | Exposes `system.access.audit` as queryable Delta for SQL analysis. |
+| Cloud object storage | Destination for raw JSON log delivery and long-term archive. |
+| Databricks SQL / Photon | Query engine for audit dashboards and investigations. |
+| Account & identity federation | Source of account-plane authentication and identity events. |
+| Lakeflow Jobs | Schedules recurring audit queries, exports, and retention jobs. |
+| Databricks Apps / Dashboards | Surface access reviews and monitoring views to stakeholders. |
+| SIEM platforms | External consumers of delivered logs for correlation and alerting. |
+| Cloud provider logs (CloudTrail, etc.) | Complement Databricks events with infrastructure-layer actions. |
+| Delta Lake | Underlying storage format for the audit System Table. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| System Tables only (no log delivery) | In-Databricks | Simple SQL access, but finite retention and no raw archive. |
+| Log delivery to storage only | In-Databricks | Full retention control, but you build all querying yourself. |
+| Cloud provider logs (AWS CloudTrail, Azure Monitor, GCP Audit) | External | Captures infra/API calls, but lacks Databricks in-platform context. |
+| SIEM-only ingestion (Splunk, Sentinel) | External | Central correlation, but depends on Databricks feeding it first. |
+| Manual / ticket-based access review | External/manual | No tooling cost, but not provable, timely, or scalable. |
+| Third-party data security posture tools | External | Added detection/UX, but another integration and license. |
+
+## 11. Strengths
+- Unified schema for workspace and account events across all workspaces.
+- Queryable as Delta via `system.access.audit` — standard SQL, no parsing.
+- Two delivery paths cover both live analysis and long-term archival.
+- Records non-human actors (service principals, tokens, automations).
+- Captures source IP, user agent, and request parameters for forensics.
+- Immutable, platform-managed capture — actors cannot edit their own trail.
+- Integrates cleanly with SIEM and existing security operations.
+- Governed by Unity Catalog, so audit data itself is access-controlled.
+- Low setup effort for System Tables; enablement is account-side.
+- Scales with platform usage without customer-managed infrastructure.
+
+## 12. Limitations
+- Not preventive — records actions after they occur; no in-line blocking.
+- Delivery latency is minutes, unsuitable for sub-second response.
+- System Table retention is finite; long retention needs storage delivery.
+- Logs metadata, not full query text results or file contents.
+- Event coverage varies by service and evolves across releases.
+- Account-level logging requires account-admin configuration.
+- High-volume environments generate large volumes needing lifecycle policies.
+- Schema changes over time can break brittle downstream parsers.
+- Cross-cloud accounts produce separate delivery configurations.
+- Correlation and detection logic must be built or bought separately.
+
+## 13. Common Mistakes
+- Enabling System Tables but never configuring storage delivery for retention.
+- Assuming audit logging enforces or blocks anything.
+- Ignoring account-level events, missing identity and billing changes.
+- No alerting layer, so events are only read reactively after incidents.
+- Granting broad access to the audit table itself, undermining its integrity.
+- Treating latency as real-time and building blocking logic on it.
+- No lifecycle/retention policy on delivered logs, causing cost creep.
+- Building fragile parsers instead of querying the governed System Table.
+- Not correlating Databricks events with cloud provider logs.
+- Failing to test that expected events actually appear before an audit.
+
+## 14. Design Recommendations
+- ✔ Enable both System Tables and storage log delivery from day one.
+- ✔ Restrict the audit catalog to a small security/governance group.
+- ✔ Ship delivered logs to your SIEM for correlation and retention.
+- ✔ Build scheduled queries and alerts for high-risk events (grants, exports, failed logins).
+- ✔ Define retention and storage lifecycle policies up front.
+- ✔ Combine Databricks events with cloud provider logs for full coverage.
+- ✔ Version and test downstream queries against schema evolution.
+- ✔ Include both workspace and account planes in every review.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+|---|---|
+| Compliance evidence | ✅ Immutable trail |
+| Security forensics | ✅ Actor, action, IP, time |
+| Access certification | ✅ Grant/login history |
+| SIEM integration | ✅ Storage or table export |
+| Anomalous access detection | ✅ Query-based signals |
+| Long-term retention | ⚠️ Needs storage delivery |
+| Real-time blocking | ❌ Not an enforcer |
+| App business audit trail | ❌ Platform ops only |
+| Full result-data capture | ❌ Metadata only |
+| Cost analysis | ⚠️ Use billing System Tables |
+
+## 16. Quick Comparison
+| Criterion | Databricks Audit Logs | Cloud provider logs (CloudTrail) | SIEM-only | Manual review |
+|---|---|---|---|---|
+| Databricks in-platform context | Full | Minimal | Depends on feed | Low |
+| Query interface | SQL (System Tables) | Provider tooling | SIEM query | None |
+| Retention control | Via storage delivery | Provider-managed | High | N/A |
+| Setup effort | Low | Medium | Medium–High | Low |
+| Enforcement | No | No | No | No |
+| Best role | Platform audit trail | Infra-layer actions | Correlation hub | Last resort |
+
+## 17. Maturity
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+- **Licensing:** audit logging is included with Databricks; System Tables have no separate license. Verify current pricing.
+- **Compute:** cost comes from querying and processing audit data (SQL warehouses, jobs), not from capture itself.
+- **Storage:** delivered JSON logs and long retention consume cloud object storage; apply lifecycle policies.
+- **Operational Overhead:** building alerts, dashboards, SIEM pipelines, and retention automation is the main effort.
+- **Training:** upskilling security and platform teams on the audit schema and query patterns; assign a clear owner.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** organizations needing provable, centralized who-did-what evidence for compliance and security across Databricks.
+- ✔ **Avoid when:** you need in-line prevention or a real-time blocking control — this is a record, not an enforcer.
+- ✔ **Biggest benefit:** a unified, immutable, SQL-queryable trail of platform activity spanning workspace and account.
+- ✔ **Biggest limitation:** it is after-the-fact with minutes of latency and finite default retention.
+- ✔ **Overall recommendation:** enable System Tables and storage delivery together, feed a SIEM, and build alerting on high-risk events from day one.

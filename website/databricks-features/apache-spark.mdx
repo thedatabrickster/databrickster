@@ -1,0 +1,237 @@
+---
+sidebar_position: 20
+title: "Apache Spark on Databricks — Architecture Guide"
+description: "The managed distributed compute engine for DataFrame, SQL, and Structured Streaming workloads, accelerated by Photon and packaged in the Databricks Runtime."
+---
+
+# Apache Spark on Databricks
+
+## 1. Executive Summary
+Apache Spark on Databricks is the managed, distributed compute engine — delivered through the Databricks Runtime (DBR) and accelerated by Photon — that runs the DataFrame, SQL, and Structured Streaming workloads underpinning ETL, ML, and streaming across the Lakehouse.
+
+## 2. Primary Purpose
+- **Why it exists:** processing datasets larger than one machine requires distributed, fault-tolerant parallelism across a cluster.
+- **Business problem solved:** one engine serves batch ETL, streaming, SQL, and ML, avoiding separate specialized systems and the copies between them.
+- **Technical problem solved:** partition-parallel execution, in-memory pipelining, a cost-based optimizer (Catalyst), and vectorized execution (Photon) on data in open formats.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Users / BI / ML / Apps / Notebooks
+        ↓
+Language APIs   (PySpark, Spark SQL, Scala, R, Spark Connect)
+        ↓
+Compute Engine  →→→ Apache Spark + Photon  (Catalyst optimizer, DBR)
+        ↓
+Governance      (Unity Catalog: permissions, lineage)
+        ↓
+Table Format    (Delta Lake: transaction log + Parquet)
+        ↓
+Object Storage  (S3 / ADLS / GCS)
+```
+
+- Spark is the **compute/execution layer**: it plans, distributes, and runs the work.
+- It reads and writes through **Delta** and is governed by **Unity Catalog** on every job.
+- It is the **shared engine** beneath Databricks SQL, Lakeflow, and MLflow workloads.
+- Photon is the native vectorized execution layer that runs inside the same engine.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☑ Developer Experience
+☑ Data Engineering
+☐ Data Governance
+☐ AI
+☑ Machine Learning
+☐ Storage
+☐ Security
+☐ Administration
+☐ Monitoring
+```
+- Core placement is **Data Engineering** — the execution engine for ETL and streaming.
+- Strong **Machine Learning** role: distributed feature engineering and training at scale.
+- **Developer Experience**: DataFrame/SQL APIs and notebooks are the primary build surface.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+|---|---|---|
+| Large-scale batch ETL / transformations | ✅ | Partition-parallel execution scales beyond one node |
+| Medallion (Bronze/Silver/Gold) processing | ✅ | Native Delta read/write with MERGE and schema handling |
+| Structured Streaming (near-real-time) | ✅ | Exactly-once micro-batch/continuous pipelines |
+| Joining and aggregating multi-TB datasets | ✅ | Distributed shuffle + Catalyst optimization |
+| SQL analytics on lakehouse tables | ✅ | Spark SQL and Photon accelerate scans/aggregations |
+| Distributed feature engineering for ML | ✅ | Scales preprocessing across the cluster |
+| Parsing/flattening semi-structured data (JSON/XML) | ✅ | Rich built-in functions and schema inference |
+| CDC and incremental upserts into Delta | ✅ | MERGE and Change Data Feed at scale |
+| Backfills and large reprocessing jobs | ✅ | Elastic clusters absorb burst compute |
+| Petabyte-scale scans with column pruning | ✅ | Predicate/projection pushdown on Parquet/Delta |
+| Multi-language pipelines (Python/SQL/Scala) | ✅ | Unified engine across language APIs |
+| Thin-client / remote app access to Spark | ⚠️ | Use Spark Connect; some legacy APIs unsupported |
+| Small single-node datasets (under 10 GB) | ⚠️ | Single-node or DuckDB may be cheaper/faster |
+| Sub-second interactive point lookups | ⚠️ | Not an OLTP path; use online tables/Lakebase |
+| UDF-heavy row-by-row logic | ⚠️ | Prefer built-ins/Photon; Python UDFs limit vectorization |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| High-concurrency transactional OLTP | ❌ | Not a transactional database; use an OLTP store |
+| Millisecond single-key lookups | ❌ | Distributed job startup dominates; use a KV/online store |
+| Tiny datasets on a schedule | ⚠️ | Cluster/JVM overhead can exceed the work itself |
+| Ultra-low-latency event processing (ms) | ⚠️ | Micro-batch adds latency; consider Flink for true streaming |
+| Simple single-file report queries | ⚠️ | Single-node engines avoid distribution overhead |
+| Long-lived stateful custom services | ❌ | Spark is a batch/stream engine, not an app runtime |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 5 |
+| Analytics Engineers | 4 |
+| Platform Engineers | 4 |
+| Data Scientists | 4 |
+| BI Teams | 3 |
+| AI Engineers | 3 |
+| Executives | 2 |
+| Architects | 5 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 4 |
+| Implementation Speed | 4 |
+| Governance | 4 |
+| Security | 4 |
+| Maintainability | 4 |
+| Scalability | 5 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 3 |
+| Business Value | 5 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Delta Lake | Default table format Spark reads and writes with ACID semantics. |
+| Unity Catalog | Governs, secures, and traces lineage for every Spark read/write. |
+| Photon | Native C++ vectorized engine that accelerates Spark SQL/DataFrame ops. |
+| Databricks Runtime (DBR) | Managed, tuned Spark distribution with libraries and patches. |
+| Lakeflow Jobs | Orchestrates and schedules Spark workloads in production. |
+| Lakeflow Declarative Pipelines | Declarative ETL layer that compiles to Spark execution. |
+| Serverless Compute | Elastic, managed clusters that run Spark without VM management. |
+| Spark Connect | Decoupled client protocol for remote/thin-client Spark sessions. |
+| MLflow / Feature Engineering | Consumes Spark-computed features and distributed training runs. |
+| Structured Streaming | Spark's streaming API for incremental, exactly-once pipelines. |
+| Cloud Object Storage | Underlying persistence layer Spark scans and writes. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Databricks SQL warehouses | In-Databricks SQL compute | Turnkey SQL/BI serving on the same engine; less suited to code-first Python/Scala ETL. |
+| OSS Apache Spark (self-managed) | Open-source engine | No license cost, full control; you own tuning, patching, Photon is absent, higher ops burden. |
+| Amazon EMR / Google Dataproc | Managed cloud Spark | Cloud-native managed Spark; weaker lakehouse governance and no Photon/DBR optimizations. |
+| Apache Flink | Stream-processing engine | True low-latency, event-at-a-time streaming; more complex, weaker batch/SQL unification. |
+| DuckDB / single-node engines | In-process analytics | Fast and cheap for small/medium data; no distribution beyond one machine. |
+| Snowflake compute (warehouses) | Managed warehouse | Strong SQL performance and simplicity; proprietary storage, less flexible for code-first ML/ETL. |
+
+## 11. Strengths
+- Distributed, fault-tolerant execution scales from gigabytes to petabytes.
+- One engine unifies batch, SQL, streaming, and ML workloads.
+- Catalyst optimizer and adaptive query execution tune plans automatically.
+- Photon vectorization accelerates SQL/DataFrame ops without code changes.
+- Managed DBR removes version, patch, and library-compatibility toil.
+- Native, optimized Delta Lake read/write with pushdown and MERGE.
+- Multi-language APIs (Python, SQL, Scala, R) over the same execution core.
+- Spark Connect decouples clients from the driver for thin/remote access.
+- Elastic and serverless compute options absorb bursty workloads.
+- Mature, widely adopted ecosystem with deep Databricks integration.
+
+## 12. Limitations
+- Cluster and JVM startup overhead makes tiny jobs inefficient.
+- Micro-batch streaming adds latency versus true event-at-a-time engines.
+- Python UDFs break vectorization and slow Photon-eligible plans.
+- Data skew and shuffle spills require manual tuning to avoid stragglers.
+- Not a transactional or low-latency point-lookup system.
+- Photon is Databricks-proprietary; OSS Spark does not include it.
+- Memory pressure and out-of-memory failures need cluster right-sizing.
+- Spark Connect does not yet support every legacy RDD/API path.
+- Cost scales with runtime and cluster size; idle or over-provisioned clusters waste spend.
+- Deep tuning (partitions, joins, caching) has a real learning curve.
+
+## 13. Common Mistakes
+- Running many tiny jobs on large clusters, paying startup overhead repeatedly.
+- Overusing Python UDFs instead of built-in/SQL functions or pandas UDFs.
+- Ignoring data skew, causing a few tasks to dominate runtime.
+- Collecting large results to the driver and triggering out-of-memory errors.
+- Over- or under-partitioning shuffles and fighting adaptive execution.
+- Leaving clusters running idle instead of using auto-termination/serverless.
+- Caching aggressively without measuring, wasting executor memory.
+- Assuming OSS-Spark behavior/tuning transfers unchanged to Photon.
+- Bypassing Unity Catalog by reading raw paths and losing governance.
+
+## 14. Design Recommendations
+- ✔ Enable Photon for SQL/DataFrame-heavy workloads to cut runtime and cost.
+- ✔ Prefer built-in and SQL functions over UDFs; use pandas UDFs when UDFs are unavoidable.
+- ✔ Let adaptive query execution manage partitions before hand-tuning.
+- ✔ Use serverless or autoscaling with auto-termination to control spend.
+- ✔ Write to Delta and govern all access through Unity Catalog.
+- ✔ Right-size clusters to workload shape; separate ETL and interactive pools.
+- ✔ Use Structured Streaming for incremental ingestion instead of full reloads.
+- ✔ Adopt Spark Connect for remote clients and application integration.
+- ✔ Push filters/projections early to minimize scanned data.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+|---|---|
+| Large-scale batch ETL | ✅ Purpose-built engine |
+| Distributed multi-TB joins | ✅ Scales via shuffle |
+| Near-real-time streaming | ✅ Structured Streaming |
+| Code-first Python/Scala pipelines | ✅ Native DataFrame APIs |
+| Distributed ML feature engineering | ✅ Scales preprocessing |
+| Pure BI/SQL serving | ⚠️ Databricks SQL may fit better |
+| Small single-node data | ⚠️ Single-node/DuckDB cheaper |
+| Millisecond OLTP lookups | ❌ Use online tables/OLTP |
+| True ms-latency streaming | ⚠️ Consider Flink |
+| Governed lakehouse access | ✅ Via Unity Catalog |
+
+## 16. Quick Comparison
+
+| Criteria | Spark on Databricks | OSS Spark (self-managed) | EMR / Dataproc | Flink | DuckDB (single-node) |
+|---|---|---|---|---|---|
+| Distributed scale | High | High | High | High | None |
+| Managed runtime | Yes (DBR) | No | Partial | Partial | N/A |
+| Vectorized acceleration | Photon | None | None | Limited | Native |
+| Streaming latency | Micro-batch | Micro-batch | Micro-batch | Event-level | N/A |
+| Lakehouse governance | Native (UC) | Manual | Limited | Limited | None |
+| Ops burden | Low | High | Medium | Medium | Very low |
+
+## 17. Maturity
+
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High (with Unity Catalog) |
+| AI Readiness | High |
+
+## 18. Cost Considerations
+- **Licensing:** Apache Spark is open-source; on Databricks, compute bills as DBUs plus cloud VMs. Photon and serverless carry their own rates. Verify current pricing.
+- **Compute:** dominant cost driver — scales with cluster size and runtime; Photon can lower total cost by shortening jobs even at a higher per-DBU rate.
+- **Storage:** minimal for the engine itself; costs sit in the underlying Delta/object storage it reads and writes.
+- **Operational Overhead:** low on managed DBR/serverless; much higher for self-managed OSS Spark (patching, tuning, scaling).
+- **Training:** moderate — DataFrame/SQL basics transfer quickly; distributed tuning (skew, shuffles, partitioning) requires deeper ramp-up.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** large-scale, distributed ETL, streaming, and ML on the Lakehouse using one governed engine.
+- ✔ **Avoid when:** workloads are small single-node, transactional, or require millisecond point lookups.
+- ✔ **Biggest benefit:** one scalable engine for batch, SQL, streaming, and ML, accelerated by Photon and managed via DBR.
+- ✔ **Biggest limitation:** distribution overhead and tuning make it a poor fit for tiny or ultra-low-latency workloads.
+- ✔ **Overall recommendation:** adopt as the default compute engine; enable Photon, govern with Unity Catalog, and use serverless/autoscaling to control cost.
+
+See the full [feature catalog](/databricks-features) for related guides.

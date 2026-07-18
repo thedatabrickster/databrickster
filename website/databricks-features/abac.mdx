@@ -1,0 +1,226 @@
+---
+sidebar_position: 20
+title: "Attribute-Based Access Control (ABAC) — Architecture Guide"
+description: "Policy-based access control in Unity Catalog that grants and masks data using tags and attributes on data and principals, scaling governance beyond per-object grants."
+---
+
+# Attribute-Based Access Control (ABAC)
+
+## 1. Executive Summary
+ABAC is a Unity Catalog governance model that authorizes access and applies masking through central policies matched on tags and attributes of data objects and principals, instead of thousands of per-object grants.
+
+## 2. Primary Purpose
+- **Why it exists:** express access intent once as policy and have it apply automatically to every object that matches, present and future.
+- **Business problem:** manual grants and view sprawl do not scale to thousands of tables and dozens of regulations, and drift into audit gaps.
+- **Technical problem:** row filters, column masks, and `GRANT` statements are per-object and must be re-applied on every new table, view, or schema.
+- **Scope:** governs tables and views (row filtering and column masking today) using governed tags at catalog, schema, table, and column level.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Users / BI / Notebooks / AI Agents / SQL / Apps
+        ↓
+Compute (Serverless, SQL Warehouses, Shared clusters)
+        ↓
+┌──────────────────────────────────────────────┐
+│  UNITY CATALOG                                 │
+│   ┌────────────────────────────────────────┐  │
+│   │  ABAC POLICY ENGINE                      │ │
+│   │  match on tags/attributes → filter/mask  │ │
+│   └────────────────────────────────────────┘  │
+│  grants · row filters · column masks · lineage │
+└──────────────────────────────────────────────┘
+        ↓
+Delta Lake / Parquet / Volumes on object storage
+```
+- Sits **inside Unity Catalog**, at the same enforcement point as grants — evaluated at query time on UC-compliant compute.
+- Operates on **governed tags**, so it is only as good as the tagging taxonomy underneath it.
+- Complements, not replaces, `GRANT`: grants decide *if* you reach an object; ABAC decides *which rows and columns* you see.
+- Policies are **inherited down the namespace**, so one policy at a catalog covers current and future child tables.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☐ Developer Experience
+☐ Data Engineering
+☑ Data Governance
+☐ AI
+☐ Machine Learning
+☐ Storage
+☑ Security
+☑ Administration
+☐ Monitoring
+```
+- A **Data Governance** control: it defines and enforces who sees what data content.
+- **Security + Administration** because policy authorship, tag stewardship, and principal attributes are administrative controls.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+|---|---|---|
+| Mask PII columns everywhere they appear | ✅ | One policy on a `pii` tag covers all matches |
+| Enforce consistent rules across many tables | ✅ | Central policy beats per-table repetition |
+| Auto-govern newly created tables | ✅ | Inheritance applies policy without re-grant |
+| Region or country data residency filtering | ✅ | Row filter keyed on a region tag + principal attribute |
+| Classification-driven access (public/internal/restricted) | ✅ | Tag taxonomy maps directly to policy |
+| Reduce dynamic-view sprawl | ✅ | Replaces many hand-written masking views |
+| Column masking by data sensitivity | ✅ | Native column-mask policy on tagged columns |
+| Domain-based access in a data mesh | ✅ | Domain tags scope policy per business area |
+| Least-privilege at enterprise scale | ✅ | Fewer artifacts to author and audit |
+| Prove uniform control to auditors | ✅ | Policy is centrally listed and reviewable |
+| Rules changing as tags evolve | ✅ | Re-tagging shifts enforcement, no DDL rewrite |
+| Volumes / non-tabular file masking | ⚠️ | Current scope centers on tables and views |
+| Highly bespoke per-table logic | ⚠️ | One-off rules may still suit a dedicated view |
+| Sub-second OLTP authorization | ⚠️ | Optimized for analytics, not transactional paths |
+| External (non-UC) engines enforcing the rule | ⚠️ | Enforcement lives in UC compute |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| No tagging taxonomy in place | ❌ | ABAC has nothing to match on; fix tags first |
+| Object-level yes/no access only | ❌ | Plain `GRANT`/`REVOKE` is simpler and sufficient |
+| Governing non-Databricks query engines | ❌ | Rule is enforced by UC-aware compute only |
+| Legacy Hive metastore data | ❌ | ABAC requires Unity Catalog |
+| One highly custom rule on a single table | ⚠️ | A targeted view or mask may be clearer |
+| Application/user IAM outside data | ⚠️ | Out of ABAC's data-governance scope |
+| Fine-grained control on no-isolation clusters | ⚠️ | Needs serverless/shared UC compute |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 4 |
+| Analytics Engineers | 4 |
+| Platform Engineers | 5 |
+| Data Scientists | 3 |
+| BI Teams | 3 |
+| AI Engineers | 3 |
+| Executives | 4 |
+| Architects | 5 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 4 |
+| Implementation Speed | 3 |
+| Governance | 5 |
+| Security | 5 |
+| Maintainability | 5 |
+| Scalability | 5 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 3 |
+| Business Value | 4 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Unity Catalog | Hosts the policy engine and evaluates it at query time. |
+| Governed Tags | The attributes policies match on for data objects and columns. |
+| Row Filters & Column Masks | The enforcement primitives ABAC applies at scale. |
+| Identity federation (SCIM) | Supplies groups and principal attributes used in policies. |
+| Delta Lake | Governed table format the policies read against. |
+| Serverless / Shared compute | UC-compliant engines that enforce fine-grained rules. |
+| Databricks SQL & Photon | Apply policy predicates during query execution. |
+| System Tables & Audit Logs | Surface tag coverage, policy usage, and access records. |
+| Terraform / Asset Bundles | Codify tags and policies as version-controlled config. |
+| Lineage | Shows where tagged, policy-governed data propagates. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Manual `GRANT`/`REVOKE` | In-Databricks | Simple but per-object; no content-level rules, scales poorly |
+| Row filters / column masks applied per table | In-Databricks | Same enforcement, but authored and maintained one object at a time |
+| Dynamic views (CASE / `is_member`) | In-Databricks | Flexible logic, but view sprawl and manual upkeep per view |
+| Immuta | External policy engine | Rich policy features and multi-platform, but added product, cost, integration |
+| Open Policy Agent (OPA) | External OSS engine | General-purpose policy, but not native to UC data-plane enforcement |
+| Cloud IAM / storage policies | External | Coarse, storage-level; no row/column or tag-based logic |
+
+## 11. Strengths
+- One central policy replaces many repeated per-object grants and masks.
+- Inheritance auto-governs future tables and columns without new DDL.
+- Tag-driven, so intent reads in business terms (`pii`, `restricted`, `region`).
+- Consistent enforcement reduces drift and audit gaps.
+- Native to Unity Catalog — same enforcement point as grants and lineage.
+- Cuts dynamic-view sprawl and the maintenance it carries.
+- Policies are centrally listable and reviewable for compliance.
+- Re-tagging changes enforcement without rewriting queries or views.
+- Works across BI, SQL, notebooks, and AI access through the same rule.
+- Codifiable as config (Terraform / Asset Bundles) for repeatable rollout.
+
+## 12. Limitations
+- Only as reliable as the tagging taxonomy; untagged data is ungoverned.
+- Current scope centers on tables and views (row filter + column mask).
+- Requires Unity Catalog and UC-compliant compute; no legacy Hive support.
+- Enforcement is in-Databricks; external engines do not honor the policy.
+- Capability set is maturing and evolves across Databricks releases.
+- Debugging "why did I see this row" spans tags, policies, and principal attributes.
+- Broad policies can over- or under-mask if tags are applied inconsistently.
+- Tag stewardship becomes an ongoing operational responsibility.
+- Not a substitute for object-level grants; both models coexist.
+- Complex conditional logic can still exceed what tag matching expresses cleanly.
+
+## 13. Common Mistakes
+- Rolling out ABAC before a tagging taxonomy exists or is enforced.
+- Assuming tags are auto-applied; most need deliberate assignment.
+- Keeping dynamic views and ABAC in parallel, creating conflicting logic.
+- Writing policies against individual users instead of groups/attributes.
+- Ignoring inheritance and re-authoring the same policy per schema.
+- No process to tag new columns, so sensitive fields leak through.
+- Not testing policy outcomes per persona before production cutover.
+- Skipping audit/system-table review to confirm coverage.
+- Expecting external tools or legacy compute to enforce the rule.
+
+## 14. Design Recommendations
+- ✔ Establish a **tag taxonomy first** (classification, PII, region, domain) and enforce it.
+- ✔ Author policies at the **catalog or schema level** and rely on inheritance.
+- ✔ Match on **groups and principal attributes**, never individual users.
+- ✔ Migrate existing dynamic views/manual masks toward ABAC to remove overlap.
+- ✔ Automate tagging where possible (classification jobs, naming conventions).
+- ✔ Codify tags and policies in **Terraform / Asset Bundles**; review via PRs.
+- ✔ Test each policy against representative personas before enabling.
+- ✔ Monitor tag coverage and policy usage via **system tables**.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+|---|---|
+| Consistent masking across many tables | ✅ Central tag-based policy |
+| Auto-govern future objects | ✅ Namespace inheritance |
+| Row/column content control | ✅ Native filter and mask |
+| Classification-driven access | ✅ Maps to tag taxonomy |
+| Object-level yes/no access | ⚠️ Plain grants suffice |
+| One-off custom table rule | ⚠️ A dedicated view may be clearer |
+| Governance without a tag strategy | ❌ Build tags first |
+| Enforce on non-UC engines | ❌ UC compute only |
+| Legacy Hive metastore data | ❌ Requires Unity Catalog |
+| Application/user IAM | ❌ Out of scope |
+
+## 16. Quick Comparison
+| Criterion | ABAC | Manual GRANTs | Dynamic views | Immuta / OPA |
+|---|---|---|---|---|
+| Granularity | Row + column, tag-based | Object-level | Row + column, coded | Row + column, policy-based |
+| Scales to many objects | Yes (inheritance) | No (per object) | Partial (per view) | Yes |
+| Covers future objects | Yes | No | No | Yes |
+| Native to Unity Catalog | Yes | Yes | Yes | No (external) |
+| Added product/cost | No | No | No | Yes |
+| Multi-platform reach | Databricks only | Databricks only | Databricks only | Multi-platform |
+
+## 17. Maturity
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | Medium–High |
+| Enterprise Readiness | Medium–High |
+| Production Readiness | Medium |
+| Governance Readiness | High |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+- **Licensing:** part of Unity Catalog; no separate ABAC license. Verify current pricing.
+- **Compute:** policy evaluation runs at query time on serverless/shared UC compute (billed as compute); predicates add modest overhead.
+- **Storage:** none directly; tags and policies are metadata.
+- **Operational Overhead:** the real cost is tag taxonomy design, tagging, policy authoring, and ongoing stewardship.
+- **Training:** upskilling on tags, policy syntax, inheritance, and principal attributes; budget for a governance owner.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** enforcing consistent, content-level access rules across many tables at enterprise scale.
+- ✔ **Avoid when:** you lack a tagging taxonomy or only need simple object-level yes/no access.
+- ✔ **Biggest benefit:** author intent once as central policy and have it apply automatically, including to future objects.
+- ✔ **Biggest limitation:** governance quality depends entirely on disciplined, consistent tagging.
+- ✔ **Overall recommendation:** adopt within Unity Catalog once a tag taxonomy exists; lead with tags, use inheritance, and retire overlapping dynamic views.

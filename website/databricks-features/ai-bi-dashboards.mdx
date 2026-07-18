@@ -1,0 +1,220 @@
+---
+sidebar_position: 20
+title: "AI/BI Dashboards — Architecture Guide"
+description: "Native, governed dashboards on the Lakehouse — visualizations built directly on Unity Catalog data and backed by SQL warehouses, paired with Genie for natural language."
+---
+
+# AI/BI Dashboards
+
+## 1. Executive Summary
+AI/BI Dashboards are Databricks-native dashboards that build visualizations directly on Unity Catalog-governed data, execute on SQL warehouses, and pair with Genie for natural-language analysis — no separate BI server required.
+
+## 2. Primary Purpose
+- **Why it exists:** provide first-party dashboarding on the Lakehouse so BI runs on the same governed data as engineering and ML.
+- **Business problem solved:** removes the cost, extract copies, and split governance of standing up a separate BI platform for internal reporting.
+- **Technical problem solved:** interactive charts, filters, and sharing served straight from Delta via SQL warehouses, with access enforced centrally.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Users / Executives / BI Analysts / Business Users
+        ↓
+AI/BI Dashboards  +  Genie (natural language)
+        ↓
+Databricks SQL  →  SQL Warehouses (Serverless / Pro / Classic) + Photon
+        ↓
+Unity Catalog   (permissions · lineage · masking · audit)
+        ↓
+Delta Lake      (tables · materialized views · metric views)
+```
+- AI/BI Dashboards are the **native visualization/consumption layer** — a read front door for business users.
+- They render on SQL warehouse compute; they add no separate BI server or engine.
+- Genie sits alongside as the natural-language companion over the same governed data.
+- Datasets and permissions inherit from Unity Catalog — dashboards are not a new governance island.
+
+## 4. Typical Architecture Placement
+```
+☑ User Interface
+☐ Developer Experience
+☐ Data Engineering
+☐ Data Governance
+☐ AI
+☐ Machine Learning
+☐ Storage
+☐ Security
+☐ Administration
+☑ Monitoring
+```
+- **User Interface:** the primary consumption surface for charts, filters, and shared reports.
+- **Monitoring:** operational and usage dashboards over system tables and pipeline metrics are a common pattern.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+|---|---|---|
+| Internal executive/operational reporting | ✅ | Native, governed, no extra BI platform |
+| Dashboards over UC-governed Delta data | ✅ | Reads in place with inherited permissions |
+| Self-service exploration for business users | ✅ | Point-and-click plus Genie natural language |
+| Pairing dashboards with NL Q&A | ✅ | Genie shares datasets and warehouse |
+| Sharing to Databricks-account users | ✅ | Native sharing with UC-enforced access |
+| Embedding reports in internal apps/portals | ✅ | Secure embedding via published links/iframes |
+| Cross-workspace reporting on shared catalog | ✅ | One governed dataset, many consumers |
+| Consolidating scattered legacy SQL dashboards | ✅ | Successor to legacy DBSQL dashboards |
+| Scheduled snapshots / email distribution | ✅ | Built-in schedules and subscriptions |
+| Metric-view-based governed KPIs | ✅ | Reuses semantic definitions in UC |
+| Public/anonymous external distribution | ⚠️ | Embedding is oriented to governed users |
+| Pixel-perfect financial/print statements | ⚠️ | Layout control is lighter than dedicated BI |
+| Deep drill-through across many report pages | ⚠️ | Simpler model than Power BI/Tableau |
+| Enterprise-wide standard semantic model | ⚠️ | Use metric views; modeling is lighter |
+| Very high-cardinality slice-and-dice ad hoc | ⚠️ | Governed by warehouse sizing and cost |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Existing large Power BI/Tableau estate | ⚠️ | Keep incumbent; use DBSQL as the source |
+| Highly customized/branded external portals | ⚠️ | Embedding and theming are more constrained |
+| Complex multi-source blended reporting | ⚠️ | Best on Lakehouse data; blend upstream first |
+| Operational OLTP dashboards (ms refresh) | ❌ | Warehouse is analytical, not sub-second OLTP |
+| Advanced statistical/custom-viz workbench | ❌ | Use notebooks or a specialized viz tool |
+| Offline/disconnected report consumption | ❌ | Serving requires the platform online |
+| Rich write-back / planning applications | ❌ | Dashboards are read-oriented, not write-back |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 3 |
+| Analytics Engineers | 5 |
+| Platform Engineers | 3 |
+| Data Scientists | 3 |
+| BI Teams | 5 |
+| AI Engineers | 3 |
+| Executives | 5 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 4 |
+| Implementation Speed | 5 |
+| Governance | 5 |
+| Security | 5 |
+| Maintainability | 4 |
+| Scalability | 4 |
+| Cost Optimization | 4 |
+| Ease of Adoption | 5 |
+| Business Value | 4 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Unity Catalog | Enforces permissions, masking, lineage, and audit on dashboard datasets. |
+| Databricks SQL | Provides the warehouses that execute every dashboard query. |
+| Delta Lake | Supplies the governed tables the dashboards read. |
+| SQL Warehouses | Elastic Photon compute backing queries and refreshes. |
+| Genie | Natural-language companion over the same datasets and warehouse. |
+| Metric Views | Governed, reusable KPI/semantic definitions used by charts. |
+| Materialized Views | Precomputed results that speed up hot dashboards. |
+| Lakeflow | Produces the curated tables and marts dashboards consume. |
+| System Tables | Source for usage, cost, and operational monitoring dashboards. |
+| Databricks Apps | Embeds dashboards into custom internal applications. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Legacy Databricks SQL dashboards | In-Databricks | Predecessor; fewer features, being superseded by AI/BI. |
+| Genie | In-Databricks | NL exploration, not curated dashboard layouts. |
+| Notebook visualizations | In-Databricks | Good for analysis, not governed business reporting. |
+| Power BI | External | Richest modeling/DAX and estate maturity; separate tool and governance. |
+| Tableau | External | Strong visual analytics; extra platform, connectors, and cost. |
+| Looker | External | Central LookML semantic layer; separate service and licensing. |
+
+## 11. Strengths
+- Dashboards run directly on Unity Catalog-governed Delta data — no extract copies.
+- No separate BI server to license, deploy, or operate.
+- SQL warehouse backing gives Photon performance and elastic concurrency.
+- Access, masking, and audit inherit from Unity Catalog automatically.
+- Pairs natively with Genie for natural-language Q&A on the same data.
+- Native sharing and secure embedding for governed consumers.
+- Metric and materialized views enable governed, fast KPIs.
+- Fast to stand up for teams already on Databricks.
+- Schedules and subscriptions distribute snapshots without extra tooling.
+- Ideal for operational/monitoring dashboards over system tables.
+
+## 12. Limitations
+- Modeling and layout are lighter than Power BI, Tableau, or Looker.
+- Best on Lakehouse data; multi-source blending should happen upstream.
+- Embedding and theming are more constrained than dedicated BI portals.
+- No offline consumption; serving requires the platform online.
+- Read-oriented — no rich write-back or planning workflows.
+- Cost and latency track SQL warehouse sizing and idle settings.
+- Advanced/custom visualization types are limited versus specialist tools.
+- External/anonymous distribution is less flexible than incumbent BI.
+- Feature availability can vary by cloud and region.
+- Migrating from a mature BI estate is a real project, not a toggle.
+
+## 13. Common Mistakes
+- Recreating a mature Power BI/Tableau estate wholesale instead of targeting new/internal reporting.
+- Querying raw tables per widget rather than using metric or materialized views.
+- Oversizing warehouses instead of enabling multi-cluster autoscaling.
+- Setting aggressive idle timeouts that discard caching benefits.
+- Granting broad table access rather than governed views, row filters, and masks.
+- Treating dashboards as OLTP for sub-second operational refresh.
+- Ignoring Genie as the better path for ad hoc natural-language questions.
+- Blending many external sources at the dashboard layer instead of upstream.
+- Leaving legacy DBSQL dashboards unmigrated and fragmenting reporting.
+
+## 14. Design Recommendations
+- ✔ Use AI/BI Dashboards for internal reporting on Lakehouse data; keep incumbent BI for its existing estate.
+- ✔ Back dashboards with **serverless** warehouses sized small with autoscaling.
+- ✔ Model KPIs once in metric views and reuse across dashboards and Genie.
+- ✔ Precompute hot results with materialized views to cut cost and latency.
+- ✔ Enforce access through Unity Catalog views, row filters, and column masks.
+- ✔ Point natural-language users to Genie on the shared warehouse.
+- ✔ Build cost/usage monitoring dashboards on system tables.
+- ✔ Migrate legacy DBSQL dashboards to consolidate on one surface.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+|---|---|
+| Internal BI on Lakehouse data | ✅ Native and governed |
+| Governance & auditing | ✅ Via Unity Catalog |
+| Business self-service | ✅ Pair with Genie |
+| Natural-language Q&A | ⚠️ Use Genie alongside |
+| Operational/usage monitoring | ✅ Over system tables |
+| Secure internal embedding | ✅ Published links/apps |
+| Mature enterprise BI estate | ⚠️ Keep incumbent tool |
+| Pixel-perfect financial reports | ⚠️ Limited layout control |
+| Public/anonymous distribution | ⚠️ Governed-user oriented |
+| OLTP / sub-second dashboards | ❌ Not warehouse-suited |
+
+## 16. Quick Comparison
+| Criterion | AI/BI Dashboards | Power BI | Tableau | Looker |
+|---|---|---|---|---|
+| Data access | In place on Delta | Import or DirectQuery | Extract or live | Live via LookML |
+| Governance | Unity Catalog (shared) | Fabric/PBI model | Server/Cloud model | Looker + source |
+| Separate BI server | None | Yes (service) | Yes (server/cloud) | Yes (service) |
+| Semantic layer | Metric views | Rich (DAX model) | Data model | LookML (central) |
+| NL companion | Genie (native) | Copilot | Tableau Pulse/AI | Gemini in Looker |
+| Best fit | Native Lakehouse BI | Broad enterprise BI | Visual analytics | Governed semantic BI |
+
+## 17. Maturity
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | Medium |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | High |
+
+## 18. Cost Considerations
+- **Licensing:** no separate BI-server license; consumption-based DBUs on the backing warehouse. Verify current pricing.
+- **Compute:** dominant cost; controlled via warehouse size, autoscaling, and idle timeout. Serverless bills only while active.
+- **Storage:** Delta on your cloud object store plus any materialized-view footprint; independent of compute.
+- **Operational Overhead:** low — no BI server to deploy or patch; governance managed in Unity Catalog.
+- **Training:** low for SQL/BI teams; standard SQL plus Unity Catalog and dashboard concepts.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** internal, governed reporting and self-service directly on Lakehouse data, paired with Genie.
+- ✔ **Avoid when:** you need a mature multi-source BI estate, pixel-perfect layouts, write-back, or OLTP refresh.
+- ✔ **Biggest benefit:** dashboards on UC-governed data with no separate BI server or extract copies.
+- ✔ **Biggest limitation:** lighter modeling, layout, and external-distribution options than Power BI, Tableau, or Looker.
+- ✔ **Overall recommendation:** adopt AI/BI Dashboards as the default native BI layer for Databricks-resident data, keeping incumbent BI tools for their established estates.
