@@ -1,56 +1,39 @@
 ---
 sidebar_position: 3
 title: "Lakehouse//RT"
-description: "A real-time data warehouse on the new 'Reyden' engine — millisecond queries directly on Delta/Iceberg with no separate serving layer."
+description: "A senior engineer's read on Lakehouse//RT — Databricks' real-time query engine (Reyden) that serves millisecond queries straight off Delta/Iceberg with no separate serving layer."
 ---
 
 # Lakehouse//RT
 
-> A real-time data warehouse that queries the lakehouse in milliseconds — no separate serving store, no data duplication.
+> Databricks is finally going after the one workload the lakehouse always punted on: fast, concurrent, point-and-dashboard queries — without copying data into a separate serving store.
 
 *Announced at Data + AI Summit 2026 (June 16–17, 2026). Source: [Databricks blog](https://www.databricks.com/blog/introducing-lakehousert-real-time-performance-unified-lakehouse).*
 
-**Stage:** <StatusBadge stage="Beta" /> — select read-only workloads.
+**Stage:** <StatusBadge stage="Beta" /> — select read-only workloads; 30% intro pricing through Jan 2027.
 
-## Overview
+## What it is
 
-- A **real-time data warehouse** powered by a new **"Reyden" engine**, built for high-concurrency, low-latency serving.
-- Serves **Delta and Iceberg directly under Unity Catalog** — no duplicate pipelines, no separate serving layer, no copied policies.
-- **Up to 16x better performance** than real-time serving layers; **10ms on smaller datasets**, **sub-100ms on larger ones**; **sub-100ms latency at 12,000 queries/second**, with flat latency across thousands of concurrent queries.
-- **AUTO sizing** replaces manual t-shirt sizing; **incremental autoscaling** adds/removes single nodes rather than whole warehouse copies.
-- **Status: Beta**, available for select read-only workloads, with more capabilities coming.
-- **30% introductory discount through January 2027**; usage-based billing.
-- Preview customers include **Meta, SES, Enverus, Magnite, Cisco, Halcyon AI, PointClickCare, Bally's, and Equilibrium Energy**.
+- A real-time query engine — **Reyden** — that runs millisecond queries directly on Delta and Iceberg, governed by Unity Catalog, with **no data movement** to a separate serving tier.
+- Databricks cites up to **16x** better performance than real-time serving layers, ~**10ms** on small data, and **sub-100ms at 12,000 queries/second** on standard analytical benchmarks — and, notably, that it handles **joins, window functions, and subqueries** that specialised engines often choke on.
+- **AUTO sizing** (no t-shirt sizing) with incremental autoscaling that adds single nodes rather than spinning up whole warehouse copies.
 
 ## Where it fits
 
-- **Real-time OLAP on the lakehouse** — dashboards, operational analytics, and user-facing metrics without shipping data to a separate store.
-- Best for teams **already standardized on Unity Catalog** with Delta/Iceberg who want one governance model across batch and real-time.
-- Removes a common failure point: the **ETL-to-serving-layer hop** and its duplicated pipelines, policies, and drift.
-- Pairs naturally with **Lakebase/LTAP** (transactional), **Lakeflow** (ingestion), and AI/BI dashboards for the last-mile serving.
-- Attractive where queries are **relationally complex** (multi-table joins, windows) — the historical weak spot of Druid/Pinot-style engines.
-- The AUTO sizing / single-node autoscaling story targets **cost efficiency** for spiky, unpredictable real-time load.
+- The last mile of the lakehouse story: **operational analytics, app back-ends, and embedded dashboards** that need concurrency and low latency on governed data.
+- Teams running a **separate serving tier today** — Postgres read replicas, ClickHouse/Druid/Pinot, or a warehouse serving layer — purely to hit latency SLAs. This collapses that copy and its second set of pipelines and permissions.
+- Shops **already standardized on Unity Catalog + Delta/Iceberg**, who want one governance boundary across batch and real-time.
 
-## Where it fails
+## Where it falls short
 
-- **Beta, read-only.** It's limited to select read-only workloads today; write paths and broader capabilities are still coming.
-- **Benchmarks are vendor-framed.** "Up to 16x" and "12,000 QPS at sub-100ms" need independent, workload-matched validation against your own queries.
-- Headline latencies (10ms small data, sub-100ms at scale) are **best-case**; real-world tail latency under concurrency and complex joins is what matters and isn't shown.
-- Purpose-built engines — **ClickHouse, Druid, Pinot, Rockset** — remain extremely strong on high-QPS point/aggregation workloads and may still win on raw latency and cost.
-- **Lock-in risk**: the value depends on Unity Catalog + Databricks; the "no duplication" benefit doesn't transfer if your serving lives elsewhere.
-- Named preview customers are **marketing signals, not benchmarks** — different data, queries, and baselines.
-- The 30% intro discount through Jan 2027 reflects **early-stage pricing**; watch for cost changes after the promo.
+- It's **Beta and read-only** right now — that rules out most write-heavy operational patterns until it matures.
+- The numbers are **Databricks' own, on "standard benchmarks."** Plausible for a purpose-built engine, but the interesting question is *your* query shapes and concurrency, not a keynote slide.
+- The incumbents it targets — ClickHouse, Druid, Pinot, Rockset — are mature and genuinely fast. "Good enough on the lakehouse" has to hold up under real p99 and complex joins, not just averages.
 
-## Response
+## My take
 
-- **Verdict: Pilot** — if you already run Delta/Iceberg on Unity Catalog and have a concrete real-time serving pain, the "no separate layer" pitch is worth a scoped test while it's in Beta.
-- **Watch** if you're happy with an existing OLAP engine — don't rip out a working ClickHouse/Druid/Pinot deployment on a Beta.
-- Benchmark against your **actual** queries and QPS, including complex joins and p99 latency under concurrency — not the demo numbers.
-- Market context: this competes with real-time OLAP (**ClickHouse, Druid, Pinot, Rockset**) and warehouse serving (Snowflake, BigQuery); the wedge is **governance unification and no data movement**, not necessarily raw speed.
+This is the announcement I'd watch most closely as a platform lead. The recurring tax in every lakehouse shop is the **serving copy** — a second system, a second pipeline, a second permission model — that exists *only* because the lakehouse couldn't hit interactive latency. If Reyden removes that copy and keeps Unity Catalog governance intact, that's a real architectural simplification, not just a faster query.
 
-## Personal impression
+But "Beta, read-only, vendor benchmarks" is exactly the stage where I **pilot, not commit**. I'd take one real dashboard or app-query pattern that currently lives on a separate engine, put it on Lakehouse//RT, and measure p99 under production concurrency with my actual joins. If it holds, this quietly retires a whole class of infrastructure.
 
-- The strategic idea is right: killing the copy-to-serving-layer step and keeping one Unity Catalog governance boundary is genuinely valuable if the latency holds under real load.
-- The numbers are strong on paper, but complex-join performance at high QPS is exactly where these claims usually soften — and it's still Beta and read-only.
-- **Hype level: High.**
-- **Bottom line:** compelling direction for lakehouse-committed shops; pilot it against your own workload before believing a single benchmark, and account for its Beta, read-only scope.
+**Bottom line:** the most strategically interesting thing at the Summit for lakehouse-committed teams — pilot it now against a real latency-bound workload, but don't decommission your serving tier until *your* p99 numbers say so.
