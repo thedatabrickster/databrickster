@@ -101,7 +101,7 @@ Spans come in **types**, and the type tells you what kind of work that step did.
 | **LLM** | A step that *calls the AI model* — sends a prompt, gets text back. | "Ask the model to write the answer." |
 | **TOOL** | A step that *runs a function or calls an external system.* | "Look up this customer's account balance." |
 
-You do not need to memorize this table. Just know that when you open a trace, each span will be labeled, and the label tells you what kind of step you're looking at. A RETRIEVER span is where you go to see *what documents were found*. An LLM span is where you go to see *the exact prompt and the model's reply* (and the token count).
+You do not need to memorize this table. Just know that when you open a trace, each span is labeled, and the label tells you what kind of step you're looking at — which tells you where to go for a given question.
 
 :::note[Going deeper (optional)]
 Span types are not just labels — some Databricks and MLflow features key off them. For example, the retrieval-quality parts of evaluation know to look at `RETRIEVER` spans specifically. So the type is both a hint for you and a signal for the tooling. You can skip this detail for now; it becomes relevant in the evaluation lessons.
@@ -318,11 +318,9 @@ False. Once tracing is enabled, traces appear automatically. Enabling tracing is
 
 </details>
 
-## Summary
-
-An MLflow trace is a recording of one run of your agent — an itemized receipt of everything it did. The receipt's line items are spans: nested steps, each showing its inputs, outputs, timing, and (for model calls) token usage. Spans come in types — CHAIN, RETRIEVER, LLM, TOOL — and the type tells you what kind of step you're looking at and where to go for a given question. Traces live in the MLflow UI, attached to an experiment, and they're the foundation for the evaluation and monitoring you'll learn later. You now know how to read one, which is the skill everything else in Part 5 and Part 6 builds on.
-
 ## Key Takeaways
+
+Reading a trace is the skill everything else in Part 5 and Part 6 builds on.
 
 - A **trace** = one whole agent run; a **span** = one step inside it.
 - A trace is a **tree of spans** — read it like a nested to-do list.

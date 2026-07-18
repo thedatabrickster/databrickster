@@ -100,7 +100,7 @@ You close that gap with three levers, and all three are curation work you unders
 Under the hood, when Genie plans a query it assembles context: the schemas of the included tables, their comments, your instructions, and relevant sample queries. It sends that context to the model along with the user's question, and asks it to produce SQL. It may also verify the SQL is valid before running, and can iterate if there is an error. You do not have to manage any of this; you just make the inputs good. The takeaway: **garbage-in, garbage-out applies to metadata, not just data.**
 :::
 
-The happy consequence: the same effort that makes your warehouse pleasant for humans, clean names, real comments, documented business logic, is exactly what makes Genie accurate. You are not doing new work. You are getting new leverage from work you should be doing anyway.
+The happy consequence: the same effort that makes your warehouse pleasant for humans, clean names, real comments, documented business logic, is exactly what makes Genie accurate.
 
 ## Architecture
 
@@ -352,12 +352,6 @@ Any two of: the **tables** included, clear **column names and comments**, **spac
 **No.** Genie runs SQL in the user's own Unity Catalog permission context, so the same permissions, row filters, and column masks apply. There is no privileged back door.
 
 </details>
-
-## Summary
-
-Genie is a friendly data analyst you can talk to in plain English. You ask a question; it writes the SQL, runs it on your governed Unity Catalog tables, and hands back the answer along with the SQL. It is the structured-data counterpart to RAG's document search.
-
-For a data engineer, the headline is empowering: Genie's accuracy rides on the quality of your tables, names, comments, instructions, and sample queries. That is your day job, now with new leverage. And because Genie runs in each user's own permission context, your Unity Catalog governance is inherited automatically. Plug a Genie space into an agent or supervisor, and structured-data questions get answered safely, at scale, without you in the loop for every one.
 
 ## Key Takeaways
 

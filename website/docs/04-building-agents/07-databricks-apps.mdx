@@ -73,7 +73,7 @@ graph LR
 
 *Figure 1: The App is the reception desk customers walk up to. The agent endpoint is the machinery in the back. Users only ever touch the storefront.*
 
-Notice what the user never sees: the endpoint URL, the model, the credentials, the data. They just see a text box and an answer. That separation is the entire mental model. The App's whole job is to be a polite receptionist — greet the user, pass the message to the back, and bring the answer forward.
+Notice what the user never sees: the endpoint URL, the model, the credentials, the data. They just see a text box and an answer. That separation is the entire mental model.
 
 ## Theory
 
@@ -155,7 +155,7 @@ What actually happens, step by step, when an advisor uses the App?
 7. The endpoint returns an answer.
 8. The App displays the answer in the chat window, and the conversation continues.
 
-The App itself holds almost no intelligence. It is a loop: *show the box, take the text, call the endpoint, show the reply.* That simplicity is exactly what makes it safe and quick to build.
+It is a loop: *show the box, take the text, call the endpoint, show the reply.* That simplicity is exactly what makes it safe and quick to build.
 
 ## Step-by-Step Walkthrough
 
@@ -383,12 +383,6 @@ So the agent has the **conversation context**. Sending only the last line would 
 Because users log in with their **own Databricks identity**, and Unity Catalog governance still applies. Access can be checked against that user's permissions (on-behalf-of), so the App does not become a backdoor around governance. The same rules that protect the data everywhere else on the platform continue to hold.
 
 </details>
-
-## Summary
-
-Your agent needed a front door for humans, and Databricks Apps is it. You write a small Python app — a chat box — declare its dependencies, and deploy it *inside* Databricks. Users log in with their own identity, type a question, and the App relays it to your agent's serving endpoint and shows the answer.
-
-The mental model is a storefront in front of an engine: the App greets and relays, the endpoint thinks. Because everything lives inside Databricks, you skip building a server and a login system, and Unity Catalog governance carries through to whoever is asking. That combination — quick to build, governed, authenticated — is what makes Apps the natural last step in shipping an agent to real people.
 
 ## Key Takeaways
 

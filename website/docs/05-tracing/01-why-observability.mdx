@@ -159,7 +159,7 @@ flowchart LR
 
 *Figure 2: The same agent with tracing on. The whole run is one trace; each step is a span you can open. The wrong document at Span 2 (highlighted) is now obvious — diagnosis in seconds, not hours.*
 
-Notice how the second picture instantly answers the question the first one could not. That is not magic. It is just the same "look inside before you guess" habit you already use with logs and the Spark UI, applied to an agent.
+Notice how the second picture instantly answers the question the first one could not — the wrong retrieval announces itself the moment the lid comes off.
 
 ## Internal Working
 
@@ -331,10 +331,6 @@ The **retrieve** step (Span 2) returned the wrong customer document, and it did 
 Very little — it is essentially **one setting** (for example, a single `autolog()` call). You enable the recorder rather than hand-building logging into every step. The details come in the next lesson.
 
 </details>
-
-## Summary
-
-An AI agent is not like a SQL query. A query is deterministic and basically one step, so it is easy to reason about. An agent is nondeterministic and takes many hidden steps — decide, retrieve, call a tool, call the model, decide again — and from the outside you only see the question and the answer. When the answer is wrong, you cannot fix it unless you can see what happened at each step. **Observability** is making the inside of a run visible. It gives you a **trace** (the whole run) made of **spans** (the individual steps, each with inputs, outputs, and timing) — an airplane black box and an itemized receipt for your agent. Northwind's team went from arguing in the dark for hours to spotting a wrong retrieval in fifty milliseconds. And the best part: this is the same instinct you already use with logs, query plans, and Spark UI stages, and turning it on is essentially one setting.
 
 ## Key Takeaways
 

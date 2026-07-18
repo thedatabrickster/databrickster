@@ -56,8 +56,6 @@ Two everyday pictures to hold in your head.
 
 **IDP is an assembly line that reads a pile of forms and hands you a clean spreadsheet.** Messy documents go in one end. Along the belt, one station flattens each document into readable text and tables, another station pulls out the specific fields you care about, and another station stamps each document with a category. Clean, structured rows come out the other end, ready for you to query. You did not read a single page by hand.
 
-Keep those two pictures close. Everything below is just detail on top of them.
-
 ## Theory
 
 Let's put slightly more precise words on each tool, one idea at a time.
@@ -158,7 +156,7 @@ flowchart TB
 
 <p align="center"><em>Diagram 2: Custom LLM follows the standard Agent Bricks flow. You describe the task and point at example rows in Unity Catalog; Databricks auto-builds, auto-evaluates, and auto-optimizes a specialized model and deploys it as an endpoint you query from code.</em></p>
 
-The key takeaway: your data never leaves the governed platform. IDP outputs land in Delta; a Custom LLM becomes a standard Model Serving endpoint. Same building blocks you have used all course.
+The key takeaway: your data never leaves the governed platform, and both results are the same building blocks you have used all course.
 
 ## Internal Working
 
@@ -329,12 +327,9 @@ Even though these tools do the heavy lifting, shipping to real users is still yo
 
 ## Best Practices
 
-- **Match the tool to the input.** Messy documents to clean data → IDP. One narrow, repeated text task on existing text → Custom LLM.
 - **Chain them when it helps.** IDP to clean the input, then Custom LLM for the specialized judgment. That combo covers a lot of real work.
 - **Give a Custom LLM plenty of representative examples,** and add more over time to lift quality.
 - **Define a clear extraction schema and clear categories** so IDP knows exactly what to pull and how to sort.
-- **Batch with `ai_query`** for high-volume scoring, and schedule pipelines with Lakeflow.
-- **Use stable names** for endpoints and output tables so downstream code does not break.
 - **Reuse parsed output for RAG.** The parse step is also step one of RAG ingestion; do not parse twice.
 
 ## Interview Questions
@@ -395,10 +390,6 @@ False. You *build* them in the UI, but the outputs are ordinary things you use f
 `ai_parse_document`. It turns a document file into structured text and tables. It matters for RAG because parsing is the first step of ingestion: you parse a document, then chunk it, then index it for retrieval. The same parsed output can feed both IDP extraction and RAG chunking.
 
 </details>
-
-## Summary
-
-This lesson finished the Agent Bricks tour with its two remaining offerings. **Custom LLM** is a low-code, auto-optimized model for one narrow, repeated text task, classify, extract, summarize, transform, or generate. You describe the task, point at example data, and Databricks builds, evaluates, tunes, and deploys a specialist that can beat a general model on quality and cost. **Intelligent Document Processing** is an assembly line that turns messy documents into structured data through three stages, parse, extract, and classify, and writes clean, governed rows to Delta. IDP is the guided packaging of the SQL AI Functions you already met, and its parsing step is also the front of RAG ingestion. The two tools chain naturally: IDP cleans messy input into data, and a Custom LLM adds specialized judgment on top. Both are built in the UI and used from ordinary SQL and Python.
 
 ## Key Takeaways
 

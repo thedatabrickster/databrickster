@@ -265,7 +265,7 @@ Even though Agent Bricks does the heavy lifting, shipping to real users is still
 ## Performance Considerations
 
 - **Auto-optimize already balances quality and cost.** It compares strategies so you don't have to hand-tune the trade-off. Trust it as a starting point, then measure.
-- **More examples usually means better quality.** Especially for Custom LLM, giving it more representative examples (Databricks suggests around 100 or more) improves accuracy. Start with what you have and add more over time.
+- **More examples usually means better quality.** Especially for Custom LLM, more representative examples improve accuracy. Start with what you have and add more over time.
 - **Batch when you can.** If you have many inputs to process, calling the endpoint over a table with `ai_query` is far more efficient than looping one call at a time in Python.
 - **Watch your latency budget.** A doc-grounded answer with retrieval takes longer than a plain model call. If you're putting it behind a live chat UI, test the response time with real questions.
 
@@ -347,10 +347,6 @@ False. You *build* it in the UI, but the result is a standard serving endpoint. 
 Use Agent Framework, the code-first path, which gives you the custom control you need. Agent Bricks shines for standard patterns; when the pattern doesn't fit, drop down to the framework.
 
 </details>
-
-## Summary
-
-Agent Bricks is the low-code, auto-optimized way to build agents on Databricks. Instead of machining every part yourself in code, you describe the task in the workspace UI, point at your data, and let Databricks auto-build, auto-evaluate, and auto-optimize a deployable agent. It's a smart appliance with great defaults, not a research project. It shines when your use case matches one of its four offerings: Knowledge Assistant, Multi-agent Supervisor, Custom LLM, and Intelligent Document Processing. When you need custom control, you drop down to Agent Framework, and you can always start simple and graduate later. Once deployed, an Agent Bricks agent is just another endpoint you query from SQL or Python.
 
 ## Key Takeaways
 

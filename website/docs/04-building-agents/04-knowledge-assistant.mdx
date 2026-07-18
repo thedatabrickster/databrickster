@@ -97,8 +97,6 @@ Here is the honest one-to-one mapping. This is the heart of the lesson.
 | Evaluate answer quality | Built-in evaluation and quality tooling |
 | Deploy behind an endpoint | One-click deployment to a governed endpoint |
 
-If you understand RAG, you already understand Knowledge Assistant. It is the same idea with the tedious parts pre-solved.
-
 :::note[Going deeper (optional)]
 Databricks describes the retrieval here as an "instructed retriever" approach rather than plain textbook RAG. The practical takeaway for a beginner: the retriever pays attention to your instructions when it decides what to fetch and how to answer, which is part of why the quality is good out of the box. You do not need to know the internals to use it well — but it is nice to know it is a bit smarter than a naive retriever.
 :::
@@ -198,7 +196,7 @@ Let us build Northwind Trust's employee-policy assistant at a high level. You wi
 
 **Step 7 — Deploy.** When you are happy, deploy the assistant. This creates the serving endpoint. Now a web app, a notebook, or a SQL query can all reach it. That endpoint is what the code examples below talk to.
 
-That is the entire journey: point, instruct, test, deploy. Compare that to the Part 2 checklist and give yourself some credit — you understand every piece it just automated.
+That is the entire journey: point, instruct, test, deploy.
 
 ## Hands-on Examples
 
@@ -354,10 +352,6 @@ Say it does not know and suggest a next step (such as contacting HR) rather than
 With `ai_query`, passing the endpoint name and the question as text, because the deployed assistant is just a Model Serving endpoint. For example: `SELECT ai_query('northwind-policy-assistant', 'How many vacation days do I get?')`.
 
 </details>
-
-## Summary
-
-A Knowledge Assistant is the fastest way to get a high-quality, cited chatbot over your own documents. It is managed RAG: everything you did by hand in Part 2 — chunk, index, retrieve, prompt, cite — is now handled automatically. You point it at knowledge sources, give it plain-English instructions, test it, and deploy. The result is a governed serving endpoint that any app, notebook, or SQL query can call. Use it for standard document Q&A; hand-build RAG only when you need custom retrieval or logic.
 
 ## Key Takeaways
 

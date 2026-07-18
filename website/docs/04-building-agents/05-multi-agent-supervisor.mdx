@@ -193,8 +193,6 @@ A customer asks, *"How many days notice do I need to close a savings account?"* 
 **Scenario B — a mixed question.**
 A staff member asks, *"Show me the top 5 accounts by balance, and flag any that fail our KYC review."* The supervisor spots two intents. It asks the **Genie space** for the top 5 accounts, then hands those accounts to the **compliance agent** for KYC flags, and finally combines the list with the flags into one table-like answer. Two specialists, one reply.
 
-The lesson from both: you ask naturally, and the routing happens for you.
-
 ## Code Examples
 
 You configure the supervisor in the UI, but you **query** it like any other Databricks serving endpoint. Once deployed, it exposes a standard API you can call with the Python SDK, `curl`, or the Playground.
@@ -338,10 +336,6 @@ False. The supervisor is low-code. You configure it in the UI by adding speciali
 It recognizes two intents, routes the data part to the Genie space and the policy part to the Knowledge Assistant, waits for both, and combines them into a single reply.
 
 </details>
-
-## Summary
-
-A Multi-Agent Supervisor is a friendly front desk for your agents. When one agent is not enough, you build several small specialists, describe each one, and let the supervisor read every request and route it to the right place — combining results when a question spans more than one specialist. On Databricks it is low-code, it can coordinate Genie spaces, Knowledge Assistants, custom agents, and more, it respects your permissions, and it deploys as a single queryable endpoint. You get clarity, reliability, and one calm entry point.
 
 ## Key Takeaways
 
