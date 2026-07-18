@@ -228,9 +228,9 @@ I'd draw it like Figure 1: reads loop straight back, the write detours through a
 
 **Candidate:** Let me go deep on the parts most likely to break.
 
-**Tool design and schemas.** Each tool gets a narrow name, a plain description, and a typed schema. For example, `open_support_case(account_id: string, reason: string, priority: enum)`. Narrow tools are easy for the model to pick correctly and easy to audit. Vague tools invite mistakes.
+**Tool design and schemas.** Each tool gets a narrow name, a plain description, and a typed schema, for example `open_support_case(account_id: string, reason: string, priority: enum)`. The narrow-beats-vague reasoning is in the Deep Dive above; here it means a concrete, auditable signature for every tool.
 
-**Function calling.** The model doesn't run code. It emits a structured "call this tool with these args" request; the orchestrator runs the real function and feeds the result back. That boundary is what lets me insert checks and approval.
+**Function calling.** The model emits a structured "call this tool" request and the orchestrator runs the real function (see Theory). That boundary is exactly where I insert checks and approval.
 
 **Single agent vs multi-agent supervisor.** One agent with three tools is plenty here. If Northwind later added, say, twenty tools across trading, compliance, and client comms, I'd split into **specialist agents** under a **supervisor** that routes. Not yet, that's premature.
 
@@ -497,13 +497,9 @@ A chatbot grades only the final answer. The agent also grades the trajectory: di
 
 </details>
 
-## Summary
-
-You just walked a full agent design interview for Northwind Trust. One agent, three tools (search policy, read account data, open a case), a human approval gate on the one write, and tracing wrapped around everything. You saw how the framework's eight steps land differently for an agent than for a chatbot: trajectory evaluation, loop bounds, and, above all, the safety of taking actions on behalf of a real user.
+## Key Takeaways
 
 The single most important idea: reads can be free, but every **action** must run as the user, pass a human gate, and be logged. Get that right and interviewers trust you with agents.
-
-## Key Takeaways
 
 - An agent is a model in a reason-act-observe loop with tools; design the tools like an API.
 - Separate **reads** (safe, automatic) from **writes** (gated by human approval, audited).

@@ -63,8 +63,6 @@ flowchart LR
 
 *Figure 1: One recipe, three kitchens, the same dish. The lifecycle is fixed; only the appliances differ.*
 
-Notice what the diagram is saying. The recipe on the left is single and shared. It branches into three kitchens in the middle. And on the right, all three produce the same result — a grounded, cited answer. That "same result" is the whole point of this part of the course.
-
 ## Theory
 
 Every AI app, on any stack, is assembled from the same short list of parts. You have met all of them already. Here they are, named in the neutral, portable way the industry uses:
@@ -377,13 +375,9 @@ MLflow (open source), so the same tracking, tracing, and evaluation APIs run off
 
 </details>
 
-## Summary
-
-You just rebuilt the course, off-platform, in your head. The AI app lifecycle — scope, build with a model plus retrieval plus tools, trace, evaluate, serve, govern, monitor — is the same on any stack. A DIY stack assembles it from an API model, LangChain or LlamaIndex, a vector DB, Langfuse, Ragas, and FastAPI. A cloud-native stack uses Bedrock, Azure, or Vertex and bundles more governance, but only within one cloud. The RAG code looks nearly identical to what you wrote before — same clients, same grounding prompt, same four steps. The honest catch is that you integrate and operate more yourself, and governance, lineage, security, and cost are not unified for you by default. But the core skills? Completely transferable.
-
 ## Key Takeaways
 
-- The lifecycle is identical everywhere; only the tools are swapped.
+- You just rebuilt the whole course, off-platform, in your head — the lifecycle is identical everywhere; only the tools are swapped.
 - Every AI app is eight jobs: model, retrieval, orchestration, tracing, evaluation, serving, governance, monitoring.
 - DIY stack: API model + LangChain/LlamaIndex + vector DB + Langfuse + Ragas + FastAPI + your own governance.
 - Cloud-native stack: Bedrock, Azure, or Vertex — more governance bundled, but cloud-specific.

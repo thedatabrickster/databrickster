@@ -396,21 +396,6 @@ Notice three interview-worthy details: the rules are explicit, every chunk carri
 - **Version your prompts and eval set.** When you change the prompt, re-run eval and compare. Treat the prompt like code.
 - **Roll out behind a flag.** Start on a small slice of traffic, watch the metrics, then widen.
 
-## Performance Considerations
-
-- **Cache the head of the distribution.** A small set of FAQs is a large share of traffic; caching them removes model calls entirely.
-- **Stream tokens** to crush *perceived* latency even when total latency is unchanged.
-- **Parallelize retrieval** (semantic and keyword at once) and cap prompt size.
-- **Rerank to send fewer, better chunks** — smaller context is both faster and cheaper.
-- **Watch p95, not just p50.** The slow tail is what customers complain about.
-
-## Security Considerations
-
-- **Mask PII at ingestion and at output.** Defense in depth.
-- **Scope retrieval per authenticated customer.** Never rely on the model to "remember" who is allowed to see what — enforce it as an access filter on the index.
-- **Treat retrieved content as untrusted.** It can contain injection attempts; keep system rules authoritative and run an injection guardrail.
-- **Audit log** every interaction for incident response and compliance.
-
 ## Common Mistakes
 
 - **Skipping the clarifying questions** and drawing boxes immediately. You lose the interview in the first two minutes.
@@ -502,12 +487,9 @@ Whether it was a **retrieval failure or a generation failure** — pull the trac
 
 </details>
 
-## Summary
-
-You walked the full 8-step framework on a real prompt. You clarified a vague request into a spec, defined what "good" means and how to measure it, drew a simple architecture and then a detailed one, went deep on chunking and hybrid retrieval and freshness, handled a wrong-answer incident by separating retrieval from generation, cut latency and cost, locked down PII and prompt injection, and defended your trade-offs. Most importantly, you did it **out loud, in order, calmly** — which is exactly what the interview is testing.
-
 ## Key Takeaways
 
+- The whole point of the mock: walk the 8 steps **out loud, in order, calmly** — that composure is what the interview is testing.
 - **Clarify first.** Turn the one-line prompt into concrete requirements before drawing.
 - **Define success early.** Faithfulness, retrieval recall, deflection, escalation, CSAT — measured offline (eval set + LLM judges) and online (sampled traffic + thumbs).
 - **Retrieve wide, rerank, answer narrow**, and use hybrid search for exact strings.
