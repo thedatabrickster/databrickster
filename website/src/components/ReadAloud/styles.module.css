@@ -1,0 +1,125 @@
+.wrap {
+  position: fixed;
+  right: 1.1rem;
+  bottom: 1.1rem;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.pill,
+.panel {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  border-radius: 999px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  color: #fff;
+  background: var(--ifm-color-primary);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.pill:hover {
+  transform: translateY(-2px);
+  background: var(--ifm-color-primary-dark);
+}
+.icon {
+  font-size: 0.85em;
+}
+
+.panel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.55rem;
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--ifm-color-emphasis-300);
+}
+
+.ctrl,
+.gear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  background: var(--ifm-color-emphasis-100);
+  color: var(--ifm-font-color-base);
+  transition: background 0.15s ease;
+}
+.ctrl:hover,
+.gear:hover {
+  background: var(--ifm-color-emphasis-200);
+}
+
+.reading {
+  padding: 0 0.35rem;
+  color: var(--ifm-color-emphasis-700);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.settings {
+  width: 260px;
+  max-width: 78vw;
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--ifm-color-emphasis-300);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2);
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+.field span {
+  font-weight: 600;
+  color: var(--ifm-color-emphasis-800);
+}
+.field select {
+  flex: 1 1 auto;
+  max-width: 62%;
+  padding: 0.3rem 0.4rem;
+  border-radius: 7px;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  background: var(--ifm-background-color);
+  color: var(--ifm-font-color-base);
+  font-size: 0.85rem;
+}
+
+.hint {
+  margin: 0.4rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--ifm-color-emphasis-600);
+}
+
+@media (max-width: 600px) {
+  .wrap {
+    right: 0.7rem;
+    bottom: 0.7rem;
+  }
+  .pill span:not(.icon) {
+    display: none;
+  }
+  .pill {
+    padding: 0.7rem;
+  }
+}
