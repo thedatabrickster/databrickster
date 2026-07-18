@@ -1,0 +1,172 @@
+---
+sidebar_position: 1
+slug: /
+title: Databricks Features — Architecture Guides
+description: An alphabetical catalog of Databricks platform features, each with a concise, executive-style architecture guide for CIOs, CTOs, and enterprise architects — placement in the Lakehouse, use cases, dependencies, alternatives, and decision matrices.
+---
+
+# Databricks Features — Architecture Guides
+
+Executive-style, decision-focused reference for the Databricks platform. Each feature has
+a short guide (3–5 minute read) written for **CIOs, CTOs, VPs of Engineering, Directors of
+Data, and Enterprise / Solution / Platform Architects** — architecture placement, fit,
+dependencies, alternatives, cost, and a decision matrix. No tutorials, no marketing.
+
+:::note[Coverage]
+This is a **living catalog** — the goal is to cover *every* Databricks feature,
+alphabetically. Linked entries have a published guide; the rest are queued and being added
+in batches. If a feature you need isn't linked yet, ask and it'll be prioritized.
+:::
+
+## How each guide is structured
+
+Every feature guide follows the same 19-section template so they're directly comparable:
+
+- Executive Summary · Primary Purpose · Where It Fits in the Lakehouse · Architecture Placement
+- Ideal Use Cases · Poor Fit · Best Suited For · Enterprise Value
+- Dependencies · Alternatives · Strengths · Limitations · Common Mistakes
+- Design Recommendations · Decision Matrix · Quick Comparison · Maturity · Cost · Executive Takeaway
+
+## The Lakehouse placement model
+
+Where features sit, top to bottom:
+
+```text
+Users / Executives / Business
+        ↓
+User Interfaces        (AI/BI Dashboards, Genie, Databricks Apps, Notebooks, SQL Editor)
+        ↓
+Developer Experience   (Assistant, Repos/Git, Asset Bundles, CLI/SDK, Connect)
+        ↓
+AI & Machine Learning  (Mosaic AI: Vector Search, Model Serving, Agent Framework, MLflow)
+        ↓
+Data Engineering       (Lakeflow: Connect, Declarative Pipelines, Jobs; Auto Loader, Spark)
+        ↓
+Analytics / Query      (Databricks SQL, SQL Warehouses, Photon, Materialized Views)
+        ↓
+Governance             (Unity Catalog, Lineage, ABAC, Audit Logs, Lakehouse Monitoring)
+        ↓
+Storage                (Delta Lake, Volumes, Delta Sharing, DBFS)
+        ↓
+Compute                (Serverless, Clusters, SQL Warehouses, Pools, Photon, DBR)
+```
+
+## Feature catalog (A–Z)
+
+> Linked = guide published. Plain = queued. Aliases point to the canonical entry.
+
+### A
+- Agent Bricks *(queued)* — low-code Mosaic AI agents
+- AI/BI Dashboards *(queued)* — governed dashboards on the Lakehouse
+- **AI/BI Genie** → see the dedicated [Genie topic](/genie)
+- AI Functions (`ai_query`, `ai_*`) *(queued)* — LLM calls from SQL
+- AI Gateway (Mosaic AI Gateway) *(queued)* — governance/routing for model endpoints
+- AI Playground *(queued)* — interactive model/agent testing
+- Apache Spark on Databricks *(queued)* — distributed compute engine
+- Attribute-Based Access Control (ABAC) *(queued)* — policy-driven access
+- Audit Logs *(queued)* — platform activity logging
+- Auto Loader *(queued)* — incremental file ingestion
+- AutoML *(queued)* — automated model training
+- Automatic Liquid Clustering *(queued)* — self-tuning data layout
+
+### B
+- Budgets & Budget Policies *(queued)* — spend caps and attribution
+
+### C
+- Catalog Explorer *(queued)* — browse/govern data assets
+- Change Data Feed (CDF) *(queued)* — row-level change capture on Delta
+- Clean Rooms *(queued)* — privacy-safe multi-party collaboration
+- Cluster Policies *(queued)* — guardrails on compute creation
+- Clusters / Compute *(queued)* — all-purpose and job compute
+- Compliance Security Profile *(queued)* — hardened, regulated workspaces
+- COPY INTO *(queued)* — idempotent bulk load into Delta
+
+### D
+- Databricks Apps *(queued)* — hosted, governed web apps
+- Databricks Assistant *(queued)* — in-product AI coding/help
+- Databricks Asset Bundles (DABs) *(queued)* — infrastructure-as-code for Databricks
+- Databricks CLI *(queued)* — command-line control plane
+- Databricks Connect *(queued)* — local code against remote Spark
+- Databricks Marketplace *(queued)* — data/model/solution exchange
+- Databricks Notebooks *(queued)* — collaborative notebooks
+- Databricks One *(queued)* — business-user experience
+- Databricks Runtime (DBR) *(queued)* — managed Spark image
+- Databricks SDK *(queued)* — programmatic platform access
+- **[Databricks SQL (DBSQL)](/databricks-features/databricks-sql)** — serverless data warehousing
+- Databricks Terraform Provider *(queued)* — IaC via Terraform
+- DBFS (Databricks File System) *(queued)* — legacy file abstraction
+- **[Delta Lake](/databricks-features/delta-lake)** — the open table format / storage layer
+- Delta Sharing *(queued)* — open cross-org data sharing
+- Dynamic Views *(queued)* — row/column masking via views
+
+### F
+- Feature Store / Feature Engineering *(queued)* — governed ML features
+- Foundation Model APIs *(queued)* — pay-per-token / provisioned LLMs
+
+### G
+- **Genie (Genie Spaces)** → see the dedicated [Genie topic](/genie)
+- Git Folders (Repos) *(queued)* — Git-backed workspace code
+
+### I
+- Instance Pools *(queued)* — warm compute for faster starts
+
+### J
+- **Jobs** → see [Lakeflow Jobs](/databricks-features/lakeflow-jobs)
+
+### L
+- Lakebase (Managed Postgres / OLTP) *(queued)* — transactional database
+- Lakeflow Connect *(queued)* — managed ingestion connectors
+- **[Lakeflow Declarative Pipelines](/databricks-features/lakeflow-declarative-pipelines)** — declarative ETL (formerly Delta Live Tables)
+- **[Lakeflow Jobs](/databricks-features/lakeflow-jobs)** — orchestration (formerly Workflows/Jobs)
+- Lakehouse Federation *(queued)* — query external sources in place
+- Lakehouse Monitoring *(queued)* — data/model quality monitoring
+- Lakeguard *(queued)* — governance enforcement on shared compute
+- Liquid Clustering *(queued)* — flexible data clustering
+
+### M
+- Materialized Views *(queued)* — precomputed, incrementally maintained results
+- Metric Views (UC Metrics) *(queued)* — governed, reusable business metrics
+- **[MLflow](/databricks-features/mlflow)** — ML/GenAI lifecycle & tracking
+- Model Registry (Unity Catalog) *(queued)* — governed model versioning
+- **[Mosaic AI Model Serving](/databricks-features/mosaic-ai-model-serving)** — real-time/batch model & agent endpoints
+- Mosaic AI Agent Framework & Evaluation *(queued)* — build/evaluate agents
+- Mosaic AI Model Training (Fine-tuning) *(queued)* — customize foundation models
+- **[Mosaic AI Vector Search](/databricks-features/mosaic-ai-vector-search)** — managed vector index/retrieval
+
+### O
+- Online Feature Stores *(queued)* — low-latency feature serving
+- Online Tables *(queued)* — low-latency serving of Delta data
+
+### P
+- Partner Connect *(queued)* — one-click partner integrations
+- Photon *(queued)* — vectorized C++ query engine
+- Predictive Optimization *(queued)* — automated table maintenance
+
+### R
+- **Repos** → see Git Folders (queued)
+- Row & Column-Level Security *(queued)* — fine-grained access controls
+
+### S
+- Secrets & Secret Scopes *(queued)* — credential management
+- Serverless Compute *(queued)* — managed, instant compute
+- SQL Warehouses *(queued)* — elastic SQL compute
+- Structured Streaming *(queued)* — streaming data processing
+- System Tables *(queued)* — operational metadata as queryable tables
+
+### U
+- **[Unity Catalog](/databricks-features/unity-catalog)** — the unified governance layer
+- Unity Catalog Lineage *(queued)* — automatic data/AI lineage
+- Unity Catalog Volumes *(queued)* — governed non-tabular files
+
+### V
+- **Vector Search** → see [Mosaic AI Vector Search](/databricks-features/mosaic-ai-vector-search)
+
+### W
+- **Workflows** → see [Lakeflow Jobs](/databricks-features/lakeflow-jobs)
+- Workspace *(queued)* — the collaboration environment
+
+:::info[Independent project]
+Databrickster is a free, independent educational resource — **not affiliated with,
+endorsed by, or sponsored by Databricks, Inc.** "Databricks" and related marks belong to
+their respective owners.
+:::

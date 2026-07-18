@@ -1,0 +1,220 @@
+---
+sidebar_position: 20
+title: "Lakeflow Jobs — Architecture Guide"
+description: "Native Databricks orchestration for scheduling and coordinating multi-task workflows across notebooks, SQL, pipelines, Python, and dbt."
+---
+
+# Lakeflow Jobs
+
+## 1. Executive Summary
+Lakeflow Jobs is the native Databricks orchestrator for defining, scheduling, and monitoring multi-task workflows (task DAGs) that run notebooks, SQL, pipelines, Python, JARs, and dbt on shared, jobs, or serverless compute.
+
+## 2. Primary Purpose
+- **Why it exists:** provide first-party orchestration so teams don't need a separate scheduler for Databricks work.
+- **Business problem:** unreliable, hand-rolled cron/scripts lead to missed SLAs, silent failures, and no lineage into who ran what.
+- **Technical problem:** coordinate dependencies, retries, parameter passing, triggers, and notifications across heterogeneous task types with governance and observability built in.
+- **Rename note:** formerly **Databricks Workflows / Jobs**; now branded **Lakeflow Jobs** under the Lakeflow umbrella (Connect, Declarative Pipelines, Jobs). The Jobs API/UI concepts are unchanged.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Users / Schedulers / Events
+        ↓
+Lakeflow Jobs (DAG, triggers, retries, alerts)
+        ↓
+Tasks → Notebooks · SQL · Declarative Pipelines · Python/JAR · dbt
+        ↓
+Compute (Serverless · Jobs Clusters · SQL Warehouses)
+        ↓
+Unity Catalog (governance, lineage)
+        ↓
+Delta Lake
+```
+- Sits in the **orchestration/control layer** above compute and below the user/event triggers.
+- Invokes other Lakeflow components rather than replacing them — pipelines still do declarative ETL; Jobs sequences them.
+- Emits run history and lineage that surface in Unity Catalog and system tables.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☐ Developer Experience
+☑ Data Engineering
+☐ Data Governance
+☐ AI
+☐ Machine Learning
+☐ Storage
+☐ Security
+☐ Administration
+☑ Monitoring
+```
+- Primarily a **Data Engineering** capability — automates production data/ML workloads.
+- Overlaps **Monitoring** through run history, alerting, durations, and health metrics.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+| --- | --- | --- |
+| Scheduled batch ETL/ELT | ✅ | Native cron + dependency management |
+| Multi-task DAG with fan-in/fan-out | ✅ | Task dependencies and conditional branches |
+| Orchestrating Declarative Pipelines | ✅ | First-class pipeline task type |
+| Running dbt Core projects | ✅ | Built-in dbt task |
+| Notebook production runs | ✅ | Notebook task with parameters |
+| Python script / wheel / JAR jobs | ✅ | Dedicated task types |
+| ML training/scoring pipelines | ✅ | Chains prep, train, register, batch score |
+| File-arrival triggered ingestion | ✅ | File arrival trigger |
+| Table/data-driven triggers | ✅ | Table update triggers on Delta |
+| Continuous/near-real-time jobs | ✅ | Continuous mode + streaming tasks |
+| Parameterized backfills | ✅ | Job/task parameters, for-each iteration |
+| Retry + alerting on SLA breach | ✅ | Per-task retries, duration thresholds, notifications |
+| Cross-workspace orchestration | ⚠️ | Possible via API, but not the primary design |
+| Complex non-Databricks system orchestration | ⚠️ | Better handled by a general-purpose scheduler |
+| Sub-second event-driven microflows | ⚠️ | Latency and startup overhead make it a poor fit |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+| --- | --- | --- |
+| Orchestrating mostly non-Databricks tasks | ❌ | Airflow/ADF give broader operator ecosystems |
+| Sub-second/low-latency triggering | ❌ | Job startup and scheduling overhead |
+| Long-lived transactional app logic | ❌ | Jobs are batch/streaming orchestration, not app servers |
+| Deeply dynamic DAGs generated at runtime | ⚠️ | For-each helps, but full runtime graph generation is limited |
+| Enterprise-wide scheduler spanning many platforms | ⚠️ | A dedicated cross-platform tool centralizes control better |
+| Simple single ad-hoc notebook run | ⚠️ | Interactive run may be simpler than a job |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+| --- | --- |
+| Data Engineers | 5 |
+| Analytics Engineers | 4 |
+| Platform Engineers | 4 |
+| Data Scientists | 3 |
+| BI Teams | 3 |
+| AI Engineers | 3 |
+| Executives | 2 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+| --- | --- |
+| Developer Productivity | 4 |
+| Implementation Speed | 5 |
+| Governance | 4 |
+| Security | 4 |
+| Maintainability | 4 |
+| Scalability | 4 |
+| Cost Optimization | 4 |
+| Ease of Adoption | 5 |
+| Business Value | 4 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+| --- | --- |
+| Compute (Serverless / Jobs Clusters / SQL Warehouses) | Executes each task's workload. |
+| Unity Catalog | Governs data access, run identity, and lineage. |
+| Lakeflow Declarative Pipelines | A common task type orchestrated by Jobs. |
+| Lakeflow Connect | Ingestion whose refresh Jobs can schedule. |
+| Databricks SQL | Runs SQL query/dashboard/alert tasks. |
+| Notebooks & Repos/Git | Source of notebook and code tasks, version-controlled. |
+| Databricks Asset Bundles (DABs) | Defines jobs as code for CI/CD deployment. |
+| MLflow | Training/registration steps chained within ML jobs. |
+| System Tables | Store job run history for cost and reliability analysis. |
+| dbt | Executes transformation projects as a task. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+| --- | --- | --- |
+| Apache Airflow | External OSS scheduler | Broadest operator ecosystem; more infra to run and to integrate with Databricks. |
+| Azure Data Factory | Managed cloud service | Strong Azure/ETL connectors; extra service, weaker native Databricks context. |
+| cron / shell scripts | Manual scheduling | Trivial to start; no DAG, retries, lineage, or observability. |
+| External schedulers (Control-M, Autosys, Prefect, Dagster) | Enterprise/OSS orchestrators | Central cross-platform control; duplicate scheduling layer over Databricks. |
+| Delta Live Tables / Declarative Pipelines triggers | In-Databricks | Handles pipeline-internal flow; not general multi-task orchestration. |
+| Cloud-native schedulers (EventBridge, Cloud Scheduler) | Cloud service | Cheap triggering; you rebuild dependency/retry/alerting logic. |
+
+## 11. Strengths
+- Native to Databricks — no separate scheduler infrastructure to operate.
+- Task DAGs with dependencies, conditional (if/else) branches, and for-each loops.
+- Multiple task types: notebook, SQL, pipeline, Python, wheel, JAR, dbt, run-job.
+- Rich triggers: scheduled/cron, file arrival, table update, and continuous.
+- Per-task retries, timeouts, and duration/SLA thresholds.
+- Email, webhook, Slack, and PagerDuty notifications on start/success/failure.
+- Serverless option removes cluster sizing and reduces cold-start toil.
+- Job-scoped clusters reuse and shared compute lower cost.
+- Parameters and task-value passing between tasks.
+- Governed by Unity Catalog with run history in system tables; deployable as code via DABs.
+
+## 12. Limitations
+- Databricks-centric — orchestrating external systems requires custom tasks or another tool.
+- No mature operator library comparable to Airflow's provider ecosystem.
+- Fully dynamic runtime-generated DAGs are constrained (for-each covers common cases).
+- Cross-workspace orchestration is API-driven, not a native first-class pattern.
+- Scheduling/startup latency makes sub-second event flows impractical.
+- Backfill/catch-up semantics are simpler than dedicated schedulers.
+- Advanced dependency semantics (data-aware sensors across many systems) are limited.
+- UI-defined jobs can drift from code unless managed with DABs.
+- Deep local testing of a full job graph is harder than testing individual tasks.
+- Complex branching logic can become hard to read in the graph view.
+
+## 13. Common Mistakes
+- Building jobs in the UI without version control, causing environment drift.
+- Overusing all-purpose clusters instead of jobs/serverless compute, raising cost.
+- One giant notebook instead of discrete, retryable tasks.
+- No retries, timeouts, or SLA thresholds, so failures go unnoticed.
+- Hardcoding parameters/paths rather than using job parameters.
+- Ignoring idempotency, so retries duplicate data.
+- Skipping notifications, leaving failures silent until downstream breaks.
+- Recreating cross-platform orchestration here when a general scheduler fits better.
+
+## 14. Design Recommendations
+- ✔ Define jobs as code with Databricks Asset Bundles for CI/CD and review.
+- ✔ Split work into small, idempotent, independently retryable tasks.
+- ✔ Prefer serverless or job clusters over all-purpose compute.
+- ✔ Set retries, timeouts, and duration thresholds per task.
+- ✔ Configure failure notifications and route to on-call channels.
+- ✔ Use the right trigger (file arrival / table update) instead of tight polling schedules.
+- ✔ Pass parameters and task values rather than hardcoding.
+- ✔ Monitor cost and reliability via system tables.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+| --- | --- |
+| Orchestrate Databricks workloads | ✅ Native, purpose-built |
+| Scheduled ETL/ELT | ✅ Cron + dependencies |
+| Multi-task DAGs | ✅ First-class support |
+| Run dbt / SQL / pipelines | ✅ Built-in task types |
+| Production ML pipelines | ✅ Chains train/score steps |
+| Orchestrate many non-Databricks systems | ⚠️ Consider Airflow/ADF |
+| Sub-second event processing | ❌ Startup latency too high |
+| Enterprise cross-platform scheduling | ⚠️ Dedicated scheduler better |
+| Infrastructure-as-code deployment | ✅ Via Asset Bundles |
+| Observability & alerting | ✅ Run history + notifications |
+
+## 16. Quick Comparison
+| Criterion | Lakeflow Jobs | Apache Airflow | Azure Data Factory | cron |
+| --- | --- | --- | --- | --- |
+| Native Databricks integration | High | Medium | Medium | Low |
+| Infra to operate | None | High | Managed | None |
+| Task DAG / dependencies | Yes | Yes | Yes | No |
+| Non-Databricks connectors | Limited | Broad | Broad | None |
+| Serverless option | Yes | Partial | Yes | No |
+| Governance & lineage | Native (UC) | External | External | None |
+
+## 17. Maturity
+| Dimension | Rating |
+| --- | --- |
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+- **Licensing:** billed via Jobs Compute DBUs, typically lower rate than all-purpose; verify current pricing.
+- **Compute:** dominant cost — favor serverless or job clusters and right-size; avoid idle all-purpose clusters.
+- **Storage:** negligible for orchestration itself; costs sit in the Delta data tasks read/write.
+- **Operational Overhead:** low — no scheduler infrastructure; effort goes to job design and monitoring.
+- **Training:** low — familiar to Databricks users; DABs and triggers add a modest learning curve.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** orchestrating Databricks-native batch, streaming, and ML workflows with minimal added infrastructure.
+- ✔ **Avoid when:** your orchestration spans many non-Databricks systems or needs sub-second triggering.
+- ✔ **Biggest benefit:** first-party DAG scheduling with retries, triggers, and alerting — no separate scheduler to run.
+- ✔ **Biggest limitation:** Databricks-centric with a smaller external-operator ecosystem than Airflow.
+- ✔ **Overall recommendation:** adopt as the default orchestrator for Databricks workloads; pair with a cross-platform scheduler only when enterprise-wide coordination demands it.

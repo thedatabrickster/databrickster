@@ -1,0 +1,246 @@
+---
+sidebar_position: 20
+title: "Mosaic AI Vector Search — Architecture Guide"
+description: "Managed, Delta-synced vector index and ANN retrieval on Databricks, governed by Unity Catalog for RAG and agent workloads."
+---
+
+# Mosaic AI Vector Search
+
+## 1. Executive Summary
+
+A managed vector database on Databricks that indexes embeddings from Delta tables and serves low-latency approximate-nearest-neighbor retrieval, governed by Unity Catalog.
+
+## 2. Primary Purpose
+
+- **Why it exists:** give RAG and agent applications a retrieval layer without standing up and operating a separate vector database.
+- **Business problem:** ground LLM answers in proprietary data to reduce hallucination and cut time-to-production for GenAI use cases.
+- **Technical problem:** keep a vector index continuously in sync with source data, and enforce the same access controls on embeddings as on the underlying tables.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Users / Agents / Apps
+        ↓
+RAG / Agent Application (LangChain, Agent Framework, Model Serving)
+        ↓
+Mosaic AI Vector Search  ← query embedding → ANN retrieval
+        ↓
+Vector Index  ← sync (TRIGGERED / CONTINUOUS)
+        ↓
+Delta Source Table (text + metadata, governed by Unity Catalog)
+        ↓
+Delta Lake / Volumes
+```
+
+- Sits in the **AI & Machine Learning** layer as the retrieval component of RAG pipelines.
+- Reads from Delta source tables; writes/serves an index behind an endpoint.
+- Consumed by Model Serving, Agent Framework, Databricks Apps, and external clients via SDK/REST.
+
+## 4. Typical Architecture Placement
+
+```
+☐ User Interface
+☐ Developer Experience
+☐ Data Engineering
+☐ Data Governance
+☑ AI
+☑ Machine Learning
+☐ Storage
+☐ Security
+☐ Administration
+☐ Monitoring
+```
+
+- Primary home is AI (retrieval for RAG/agents); overlaps ML for embedding lifecycle.
+- Governance and storage are inherited from Unity Catalog and Delta, not owned here.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+| --- | --- | --- |
+| RAG over enterprise documents | ✅ | Core use case; Delta sync keeps corpus current |
+| Chatbot/agent grounding on internal knowledge | ✅ | Low-latency ANN with UC access control |
+| Semantic search over support tickets/wikis | ✅ | Managed embeddings, no ETL to external DB |
+| Product/catalog similarity search | ✅ | Metadata filters + vector similarity in one query |
+| Corpus that changes continuously | ✅ | CONTINUOUS sync tracks Delta changes |
+| Corpus refreshed on a schedule | ✅ | TRIGGERED sync fits batch update windows |
+| Hybrid keyword + semantic retrieval | ✅ | Built-in hybrid search combines BM25 + vector |
+| Governance-sensitive/regulated data | ✅ | Index inherits UC permissions and lineage |
+| Multi-tenant retrieval with row filters | ✅ | Filter by metadata columns at query time |
+| Precomputed embeddings from custom model | ✅ | Self-managed embeddings index supported |
+| Recommendations as a feature signal | ⚠️ | Works, but online tables/feature store may fit better |
+| Sub-millisecond, very high QPS serving | ⚠️ | Achievable but validate latency SLOs and endpoint sizing |
+| Tiny static corpus (under 10k rows) | ⚠️ | In-memory FAISS may be cheaper and simpler |
+| Cross-cloud/on-prem retrieval in one index | ⚠️ | Scoped to the workspace region; plan topology |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+| --- | --- | --- |
+| Transactional key-value lookups | ❌ | Use Lakebase/online tables, not ANN |
+| Exact analytical SQL over structured data | ❌ | Use Databricks SQL; vectors add no value |
+| Ephemeral, single-run notebook similarity | ⚠️ | FAISS in-process avoids endpoint cost |
+| Sub-10ms latency at extreme scale outside Databricks | ⚠️ | Purpose-built external engines may edge it out |
+| Storing large binary blobs alongside vectors | ❌ | Keep blobs in Volumes; index metadata only |
+| Frequent full-schema/dimension changes | ⚠️ | Dimension changes require reindexing |
+| Graph/relationship traversal | ❌ | Not a graph engine |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+| --- | --- |
+| Data Engineers | 4 |
+| Analytics Engineers | 2 |
+| Platform Engineers | 3 |
+| Data Scientists | 4 |
+| BI Teams | 1 |
+| AI Engineers | 5 |
+| Executives | 2 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+| --- | --- |
+| Developer Productivity | 5 |
+| Implementation Speed | 5 |
+| Governance | 5 |
+| Security | 4 |
+| Maintainability | 4 |
+| Scalability | 4 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 4 |
+| Business Value | 4 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+| --- | --- |
+| Unity Catalog | Governs the index, source table, and access via one permission model. |
+| Delta Lake | Source of truth for text and metadata that the index syncs from. |
+| Change Data Feed | Enables incremental sync of updates rather than full reindex. |
+| Foundation Model APIs | Supply managed embeddings when Databricks computes them for you. |
+| Mosaic AI Model Serving | Hosts the embedding model and the downstream LLM/agent. |
+| Agent Framework | Consumes retrieval results as a tool inside agents. |
+| MLflow | Tracks/evaluates RAG chains and retrieval quality. |
+| Lakeflow (Jobs/Pipelines) | Prepares and chunks source documents upstream. |
+| Databricks Apps | Front-ends retrieval in governed web applications. |
+| SDK / REST API | Programmatic index creation and similarity queries. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+| --- | --- | --- |
+| Pinecone | External managed | Mature, high-scale; separate governance, egress, and data-sync pipeline. |
+| Weaviate | External / OSS | Rich hybrid + modules; you operate sync and access control. |
+| pgvector (Postgres/Lakebase) | Embedded in RDBMS | Simple, transactional; ANN scaling weaker at large corpora. |
+| FAISS | In-process library | Fast and free for small/static sets; no serving, sync, or governance. |
+| Elasticsearch / OpenSearch | Search engine + vectors | Strong keyword/hybrid; extra cluster to run, no native Delta sync. |
+| Online Tables + custom ANN | In-Databricks build | Full control; you build indexing and retrieval yourself. |
+
+## 11. Strengths
+
+- Delta-synced index removes bespoke ETL from source table to vector store.
+- Two sync modes (TRIGGERED, CONTINUOUS) match batch and near-real-time needs.
+- Managed embeddings option: point at a text column, Databricks computes vectors.
+- Self-managed embeddings option for custom or external embedding models.
+- Unity Catalog governance, lineage, and audit apply to the index.
+- Metadata filtering and hybrid (keyword + vector) search in a single query.
+- Access-control-aware retrieval keeps embeddings within the data's permissions.
+- Native integration with Agent Framework, Model Serving, and MLflow.
+- No separate vector database cluster to provision, patch, or scale.
+- SDK/REST access for use inside and outside Databricks.
+
+## 12. Limitations
+
+- Endpoints and continuous sync incur ongoing cost even when idle-ish.
+- Scoped to a workspace/region; not a global multi-region index out of the box.
+- Embedding-dimension or model changes generally require rebuilding the index.
+- Less tunable on ANN internals than self-hosted engines (index type/params).
+- Very high QPS or ultra-low latency needs careful endpoint sizing and testing.
+- Ecosystem/community smaller than long-established external vector DBs.
+- CONTINUOUS sync adds compute overhead versus periodic TRIGGERED refresh.
+- Chunking, cleaning, and embedding-model choice remain the team's responsibility.
+- Cross-cloud portability is limited compared with cloud-agnostic engines.
+- Cost attribution across many small indexes can be hard to reason about.
+
+## 13. Common Mistakes
+
+- Enabling CONTINUOUS sync when a scheduled TRIGGERED refresh would suffice — paying for freshness nobody needs.
+- Poor chunking (too large/small) that degrades retrieval quality regardless of the index.
+- Ignoring metadata filters and returning cross-tenant or out-of-scope results.
+- Treating retrieval quality as fixed instead of evaluating it with MLflow.
+- Mismatching query and index embedding models/dimensions.
+- Over-provisioning endpoints for pilot workloads.
+- Storing large payloads in the index instead of keys/metadata pointing to Delta/Volumes.
+- Skipping UC permission design and leaking sensitive context into answers.
+
+## 14. Design Recommendations
+
+- ✔ Default to TRIGGERED sync; switch to CONTINUOUS only when freshness demands it.
+- ✔ Use managed embeddings for speed; self-managed only when a specific model is required.
+- ✔ Keep source text and metadata in a governed Delta table with Change Data Feed on.
+- ✔ Store rich metadata columns to enable filtering and multi-tenant isolation.
+- ✔ Evaluate retrieval (recall/precision) with MLflow before scaling out.
+- ✔ Right-size and consolidate endpoints; share across indexes where sensible.
+- ✔ Design chunk size/overlap deliberately and version the chunking logic.
+- ✔ Enforce access at the UC layer so retrieval respects data permissions.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+| --- | --- |
+| RAG on governed enterprise data | ✅ Native fit |
+| Agent/chatbot retrieval tool | ✅ First-class integration |
+| Semantic + keyword hybrid search | ✅ Built-in hybrid |
+| Continuously changing corpus | ✅ CONTINUOUS sync |
+| Scheduled batch refresh | ✅ TRIGGERED sync |
+| Governance/lineage on embeddings | ✅ Via Unity Catalog |
+| Tiny static in-notebook set | ⚠️ FAISS may be cheaper |
+| Multi-region global index | ⚠️ Plan topology / external option |
+| Transactional KV lookups | ❌ Wrong tool |
+| Graph traversal | ❌ Not supported |
+
+## 16. Quick Comparison
+
+| Criterion | Vector Search | Pinecone | pgvector | FAISS |
+| --- | --- | --- | --- | --- |
+| Hosting | Managed in Databricks | Managed SaaS | In your Postgres | In-process library |
+| Delta sync | Native | Build yourself | Build yourself | None |
+| Governance | Unity Catalog | External | DB roles | None |
+| Hybrid search | Yes | Yes | Add-on | No |
+| Ops burden | Low | Low | Medium | Very low (small scale) |
+| Scale ceiling | High | Very high | Medium | Low–medium |
+
+## 17. Maturity
+
+| Dimension | Rating |
+| --- | --- |
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | High |
+
+## 18. Cost Considerations
+
+- **Licensing:** consumption-based via Databricks DBUs; no separate license. Verify current pricing.
+- **Compute:** vector search endpoint (serving) plus sync compute; CONTINUOUS costs more than TRIGGERED.
+- **Storage:** index storage in addition to the Delta source; embeddings add footprint.
+- **Operational Overhead:** low — no cluster to run; effort shifts to chunking, evaluation, and endpoint sizing.
+- **Training:** modest for teams already on Databricks; embedding/RAG design is the main learning curve.
+
+:::note[Cost model]
+The two levers are the **endpoint** (always-on serving capacity) and the **sync mode** — TRIGGERED refreshes on demand, CONTINUOUS keeps compute engaged to track Delta changes. Always verify current pricing.
+:::
+
+## 19. Executive Takeaway
+
+- ✔ **Best for:** RAG and agent retrieval on governed Databricks data with minimal new infrastructure.
+- ✔ **Avoid when:** you need transactional lookups, graph traversal, or a tiny static set better served by FAISS.
+- ✔ **Biggest benefit:** Delta-synced, Unity Catalog-governed retrieval without operating a separate vector database.
+- ✔ **Biggest limitation:** ongoing endpoint/sync cost and workspace-region scoping versus cloud-agnostic engines.
+- ✔ **Overall recommendation:** the default retrieval layer for GenAI already standardized on the Databricks Lakehouse.
+
+See the full [feature catalog](/databricks-features) for related components.

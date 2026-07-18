@@ -1,0 +1,221 @@
+---
+sidebar_position: 20
+title: "Databricks SQL — Architecture Guide"
+description: "Serverless data warehousing on the Lakehouse — SQL warehouses, editor, dashboards, and Photon governed by Unity Catalog."
+---
+
+# Databricks SQL (DBSQL)
+
+## 1. Executive Summary
+Databricks SQL is the data-warehousing surface of the Lakehouse: elastic SQL warehouses running Photon over Delta tables, governed by Unity Catalog and reached from the SQL editor, BI tools, and APIs.
+
+## 2. Primary Purpose
+- **Why it exists:** deliver warehouse-grade SQL performance and concurrency directly on open Lakehouse data, without a separate warehouse copy.
+- **Business problem solved:** eliminates the data-copy/ETL round-trip into a proprietary warehouse and the cost of maintaining two governance models.
+- **Technical problem solved:** low-latency, high-concurrency ANSI SQL and BI serving over Delta, with fast auto-starting compute and central access control.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Users / Executives / BI Analysts
+        ↓
+BI Tools + SQL Editor + AI/BI Dashboards + Genie
+        ↓
+Databricks SQL  →  SQL Warehouses (Serverless / Pro / Classic) + Photon
+        ↓
+Unity Catalog   (permissions · lineage · masking · audit)
+        ↓
+Delta Lake      (tables · materialized views · Delta Sharing)
+```
+- DBSQL is the **analytics/query serving layer** — the read/BI front door to Lakehouse data.
+- Warehouses are the compute; Unity Catalog is the control plane; Delta is the storage.
+- It shares one governed dataset with engineering and ML — no separate warehouse silo.
+
+## 4. Typical Architecture Placement
+```
+☑ User Interface
+☐ Developer Experience
+☑ Data Engineering
+☐ Data Governance
+☐ AI
+☐ Machine Learning
+☐ Storage
+☐ Security
+☐ Administration
+☑ Monitoring
+```
+- **User Interface:** SQL editor, AI/BI Dashboards, and BI-tool endpoints are the primary consumers.
+- **Data Engineering:** used for SQL transformations (`CREATE TABLE AS`, materialized views) and downstream marts.
+- **Monitoring:** query history, warehouse metrics, and system tables expose usage and performance.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+|---|---|---|
+| BI dashboards over Lakehouse data | ✅ | Photon + result cache give interactive latency |
+| High-concurrency analyst SQL | ✅ | Serverless multi-cluster autoscaling |
+| Ad hoc exploration in SQL editor | ✅ | Instant serverless start, no cluster wait |
+| Power BI / Tableau / Looker serving | ✅ | Native connectors + partner integrations |
+| Semantic layer via metric views | ✅ | Governed, reusable business metrics |
+| SQL-based transforms / ELT marts | ✅ | ANSI SQL, MVs, `COPY INTO`, streaming tables |
+| Consolidating a separate warehouse | ✅ | Query in place, drop the copy pipeline |
+| Row/column-secured reporting | ✅ | Unity Catalog masking + row filters enforced |
+| Embedded analytics via APIs | ✅ | SQL Statement Execution REST API |
+| Federated queries to external DBs | ⚠️ | Works via Lakehouse Federation; watch latency |
+| Sub-second point lookups (OLTP) | ⚠️ | Consider Lakebase / online tables instead |
+| Very small always-on tables | ⚠️ | Serverless idle timeout vs constant load |
+| Text-to-SQL for business users | ⚠️ | Better served by Genie on the same warehouse |
+| Heavy Python/UDF pipelines | ⚠️ | Use Lakeflow / notebooks, not SQL warehouses |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Transactional / OLTP workloads | ❌ | Warehouse is analytical, not row-write optimized |
+| Millisecond single-row lookups | ❌ | Use Lakebase, online tables, or a key-value store |
+| Large-scale ML training | ❌ | Use clusters/serverless with ML runtime |
+| Complex non-SQL logic | ⚠️ | Python/Scala belongs in notebooks/Lakeflow |
+| Streaming ingestion source | ⚠️ | Use Lakeflow/Auto Loader; DBSQL consumes results |
+| Unstructured file processing | ❌ | Not a document/blob engine |
+| Constant micro-queries on tiny data | ⚠️ | Fixed warehouse overhead outweighs benefit |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 4 |
+| Analytics Engineers | 5 |
+| Platform Engineers | 4 |
+| Data Scientists | 3 |
+| BI Teams | 5 |
+| AI Engineers | 3 |
+| Executives | 4 |
+| Architects | 5 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 4 |
+| Implementation Speed | 5 |
+| Governance | 5 |
+| Security | 5 |
+| Maintainability | 4 |
+| Scalability | 5 |
+| Cost Optimization | 4 |
+| Ease of Adoption | 4 |
+| Business Value | 5 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Unity Catalog | Enforces permissions, masking, lineage, and audit for every query. |
+| Delta Lake | Provides the ACID table format the warehouse reads and writes. |
+| Photon | Vectorized C++ engine that executes the SQL workloads. |
+| Serverless Compute | Supplies instant, autoscaling warehouse capacity. |
+| AI/BI Dashboards | Native visualization layer built on warehouse queries. |
+| Genie | Natural-language querying that runs on a SQL warehouse. |
+| Materialized Views | Precompute and incrementally refresh results for speed. |
+| Lakeflow | Produces the curated tables DBSQL serves. |
+| Lakehouse Federation | Extends SQL to external databases without ingestion. |
+| BI tools / JDBC-ODBC | External clients connect via drivers and partner connectors. |
+| System Tables | Expose query, warehouse, and billing telemetry as SQL. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| All-purpose / job clusters | In-Databricks | Flexible for code, but slower start and weaker for BI concurrency. |
+| Genie | In-Databricks | NL front end on top of DBSQL, not a replacement for it. |
+| Lakebase | In-Databricks | OLTP/serving engine, not analytical warehousing. |
+| Snowflake | External | Mature warehouse; separate storage/governance, data copied out of Lakehouse. |
+| Google BigQuery | External | Serverless and simple, but GCP-centric and a distinct catalog. |
+| Amazon Redshift | External | AWS-native; more cluster tuning, weaker open-format story. |
+| Azure Synapse / Fabric | External | Microsoft-stack integration, but separate governance from UC. |
+
+## 11. Strengths
+- Warehouse performance directly on open Delta data — no separate copy.
+- Serverless warehouses start in seconds and autoscale by concurrency.
+- Photon delivers high price/performance on analytical SQL.
+- One governance model via Unity Catalog across BI, ELT, and ML.
+- Result caching and query optimization reduce repeat cost.
+- Broad BI connectivity: JDBC/ODBC, native connectors, partner links.
+- SQL Statement Execution REST API for embedded and programmatic use.
+- Materialized views and streaming tables for fast, fresh marts.
+- Integrated query history and system tables for observability.
+- Same data serves Genie and AI/BI without new pipelines.
+
+## 12. Limitations
+- Serverless availability and features vary by cloud and region.
+- Warehouse types (serverless/pro/classic) differ in features and cost — easy to misconfigure.
+- Not suited to OLTP or millisecond point lookups.
+- Cost can climb with oversized warehouses or short idle timeouts.
+- Complex non-SQL logic must move to notebooks/Lakeflow.
+- Federated queries inherit the latency of remote sources.
+- Cross-cloud/region reads add egress and latency considerations.
+- Concurrency scaling has ceilings; very spiky loads need tuning.
+- Fine-grained governance depends on proper Unity Catalog setup.
+- Photon covers most but not every SQL construct.
+
+## 13. Common Mistakes
+- Oversizing warehouses instead of enabling multi-cluster autoscaling.
+- Disabling or setting an aggressive idle timeout that kills caching benefits.
+- Using classic/pro warehouses where serverless would be cheaper and faster.
+- Running heavy Python/ETL logic on SQL warehouses.
+- Skipping materialized views and rescanning raw tables for every dashboard.
+- Treating DBSQL as OLTP for application lookups.
+- Granting broad table access rather than views/row filters/masking.
+- Ignoring query history and system tables when diagnosing cost/latency.
+- Copying data back into an external warehouse, recreating a silo.
+
+## 14. Design Recommendations
+- ✔ Default to **serverless** warehouses; size small and let autoscaling handle concurrency.
+- ✔ Separate warehouses by workload (BI vs ELT vs ad hoc) for cost attribution.
+- ✔ Use materialized views and result cache for hot dashboards.
+- ✔ Enforce access through Unity Catalog views, row filters, and column masks.
+- ✔ Monitor with query history and system tables; set budgets/alerts.
+- ✔ Route natural-language users to Genie on a shared warehouse.
+- ✔ Keep OLTP and serving on Lakebase/online tables, not DBSQL.
+- ✔ Tag warehouses and queries for chargeback.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+|---|---|
+| BI dashboards & reporting | ✅ Core use case |
+| High-concurrency SQL | ✅ Serverless autoscaling |
+| SQL-based ELT / marts | ✅ MVs + ANSI SQL |
+| Warehouse consolidation | ✅ Query in place |
+| Governance & auditing | ✅ Via Unity Catalog |
+| Embedded analytics | ✅ Statement Execution API |
+| Business self-service | ⚠️ Pair with Genie |
+| Federated external data | ⚠️ Latency-dependent |
+| OLTP / point lookups | ❌ Use Lakebase |
+| ML training / Python | ❌ Use clusters/Lakeflow |
+
+## 16. Quick Comparison
+| Criterion | Databricks SQL | Snowflake | BigQuery | Redshift |
+|---|---|---|---|---|
+| Storage format | Open Delta | Proprietary | Proprietary | Proprietary |
+| Compute model | Serverless/pro/classic warehouses | Virtual warehouses | Serverless slots | Provisioned/serverless clusters |
+| Engine | Photon | Native | Dremel | Native (RA3) |
+| Governance | Unity Catalog (shared) | Snowflake RBAC | IAM + Dataplex | IAM + Lake Formation |
+| Cloud reach | AWS/Azure/GCP | Multi-cloud | GCP | AWS |
+| Lakehouse-native | Yes | Partial (external tables) | Partial | Partial (Spectrum) |
+
+## 17. Maturity
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+- **Licensing:** consumption-based DBUs; rate differs by warehouse type (serverless/pro/classic). Verify current pricing.
+- **Compute:** dominant cost; controlled via warehouse size, autoscaling, and idle timeout. Serverless bills only while active.
+- **Storage:** Delta on your cloud object store, plus result-cache footprint; independent of compute.
+- **Operational Overhead:** low for serverless (no cluster management); higher for classic/pro.
+- **Training:** low for SQL/BI teams; standard ANSI SQL plus Unity Catalog concepts.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** BI serving and SQL analytics/ELT directly on governed Lakehouse data.
+- ✔ **Avoid when:** you need OLTP, millisecond lookups, or heavy non-SQL/ML workloads.
+- ✔ **Biggest benefit:** warehouse performance and concurrency without a separate, copied data silo.
+- ✔ **Biggest limitation:** cost and feature variance across warehouse types, clouds, and regions.
+- ✔ **Overall recommendation:** adopt serverless DBSQL as the default analytics layer, governed by Unity Catalog, over any external-warehouse copy.

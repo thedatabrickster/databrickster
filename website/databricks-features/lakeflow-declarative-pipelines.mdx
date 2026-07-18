@@ -1,0 +1,234 @@
+---
+sidebar_position: 20
+title: "Lakeflow Declarative Pipelines — Architecture Guide"
+description: "Declarative framework for building batch and streaming ETL pipelines on Delta with built-in data quality, orchestration, and lineage."
+---
+
+# Lakeflow Declarative Pipelines
+
+## 1. Executive Summary
+
+Lakeflow Declarative Pipelines is a declarative ETL framework where you define target tables and transformations in SQL or Python, and the runtime handles orchestration, dependency resolution, incremental processing, and data-quality enforcement.
+
+## 2. Primary Purpose
+
+- **Why it exists:** remove the boilerplate of hand-coded Spark ETL — checkpointing, task ordering, retries, and table maintenance.
+- **Business problem solved:** slow, brittle pipeline delivery and inconsistent data quality reaching analytics and AI consumers.
+- **Technical problem solved:** manual DAG construction, streaming state management, and separate tooling for quality, lineage, and orchestration.
+- **Rename note:** formerly **Delta Live Tables (DLT)**; now part of the **Lakeflow** family alongside Lakeflow Connect (ingestion) and Lakeflow Jobs (orchestration).
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Sources → Lakeflow Connect / Auto Loader → Lakeflow Declarative Pipelines → Delta (Bronze→Silver→Gold) → SQL / BI / AI
+   (DBs, files, events)      (ingest)          (declarative transform + DQ)      (governed tables)      (consumers)
+```
+
+- Sits in the **Data Engineering** layer as the transformation/curation engine.
+- Consumes raw ingest (Auto Loader, Lakeflow Connect) and produces governed Delta tables.
+- Registers all tables and lineage in Unity Catalog for downstream SQL, BI, and AI.
+- Implements the **medallion** (Bronze → Silver → Gold) pattern natively via chained tables/views.
+
+## 4. Typical Architecture Placement
+
+```
+☐ User Interface
+☐ Developer Experience
+☑ Data Engineering
+☐ Data Governance
+☐ AI
+☐ Machine Learning
+☐ Storage
+☐ Security
+☐ Administration
+☑ Monitoring
+```
+
+- Core home is **Data Engineering** — declarative batch and streaming transformation.
+- Overlaps **Monitoring** via built-in expectations metrics and event-log observability.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+|---|---|---|
+| Medallion (Bronze/Silver/Gold) curation | ✅ | Native chained-table model |
+| Incremental streaming ingestion to Delta | ✅ | Managed checkpoints and state |
+| Batch ETL with dependency management | ✅ | Auto DAG resolution |
+| Data-quality enforcement at write time | ✅ | Built-in expectations |
+| Change Data Capture (CDC) upserts | ✅ | `AUTO CDC` / `APPLY CHANGES` |
+| SCD Type 1 / Type 2 history | ✅ | Declarative CDC handling |
+| Mixed SQL + Python transformation teams | ✅ | Both APIs supported |
+| Auto-scaling production pipelines | ✅ | Serverless + enhanced autoscaling |
+| Lineage and impact analysis needs | ✅ | Auto-captured to Unity Catalog |
+| Slowly evolving multi-hop transforms | ✅ | Declarative refresh handles ordering |
+| Migrating legacy notebook ETL to production | ✅ | Reduces orchestration glue |
+| Real-time sub-second event routing | ⚠️ | Micro-batch, not event-at-a-time |
+| Heavy imperative/branching control flow | ⚠️ | Declarative model constrains logic |
+| One-off exploratory transforms | ⚠️ | Framework overhead not worth it |
+| Cross-system orchestration (non-data tasks) | ⚠️ | Use Lakeflow Jobs to orchestrate |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Ultra-low-latency (sub-second) streaming | ❌ | Micro-batch execution model |
+| Orchestrating arbitrary tasks (scripts, ML, notebooks) | ❌ | That is Lakeflow Jobs' role |
+| Complex imperative branching / loops | ⚠️ | Declarative paradigm fights this |
+| Writing to non-Delta external sinks | ⚠️ | Optimized for Delta targets |
+| Interactive ad-hoc analysis | ❌ | Not a query tool |
+| Teams unwilling to adopt Databricks compute | ❌ | Runtime-bound to the platform |
+| Fine-grained manual checkpoint control | ⚠️ | Runtime abstracts state |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 5 |
+| Analytics Engineers | 4 |
+| Platform Engineers | 4 |
+| Data Scientists | 3 |
+| BI Teams | 2 |
+| AI Engineers | 3 |
+| Executives | 2 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 5 |
+| Implementation Speed | 5 |
+| Governance | 4 |
+| Security | 4 |
+| Maintainability | 5 |
+| Scalability | 4 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 4 |
+| Business Value | 4 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Delta Lake | Storage format for all pipeline target tables. |
+| Unity Catalog | Governs, secures, and captures lineage for pipeline outputs. |
+| Auto Loader | Incremental file ingestion feeding streaming tables. |
+| Lakeflow Connect | Managed source connectors for upstream ingestion. |
+| Lakeflow Jobs | Orchestrates pipelines with other tasks on a schedule/trigger. |
+| Serverless Compute | Elastic runtime for pipeline execution and autoscaling. |
+| Databricks Runtime / Spark | Underlying execution engine for transformations. |
+| Databricks Asset Bundles | Deploys pipeline definitions as versioned IaC. |
+| Git Folders (Repos) | Source control for declarative pipeline code. |
+| Event log tables | Observability and expectations metrics for monitoring. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Structured Streaming + Lakeflow Jobs (hand-rolled) | In-Databricks | Full control, but you own checkpoints, DQ, and DAG wiring. |
+| dbt on Databricks | In/adjacent | Strong SQL modeling and tests; batch-centric, less native streaming/CDC. |
+| Lakeflow Jobs alone (notebook tasks) | In-Databricks | Flexible orchestration; no declarative DQ or auto-incremental logic. |
+| Apache Airflow / Dagster | External | Broad orchestration; no built-in transformation or quality engine. |
+| Azure Data Factory / AWS Glue | External ETL | Managed ETL; weaker Lakehouse-native lineage and Delta optimization. |
+| Snowflake Dynamic Tables / Streams+Tasks | External platform | Comparable declarative refresh; tied to a different platform. |
+
+## 11. Strengths
+
+- Declarative model removes orchestration, retry, and checkpoint boilerplate.
+- Unified batch and streaming semantics in one framework.
+- Built-in **expectations** enforce data quality with warn/drop/fail actions.
+- Automatic dependency resolution and incremental recomputation.
+- Native CDC via `AUTO CDC` / `APPLY CHANGES` (SCD Type 1 and 2).
+- Automatic lineage and observability through Unity Catalog and event logs.
+- Serverless option with enhanced autoscaling for cost/throughput balance.
+- SQL and Python parity lowers the barrier for mixed teams.
+- Natural fit for the medallion architecture.
+- Reduces production hardening effort versus hand-coded pipelines.
+
+## 12. Limitations
+
+- Micro-batch execution — not suited to sub-second latency requirements.
+- Declarative paradigm constrains complex imperative/branching logic.
+- Optimized for Delta targets; external sinks are awkward.
+- Runtime-bound to Databricks compute — no portability off-platform.
+- Abstracted state management limits fine-grained checkpoint control.
+- Not an orchestrator for non-pipeline tasks (needs Lakeflow Jobs).
+- Debugging failures can require reading event-log internals.
+- Serverless vs classic compute trade-offs add cost-tuning complexity.
+- Learning curve shifting teams from imperative Spark habits.
+- Feature/behavior differences persist across serverless and classic modes.
+
+## 13. Common Mistakes
+
+- Treating it as a general orchestrator instead of a transformation engine.
+- Skipping expectations, then bolting on quality checks downstream.
+- Overusing `fail` expectations that halt pipelines on minor issues.
+- Mixing heavy imperative logic that fights the declarative model.
+- Ignoring streaming vs materialized-view semantics when choosing table types.
+- Not source-controlling pipeline code or deploying via Asset Bundles.
+- Under-partitioning or ignoring layout tuning on large Gold tables.
+- Expecting sub-second latency from a micro-batch runtime.
+
+## 14. Design Recommendations
+
+- ✔ Model pipelines explicitly as Bronze → Silver → Gold layers.
+- ✔ Add expectations early; prefer `warn`/`drop` over `fail` for resilience.
+- ✔ Use streaming tables for append-only sources, materialized views for aggregates.
+- ✔ Use `AUTO CDC` for upserts and SCD rather than hand-coded merges.
+- ✔ Deploy with Databricks Asset Bundles and Git for reproducibility.
+- ✔ Orchestrate pipelines from Lakeflow Jobs for cross-task workflows.
+- ✔ Start serverless; benchmark against classic compute for steady workloads.
+- ✔ Monitor the event log and expectations metrics as first-class signals.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+|---|---|
+| Declarative ETL on Delta | ✅ Purpose-built |
+| Streaming + batch in one model | ✅ Unified semantics |
+| Built-in data quality | ✅ Native expectations |
+| CDC / SCD handling | ✅ `AUTO CDC` |
+| Automatic lineage | ✅ Via Unity Catalog |
+| Sub-second latency | ❌ Micro-batch only |
+| Non-data task orchestration | ❌ Use Lakeflow Jobs |
+| Complex imperative logic | ⚠️ Constrained by model |
+| Off-platform portability | ❌ Databricks-bound |
+| Medallion architecture | ✅ Native pattern |
+
+## 16. Quick Comparison
+
+| Criterion | Lakeflow Declarative Pipelines | Structured Streaming + Jobs | dbt |
+|---|---|---|---|
+| Programming model | Declarative | Imperative | Declarative SQL |
+| Streaming support | Native | Native (manual) | Limited |
+| Data quality | Built-in expectations | Hand-coded | Tests (post-hoc) |
+| Orchestration | Automatic | Manual (Jobs) | External needed |
+| Lineage | Automatic (UC) | Manual | Model graph |
+| Platform lock-in | High | High | Low |
+
+## 17. Maturity
+
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+
+- **Licensing:** consumed as Databricks DBUs; product/serverless tier affects rate — verify current pricing.
+- **Compute:** serverless or classic pipeline compute; autoscaling drives most cost. Right-size and tune triggers.
+- **Storage:** standard Delta storage plus overhead for CDC history and materialized results.
+- **Operational Overhead:** low — managed orchestration, retries, and maintenance reduce ops burden.
+- **Training:** moderate — teams must learn the declarative model, table types, and expectations.
+
+## 19. Executive Takeaway
+
+- ✔ **Best for:** medallion ETL combining streaming and batch with enforced data quality.
+- ✔ **Avoid when:** you need sub-second latency, off-platform portability, or general task orchestration.
+- ✔ **Biggest benefit:** declarative model plus built-in quality and lineage cuts pipeline delivery and maintenance effort.
+- ✔ **Biggest limitation:** micro-batch, Databricks-bound, and constrained for complex imperative logic.
+- ✔ **Overall recommendation:** default choice for new Delta ETL on Databricks; pair with Lakeflow Jobs for orchestration. See the [feature catalog](/databricks-features) for related components.

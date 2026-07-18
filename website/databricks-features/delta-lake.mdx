@@ -1,0 +1,228 @@
+---
+sidebar_position: 20
+title: "Delta Lake — Architecture Guide"
+description: "The open table format that adds ACID transactions, time travel, and schema enforcement to Parquet files on cloud object storage."
+---
+
+# Delta Lake
+
+## 1. Executive Summary
+Delta Lake is the open table format that turns Parquet files on cloud object storage into ACID-transactional, versioned, schema-enforced tables — the default storage foundation of the Databricks Lakehouse.
+
+## 2. Primary Purpose
+- **Why it exists:** raw Parquet/data-lake files have no transactions, no consistent reads, and no reliable schema — making them unsafe for concurrent, production workloads.
+- **Business problem solved:** one governed, low-cost copy of data serves BI, ETL, streaming, and ML without a separate warehouse, avoiding copy sprawl and lock-in.
+- **Technical problem solved:** ACID commits, snapshot isolation, time travel, schema enforcement/evolution, and efficient upserts/deletes directly on object storage.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Users / BI / ML / Apps
+        ↓
+Query & Compute   (Databricks SQL, Photon, Spark, Structured Streaming)
+        ↓
+Governance        (Unity Catalog: permissions, lineage, discovery)
+        ↓
+Table Format  →→→ Delta Lake  (transaction log + Parquet)
+        ↓
+Object Storage    (S3 / ADLS / GCS)
+```
+
+- Delta is the **table layer**: metadata and a transaction log (`_delta_log`) over Parquet data files.
+- It sits **below governance and compute** — every engine reads/writes the same physical tables.
+- It is the **default format** for managed tables, Lakeflow pipelines, and materialized views.
+- Storage stays open and vendor-portable; no proprietary binary data files.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☐ Developer Experience
+☑ Data Engineering
+☐ Data Governance
+☐ AI
+☐ Machine Learning
+☑ Storage
+☐ Security
+☐ Administration
+☐ Monitoring
+```
+- Core placement is **Storage** — the persistence format for lakehouse tables.
+- Strong **Data Engineering** role: MERGE, CDC, streaming sinks, and reliable batch writes depend on it.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+|---|---|---|
+| Bronze/Silver/Gold medallion pipelines | ✅ | ACID + schema evolution across refinement stages |
+| Incremental upserts / CDC (MERGE) | ✅ | Atomic MERGE with snapshot isolation |
+| Streaming + batch on one table | ✅ | Exactly-once streaming writes, consistent batch reads |
+| Concurrent multi-writer ingestion | ✅ | Optimistic concurrency on the transaction log |
+| Time travel / audit / reproducible reads | ✅ | Query by version or timestamp |
+| GDPR/CCPA deletes and point fixes | ✅ | Row-level DELETE/UPDATE without full rewrites |
+| BI serving layer via Databricks SQL | ✅ | Photon-optimized reads on Delta |
+| Feature tables for ML | ✅ | Versioned, reproducible training inputs |
+| Slowly changing dimensions (SCD 1/2) | ✅ | MERGE patterns are first-class |
+| Large-table maintenance (compaction) | ✅ | OPTIMIZE, liquid clustering, VACUUM |
+| Row-level change consumption downstream | ✅ | Change Data Feed emits inserts/updates/deletes |
+| Cross-engine open access (non-Databricks) | ⚠️ | Works via connectors/UniForm; feature parity varies |
+| Sub-second single-row OLTP lookups | ⚠️ | Use Lakebase/online tables instead |
+| Tiny, high-frequency tables | ⚠️ | Small-file/commit overhead unless tuned |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| High-concurrency transactional OLTP | ❌ | Object storage latency; use a real OLTP database |
+| Millisecond single-key point reads | ❌ | Not a key-value store; use online tables/Lakebase |
+| Thousands of tiny commits per second | ⚠️ | Transaction-log and small-file overhead |
+| Data that never needs ACID/schema | ⚠️ | Plain Parquet/CSV may suffice and cost less |
+| Heavy random in-place mutation | ⚠️ | Copy-on-write rewrites files; costly at high churn |
+| Sub-millisecond feature serving | ❌ | Serve from an online/low-latency store |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 5 |
+| Analytics Engineers | 4 |
+| Platform Engineers | 4 |
+| Data Scientists | 4 |
+| BI Teams | 3 |
+| AI Engineers | 3 |
+| Executives | 2 |
+| Architects | 5 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 4 |
+| Implementation Speed | 4 |
+| Governance | 4 |
+| Security | 3 |
+| Maintainability | 4 |
+| Scalability | 5 |
+| Cost Optimization | 4 |
+| Ease of Adoption | 4 |
+| Business Value | 5 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Cloud Object Storage (S3/ADLS/GCS) | Physical home for Parquet data and the transaction log. |
+| Unity Catalog | Governs, secures, and catalogs Delta tables and their lineage. |
+| Photon | Vectorized engine that accelerates reads/writes on Delta. |
+| Apache Spark / Structured Streaming | Primary read/write engine for batch and streaming. |
+| Lakeflow (Pipelines & Jobs) | Declarative ETL and orchestration that materialize Delta tables. |
+| Databricks SQL | Serves Delta tables to BI and ad-hoc analytics. |
+| MLflow / Feature Engineering | Consumes versioned Delta tables as reproducible ML inputs. |
+| Predictive Optimization | Automates OPTIMIZE/VACUUM/clustering on Delta tables. |
+| Delta Sharing | Shares Delta data across orgs using the open protocol. |
+| Delta UniForm | Exposes Delta tables as Iceberg/Hudi metadata for other engines. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Apache Iceberg | Open table format | Similar ACID/time-travel; broader vendor-neutral engine support, but Databricks-native tooling favors Delta (UniForm bridges both). |
+| Apache Hudi | Open table format | Strong on streaming upserts/record-level indexing; smaller ecosystem on Databricks. |
+| Plain Parquet / ORC | Columnar file format | Lower overhead, but no ACID, no schema enforcement, no time travel. |
+| Cloud data warehouse (Snowflake/BigQuery) | Managed warehouse | Turnkey SQL performance, but proprietary storage and copy/egress lock-in. |
+| Hive tables (HMS) | Legacy metastore format | Familiar, but no transactions or reliable concurrent writes. |
+
+## 11. Strengths
+- ACID transactions and snapshot isolation directly on object storage.
+- Open format and protocol — no proprietary data files; portable across clouds.
+- Time travel by version or timestamp for audit and reproducibility.
+- Schema enforcement plus controlled schema evolution.
+- Efficient MERGE/UPDATE/DELETE for CDC, SCD, and compliance deletes.
+- Unified batch and streaming (exactly-once) on a single table.
+- Change Data Feed exposes row-level changes to downstream consumers.
+- Liquid clustering and OPTIMIZE keep large tables fast without manual partitioning.
+- Deletion vectors avoid full-file rewrites for point deletes/updates.
+- Mature, widely adopted, and tightly integrated with the full Databricks stack.
+
+## 12. Limitations
+- Object-storage latency makes it unsuitable for OLTP or millisecond point reads.
+- Small-file and frequent-commit overhead requires tuning and maintenance.
+- Copy-on-write rewrites make high-churn random mutation expensive.
+- Transaction log grows and needs checkpointing/VACUUM housekeeping.
+- Cross-engine feature parity outside Databricks lags the native writer.
+- Optimistic concurrency can cause conflicts under many simultaneous writers.
+- Advanced features (liquid clustering, deletion vectors) depend on newer readers/writers.
+- No built-in secondary indexes; performance relies on layout and stats.
+- Time-travel retention is bounded by VACUUM and log retention settings.
+
+## 13. Common Mistakes
+- Over-partitioning small/medium tables instead of using liquid clustering.
+- Never running OPTIMIZE/VACUUM, leaving small files and stale data files.
+- Setting VACUUM retention too low and breaking time travel or concurrent readers.
+- Treating Delta as an OLTP store for high-frequency single-row operations.
+- Ignoring MERGE performance (no clustering/stats on join keys).
+- Writing many tiny streaming commits without compaction.
+- Assuming full feature parity from non-Databricks engines.
+- Bypassing Unity Catalog and losing governance/lineage on raw paths.
+
+## 14. Design Recommendations
+- ✔ Use Unity Catalog managed tables; let the platform own layout and maintenance.
+- ✔ Prefer liquid clustering over static partitioning for most tables.
+- ✔ Enable Predictive Optimization (or schedule OPTIMIZE/VACUUM) for upkeep.
+- ✔ Cluster/collect stats on MERGE and filter keys.
+- ✔ Set VACUUM retention to match your time-travel and compliance needs.
+- ✔ Enable Change Data Feed only where downstream consumers need it.
+- ✔ Use UniForm when external Iceberg/Hudi readers must access the data.
+- ✔ Right-size streaming trigger intervals to limit small-file/commit churn.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+|---|---|
+| ACID on the data lake | ✅ Purpose-built for it |
+| Medallion / ETL pipelines | ✅ Default table format |
+| CDC / upserts / SCD | ✅ MERGE + CDF |
+| Streaming + batch unified | ✅ Exactly-once writes |
+| Time travel / audit | ✅ Versioned snapshots |
+| Open, portable storage | ✅ Open format + protocol |
+| BI serving | ✅ With Photon/DBSQL |
+| High-concurrency OLTP | ❌ Use Lakebase/OLTP |
+| Millisecond point lookups | ❌ Use online tables |
+| Non-Databricks engine writes | ⚠️ Check parity / UniForm |
+
+## 16. Quick Comparison
+
+| Criteria | Delta Lake | Apache Iceberg | Apache Hudi | Plain Parquet |
+|---|---|---|---|---|
+| ACID transactions | Yes | Yes | Yes | No |
+| Time travel | Yes | Yes | Yes | No |
+| Streaming upserts | Strong | Good | Strong | No |
+| Databricks integration | Native | Via UniForm/connectors | Connector | Basic |
+| Engine neutrality | Good (UniForm) | Broadest | Moderate | Universal |
+| Maintenance tooling | Rich (auto) | Growing | Manual-leaning | None |
+
+## 17. Maturity
+
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High (with Unity Catalog) |
+| AI Readiness | High |
+
+## 18. Cost Considerations
+- **Licensing:** the Delta format is open-source; no format license. Databricks compute (DBUs) applies when used on the platform. Verify current pricing.
+- **Compute:** OPTIMIZE, VACUUM, MERGE, and clustering consume compute; Predictive Optimization automates but still bills.
+- **Storage:** object-storage costs plus retained older versions/files until VACUUM; time-travel retention increases footprint.
+- **Operational Overhead:** low when maintenance is automated; higher if tables are hand-tuned or over-partitioned.
+- **Training:** modest — SQL/Spark familiarity transfers; layout and maintenance concepts require some ramp-up.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** a single, open, ACID storage foundation for BI, ETL, streaming, and ML on the Lakehouse.
+- ✔ **Avoid when:** you need OLTP transactions or millisecond single-row lookups.
+- ✔ **Biggest benefit:** warehouse-grade reliability (ACID, time travel, schema) on low-cost open storage.
+- ✔ **Biggest limitation:** object-storage latency and maintenance overhead make it a poor OLTP substitute.
+- ✔ **Overall recommendation:** adopt as the default table format; govern with Unity Catalog and automate maintenance.
+
+See the full [feature catalog](/databricks-features) for related guides.

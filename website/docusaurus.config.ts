@@ -99,6 +99,16 @@ const config: Config = {
         remarkPlugins: [remarkAcronyms],
       },
     ],
+    [
+      '@docusaurus/plugin-content-docs',
+      {
+        id: 'databricks-features',
+        path: 'databricks-features',
+        routeBasePath: 'databricks-features',
+        sidebarPath: './sidebarsDatabricksFeatures.ts',
+        remarkPlugins: [remarkAcronyms],
+      },
+    ],
   ],
 
   themeConfig: {
@@ -145,6 +155,13 @@ const config: Config = {
           position: 'left',
           label: 'Agentic Coding',
         },
+        {
+          type: 'docSidebar',
+          docsPluginId: 'databricks-features',
+          sidebarId: 'databricksFeaturesSidebar',
+          position: 'left',
+          label: 'Databricks Features',
+        },
         {to: '/blog', label: 'Deep Dives', position: 'left'},
         {to: '/about', label: 'About', position: 'right'},
         {
@@ -175,6 +192,10 @@ const config: Config = {
             {
               label: 'Agentic Coding',
               to: '/agentic-coding',
+            },
+            {
+              label: 'Databricks Features',
+              to: '/databricks-features',
             },
           ],
         },

@@ -1,0 +1,219 @@
+---
+sidebar_position: 20
+title: "MLflow — Architecture Guide"
+description: "The lifecycle layer for ML and GenAI on Databricks — experiment tracking, model versioning in Unity Catalog, GenAI tracing and evaluation, and the on-ramp to Model Serving."
+---
+
+# MLflow
+
+## 1. Executive Summary
+MLflow is the open-source lifecycle system — managed on Databricks — for tracking experiments, versioning models, and (in MLflow 3) tracing and evaluating GenAI applications on the path to production serving.
+
+## 2. Primary Purpose
+- **Why it exists:** ML and GenAI work is iterative; without a system of record, results, parameters, and model artifacts are lost or irreproducible.
+- **Business problem solved:** turns ad-hoc experimentation into auditable, comparable, governed assets that can be promoted to production with confidence.
+- **Technical problem solved:** captures runs, metrics, params, artifacts, and lineage; standardizes model packaging (flavors); and centralizes model/version state — plus GenAI trace and quality data in MLflow 3.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Users / Data Scientists / AI Engineers
+        ↓
+Notebooks · IDEs · Jobs  →  MLflow Tracking (runs, traces, evals)
+        ↓
+Model Registry in Unity Catalog  (versions, aliases, lineage)
+        ↓
+Mosaic AI Model Serving  (real-time / batch / agent endpoints)
+        ↓
+Delta Lake  (training data, feature tables, eval datasets, inference logs)
+```
+- Spans the **AI/ML** band: authoring-time tracking through registry to the serving handoff.
+- The registry lives **inside Unity Catalog**, so models are governed like tables and volumes.
+- GenAI **traces and evaluations** (MLflow 3) attach to the same experiment/run backbone.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☑ Developer Experience
+☐ Data Engineering
+☑ Data Governance
+☑ AI
+☑ Machine Learning
+☐ Storage
+☐ Security
+☑ Monitoring
+```
+- Core to **ML/AI** authoring and to **Developer Experience** (tracking APIs in notebooks, IDEs, Jobs).
+- Registry integration puts it in **Governance**; traces/eval metrics put it in **Monitoring**.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+| --- | --- | --- |
+| Track classical ML training runs | ✅ | Native params/metrics/artifact logging |
+| Compare experiments across teams | ✅ | Central experiment UI and search API |
+| Version and govern models | ✅ | Model Registry in Unity Catalog |
+| Promote model dev → staging → prod | ✅ | Aliases and version transitions |
+| Reproducible runs (params + env) | ✅ | Logged environment, code, and inputs |
+| Package models for serving | ✅ | Flavors + `pyfunc` standard interface |
+| GenAI app tracing (spans, tokens) | ✅ | MLflow 3 tracing, OpenTelemetry-aligned |
+| LLM/agent quality evaluation | ✅ | LLM-as-judge scorers, eval datasets |
+| Hand off to Model Serving | ✅ | Registry version deploys directly |
+| Lineage from data → model → endpoint | ✅ | Unity Catalog captures the chain |
+| Batch inference at scale | ⚠️ | Logs models; scale relies on Spark/Serving |
+| AutoML result capture | ✅ | AutoML writes runs/models to MLflow |
+| Prompt versioning and registry | ✅ | MLflow 3 prompt registry |
+| Human review of GenAI outputs | ⚠️ | Review workflows exist; still maturing |
+| Cross-cloud model portability | ✅ | Open format; export/import supported |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+| --- | --- | --- |
+| Feature computation/storage | ❌ | Use Feature Engineering / feature tables |
+| Data pipeline orchestration | ❌ | Use Lakeflow Jobs / Declarative Pipelines |
+| Low-latency online serving itself | ❌ | MLflow packages; Model Serving serves |
+| General data catalog for tables | ❌ | Unity Catalog is the catalog |
+| Real-time dashboards/BI | ❌ | Use AI/BI Dashboards |
+| Vector storage/retrieval | ❌ | Use Mosaic AI Vector Search |
+| Heavy artifact/blob store | ⚠️ | Backed by object storage; not a data lake |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+| --- | --- |
+| Data Engineers | 3 |
+| Analytics Engineers | 2 |
+| Platform Engineers | 3 |
+| Data Scientists | 5 |
+| BI Teams | 1 |
+| AI Engineers | 5 |
+| Executives | 2 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+| --- | --- |
+| Developer Productivity | 5 |
+| Implementation Speed | 5 |
+| Governance | 4 |
+| Security | 4 |
+| Maintainability | 4 |
+| Scalability | 4 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 5 |
+| Business Value | 4 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+| --- | --- |
+| Unity Catalog | Hosts the Model Registry and enforces governance/lineage on models. |
+| Delta Lake | Stores training data, eval datasets, and inference/trace logs. |
+| Object storage | Backs experiment artifacts and model files. |
+| Mosaic AI Model Serving | Deploys registered model versions to endpoints. |
+| AutoML | Emits runs and candidate models into MLflow experiments. |
+| Feature Engineering | Supplies governed features; logged as model dependencies. |
+| Lakeflow Jobs | Schedules training, evaluation, and batch scoring runs. |
+| Mosaic AI Agent Framework | Uses MLflow tracing/eval to build and assess agents. |
+| Foundation Model APIs | Provide judge/target models for GenAI evaluation. |
+| Git Folders / IDEs | Author code that logs to tracking from anywhere. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+| --- | --- | --- |
+| Self-hosted MLflow | Same API, DIY | Full control; you run tracking server, DB, storage, auth, and UC integration is lost. |
+| Weights & Biases | External SaaS | Rich experiment/GenAI UX; separate governance plane and egress from the Lakehouse. |
+| SageMaker Experiments | AWS-native | Tight AWS integration; weaker fit outside AWS and no Unity Catalog governance. |
+| Vertex AI Experiments | GCP-native | Good on GCP; separate registry/governance model from Databricks. |
+| Neptune / Comet | External SaaS | Strong tracking niches; another system to secure and integrate. |
+| DVC / plain Git + files | Lightweight | Minimal infra; no run UI, registry, serving handoff, or lineage. |
+
+## 11. Strengths
+- Open-source standard — portable, large ecosystem, minimal lock-in on the tracking API.
+- Managed on Databricks: no tracking server to operate; scales with the workspace.
+- Registry in **Unity Catalog** unifies model governance with data governance.
+- One backbone for classical ML **and** GenAI (tracing + evaluation) in MLflow 3.
+- Standardized model packaging (flavors, `pyfunc`) simplifies deployment.
+- Direct promotion path to Mosaic AI Model Serving.
+- Automatic lineage: data → run → model version → endpoint.
+- Autologging for popular frameworks reduces boilerplate.
+- LLM-as-judge scorers and eval datasets make GenAI quality measurable.
+- Works from notebooks, IDEs, and Jobs via the same APIs.
+
+## 12. Limitations
+- Not a serving, feature, or orchestration system — it coordinates, it doesn't run those.
+- GenAI tracing/eval (MLflow 3) is newer; features and judge quality still evolving.
+- LLM-as-judge scoring adds token cost and needs calibration against human labels.
+- Registry governance depth depends on correct Unity Catalog setup.
+- Managed and self-hosted MLflow can diverge in features and UI cadence.
+- Large artifact volumes accrue object-storage cost if unmanaged.
+- Autolog capture varies by framework and version.
+- Trace volume from high-traffic GenAI apps can be substantial to store/query.
+- Reproducibility depends on disciplined logging of data, env, and code.
+- Cross-workspace/registry migration requires deliberate export/import.
+
+## 13. Common Mistakes
+- Treating MLflow as optional — logging runs only for "important" experiments.
+- Skipping the Unity Catalog registry and pinning to model files or paths directly.
+- Not logging input data/version, so runs can't be reproduced.
+- Overloading artifacts (raw datasets) into MLflow instead of Delta/Volumes.
+- Confusing registry aliases with lifecycle governance and skipping approvals.
+- Ignoring the environment spec, causing serving-time dependency drift.
+- Adopting GenAI judges without validating them against human ratings.
+- Retaining unbounded traces/artifacts with no lifecycle/retention policy.
+
+## 14. Design Recommendations
+- ✔ Use the **Unity Catalog** Model Registry as the single source of truth for models.
+- ✔ Standardize experiment naming and tagging per project/team.
+- ✔ Autolog where supported; log data version, env, and code commit explicitly.
+- ✔ Promote via aliases (e.g. `champion`, `challenger`) with review gates.
+- ✔ Keep large data in Delta/Volumes; log references, not blobs.
+- ✔ For GenAI, instrument tracing early and build reusable eval datasets.
+- ✔ Calibrate LLM judges against a labeled sample before trusting scores.
+- ✔ Set retention/lifecycle policies for traces and artifacts.
+- ✔ Wire training/eval into Lakeflow Jobs for repeatable, scheduled runs.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+| --- | --- |
+| Experiment tracking | ✅ Purpose-built |
+| Model versioning & governance | ✅ Registry in Unity Catalog |
+| Reproducible ML runs | ✅ Params/env/data logging |
+| GenAI app tracing | ✅ MLflow 3 tracing |
+| LLM/agent evaluation | ✅ Built-in scorers |
+| Serving models | ⚠️ Hand off to Model Serving |
+| Feature storage | ❌ Use Feature Engineering |
+| Pipeline orchestration | ❌ Use Lakeflow |
+| Data cataloging | ❌ Use Unity Catalog |
+| Vector retrieval | ❌ Use Vector Search |
+
+## 16. Quick Comparison
+| Criterion | MLflow (Databricks) | Weights & Biases | SageMaker Experiments | Self-hosted MLflow |
+| --- | --- | --- | --- | --- |
+| Hosting | Managed in workspace | SaaS | AWS-managed | You operate |
+| Governance | Unity Catalog-native | Separate plane | IAM/AWS | DIY |
+| GenAI tracing/eval | Yes (MLflow 3) | Yes | Limited | Yes (self-run) |
+| Serving handoff | Model Serving | External | SageMaker | DIY |
+| Lock-in | Low (open API) | Medium | High (AWS) | Low |
+
+## 17. Maturity
+| Dimension | Rating |
+| --- | --- |
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | Medium-High (GenAI features still maturing) |
+
+## 18. Cost Considerations
+- **Licensing:** MLflow is open source; managed capability is included with the Databricks platform. Verify current pricing.
+- **Compute:** billed via the compute running training/eval/inference (clusters, Jobs, Serving), not MLflow itself.
+- **Storage:** experiment artifacts, model files, and traces consume object storage; grows with retention.
+- **Operational Overhead:** low when managed (no server to run); high if self-hosting the tracking stack.
+- **Training:** low for tracking basics; moderate to adopt registry governance and GenAI eval/judge patterns.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** teams standardizing ML and GenAI lifecycle on Databricks with governed models.
+- ✔ **Avoid when:** you need serving, feature storage, or orchestration — those are separate features.
+- ✔ **Biggest benefit:** one governed, reproducible backbone from experiment to production endpoint.
+- ✔ **Biggest limitation:** it coordinates the lifecycle but doesn't execute serving/features/pipelines; GenAI eval is still maturing.
+- ✔ **Overall recommendation:** adopt as the default lifecycle layer; anchor the registry in Unity Catalog and instrument GenAI tracing early.
+
+See the full [feature catalog](/databricks-features) for related components.

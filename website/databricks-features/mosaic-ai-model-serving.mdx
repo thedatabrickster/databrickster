@@ -1,0 +1,246 @@
+---
+sidebar_position: 20
+title: "Mosaic AI Model Serving — Architecture Guide"
+description: "Serverless endpoints for custom models, foundation models, external models, and agents, with governed deployment from MLflow and Unity Catalog."
+---
+
+# Mosaic AI Model Serving
+
+## 1. Executive Summary
+
+Mosaic AI Model Serving is a managed, serverless layer that exposes custom models, foundation models, external models, and agents as governed REST endpoints for real-time and batch inference.
+
+## 2. Primary Purpose
+
+- **Why it exists:** turn a registered model or agent into a production endpoint without managing inference infrastructure.
+- **Business problem:** teams stall between a trained model and a served one — provisioning, autoscaling, and security block the last mile.
+- **Technical problem:** standardizes deployment (containerization, autoscaling, auth, logging) across model types behind one API and one governance boundary.
+- **Consolidation:** one control plane for in-house models, hosted foundation models, and third-party LLMs (OpenAI, Anthropic, Google) via external-model routes.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Users / Apps / Executives
+        ↓
+User Interfaces        (Databricks Apps, AI Playground, Genie, BI tools)
+        ↓
+AI & Machine Learning  (Mosaic AI: Model Serving ◀ HERE, Agent Framework, Vector Search)
+        ↓
+Governance / Gateway   (AI Gateway, Unity Catalog, Inference Tables, Lineage)
+        ↓
+Data Engineering       (Lakeflow, Feature/Online Tables, MLflow)
+        ↓
+Storage                (Delta Lake, Volumes)
+```
+
+- Sits at the **serving edge** of the AI/ML layer — the runtime that applications call.
+- Consumes models and agents registered in **Unity Catalog** (via MLflow); it is not where models are trained.
+- Requests pass through **AI Gateway** for rate limits, routing, guardrails, and usage tracking before reaching the model.
+- Writes request/response payloads to **Inference Tables** (Delta) for monitoring and evaluation.
+
+## 4. Typical Architecture Placement
+
+```
+☐ User Interface
+☐ Developer Experience
+☐ Data Engineering
+☑ Data Governance
+☑ AI
+☑ Machine Learning
+☐ Storage
+☐ Security
+☐ Administration
+☑ Monitoring
+```
+
+- Primarily an **AI/ML serving** service; governance and monitoring are integral (UC permissions, Inference Tables).
+- Not a UI or data-engineering component — it is invoked by those layers rather than hosting them.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+|---|---|---|
+| Real-time scoring for custom ML model (fraud, churn) | ✅ | Low-latency REST endpoint with autoscaling |
+| Serving a fine-tuned or open LLM (Llama, Mistral) | ✅ | Provisioned throughput for predictable GPU capacity |
+| Pay-per-token access to hosted foundation models | ✅ | Foundation Model APIs, no infra to manage |
+| Routing to external LLMs (OpenAI, Anthropic) | ✅ | External-model endpoints centralize keys and governance |
+| Deploying a RAG or tool-using agent | ✅ | Native agent serving with tracing and review |
+| Spiky / intermittent traffic with cost sensitivity | ✅ | Scale-to-zero avoids idle GPU cost |
+| Feature-enriched real-time inference | ✅ | Automatic lookup from Online Tables / Feature Store |
+| Batch scoring over large Delta tables | ✅ | Batch inference (`ai_query`) against served or FM endpoints |
+| A/B or canary rollout across model versions | ✅ | Traffic split across served entities on one endpoint |
+| Multi-model consolidation behind one governed layer | ✅ | Unified auth, logging, and lineage |
+| Standardized LLM access across many teams | ✅ | Gateway rate limits and usage attribution per team |
+| Ultra-low single-digit-ms latency (HFT, ad bidding) | ⚠️ | Network + cold-start overhead may exceed budget |
+| Edge / on-device / air-gapped inference | ⚠️ | Cloud-hosted; not designed for disconnected edge |
+| Very high sustained QPS at lowest unit cost | ⚠️ | Provisioned throughput helps; benchmark vs self-hosted |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| On-device / offline mobile inference | ❌ | Requires connectivity to the control plane |
+| Sub-millisecond hard-real-time paths | ❌ | Managed HTTP layer adds latency |
+| Non-ML generic microservice hosting | ❌ | Purpose-built for model/agent inference, not arbitrary apps |
+| Fully air-gapped environments | ❌ | Depends on Databricks-hosted serving plane |
+| Training or large fine-tuning jobs | ❌ | Serving only; use Model Training / clusters |
+| Steady 24/7 max-utilization GPU at floor cost | ⚠️ | Compare against reserved self-managed GPUs |
+| Deep per-request kernel/hardware tuning | ⚠️ | Limited low-level control vs self-hosted KServe |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 3 |
+| Analytics Engineers | 2 |
+| Platform Engineers | 4 |
+| Data Scientists | 4 |
+| BI Teams | 2 |
+| AI Engineers | 5 |
+| Executives | 3 |
+| Architects | 5 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 5 |
+| Implementation Speed | 5 |
+| Governance | 5 |
+| Security | 4 |
+| Maintainability | 4 |
+| Scalability | 4 |
+| Cost Optimization | 4 |
+| Ease of Adoption | 4 |
+| Business Value | 4 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| MLflow | Packages and versions the model/agent that gets deployed. |
+| Unity Catalog | Registers models and enforces endpoint and data permissions. |
+| AI Gateway | Adds rate limiting, routing, guardrails, and usage logging in front of endpoints. |
+| Inference Tables (Delta) | Persist request/response payloads for audit, monitoring, and evaluation. |
+| Feature Store / Online Tables | Supply low-latency features automatically at inference time. |
+| Mosaic AI Vector Search | Provides retrieval for RAG agents served as endpoints. |
+| Agent Framework & Evaluation | Builds and scores the agents that Model Serving hosts. |
+| Lakehouse Monitoring | Tracks drift and quality using inference-table data. |
+| Databricks Apps | Common front end that calls serving endpoints. |
+| Serverless Compute | Underlying elastic CPU/GPU capacity for endpoints. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Foundation Model APIs (Databricks) | In-Databricks | Same service; pay-per-token vs provisioned modes for FMs. |
+| Self-hosted on Databricks clusters | In-Databricks | Full control, but you own autoscaling, auth, and ops. |
+| AWS SageMaker Endpoints | External | Deep AWS integration; separate governance from the Lakehouse. |
+| Azure Machine Learning Endpoints | External | Strong Azure/MLOps tie-in; data and lineage live outside UC. |
+| Google Vertex AI Prediction | External | Managed GCP serving; cross-cloud data movement and governance gaps. |
+| KServe / self-hosted Kubernetes | External / OSS | Maximum control and portability; highest operational burden. |
+| Direct vendor LLM APIs (OpenAI, etc.) | External | Simple to call, but no central keys, quotas, or unified logging. |
+
+## 11. Strengths
+
+- Serverless — no cluster, container, or GPU pool to provision or patch.
+- One API and governance model across custom, foundation, external models, and agents.
+- **Scale-to-zero** eliminates idle cost for intermittent workloads.
+- **Provisioned throughput** gives predictable latency/capacity for LLMs.
+- Unity Catalog permissions and lineage extend to endpoints natively.
+- AI Gateway centralizes rate limits, guardrails, key management, and usage tracking.
+- Inference Tables capture payloads automatically for monitoring and evaluation.
+- Automatic feature lookup from Online Tables / Feature Store at request time.
+- Traffic splitting supports canary and A/B rollout without external routing.
+- Direct MLflow-to-endpoint path shortens the model-to-production cycle.
+
+## 12. Limitations
+
+- Higher and less predictable latency than co-located or on-device inference.
+- Cold starts add first-request latency when scaled to zero.
+- GPU availability and quotas can constrain large-model provisioned throughput.
+- Less low-level control over runtime, kernels, and hardware than self-hosted.
+- Per-endpoint concurrency and payload-size limits require design attention.
+- Cost can rise with always-on provisioned throughput if under-utilized.
+- Tightly coupled to the Databricks control plane — limited portability.
+- External-model routes still depend on third-party provider availability and limits.
+- Regional and cloud availability varies by model type and feature.
+- Deep custom serving logic may need custom PyFunc wrappers.
+
+## 13. Common Mistakes
+
+- Leaving provisioned throughput always-on for spiky traffic instead of scale-to-zero.
+- Skipping AI Gateway, so keys and rate limits get scattered across teams.
+- Not enabling Inference Tables, losing the audit and monitoring trail.
+- Ignoring cold-start latency in SLAs for scale-to-zero endpoints.
+- Bypassing Unity Catalog registration, breaking lineage and access control.
+- Under-sizing provisioned throughput and hitting throttling under load.
+- Treating serving as a training substitute for heavy batch/fine-tuning.
+- No canary/traffic-split strategy, causing risky big-bang version swaps.
+- Overlooking payload/concurrency limits until production load reveals them.
+- Not monitoring drift despite having inference data readily available.
+
+## 14. Design Recommendations
+
+- ✔ Register every model/agent in Unity Catalog via MLflow before serving.
+- ✔ Front all endpoints with AI Gateway for quotas, guardrails, and logging.
+- ✔ Use scale-to-zero for intermittent traffic; provisioned throughput for steady LLM SLAs.
+- ✔ Enable Inference Tables from day one for audit and monitoring.
+- ✔ Roll out new versions with traffic splitting (canary) before full cutover.
+- ✔ Attach Online Tables / Feature Store for real-time feature enrichment.
+- ✔ Route external LLMs through external-model endpoints, never raw vendor keys.
+- ✔ Load-test for concurrency, payload size, and cold-start before go-live.
+- ✔ Wire Lakehouse Monitoring to inference data to catch drift early.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+|---|---|
+| Real-time model inference | ✅ Core serverless use case |
+| Serving LLMs / foundation models | ✅ FM APIs + provisioned throughput |
+| Governing external LLM access | ✅ External-model + Gateway |
+| Deploying agents | ✅ Native agent serving |
+| Cost control for spiky traffic | ✅ Scale-to-zero |
+| Batch scoring at scale | ✅ Via `ai_query` batch inference |
+| Sub-millisecond latency | ❌ Managed HTTP overhead |
+| Offline / edge inference | ❌ Cloud-hosted only |
+| Model training / fine-tuning | ❌ Use Model Training instead |
+| Lowest-cost 24/7 max GPU utilization | ⚠️ Benchmark vs self-hosted |
+| Unified governance for all model types | ✅ One UC + Gateway boundary |
+
+## 16. Quick Comparison
+
+| Criterion | Mosaic AI Model Serving | SageMaker Endpoints | Vertex AI Prediction | KServe (self-hosted) |
+|---|---|---|---|---|
+| Scale-to-zero | Yes | Serverless variant only | Limited | Yes (with setup) |
+| Governance with lakehouse data | Native (UC) | Separate (IAM) | Separate (IAM) | Manual |
+| Foundation + external models | Built-in | Bedrock (separate) | Model Garden (separate) | DIY |
+| Operational burden | Low | Medium | Medium | High |
+| Low-level control | Low | Medium | Medium | High |
+
+## 17. Maturity
+
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | High |
+
+## 18. Cost Considerations
+
+- **Licensing:** consumption-based via DBUs; no separate license. Verify current pricing.
+- **Compute:** CPU/GPU billed while endpoints are active; scale-to-zero removes idle cost; provisioned throughput bills reserved capacity; FM APIs bill per token.
+- **Storage:** Inference Tables and payload logs consume Delta storage — set retention.
+- **Operational Overhead:** low — no infra to manage; effort shifts to endpoint sizing, monitoring, and gateway policy.
+- **Training:** minimal; teams already using MLflow/Unity Catalog adopt quickly. External LLM routes add per-provider token charges.
+
+## 19. Executive Takeaway
+
+- ✔ **Best for:** governed real-time and batch serving of custom, foundation, external models, and agents on the Lakehouse.
+- ✔ **Avoid when:** you need sub-millisecond, offline, edge, or air-gapped inference.
+- ✔ **Biggest benefit:** one serverless, governed layer from MLflow to production with scale-to-zero and provisioned-throughput options.
+- ✔ **Biggest limitation:** higher/variable latency and less low-level control than self-hosted serving.
+- ✔ **Overall recommendation:** default serving layer for Databricks-centric AI; benchmark against SageMaker, Vertex, Azure ML, or KServe only for latency-extreme or portability-driven cases.

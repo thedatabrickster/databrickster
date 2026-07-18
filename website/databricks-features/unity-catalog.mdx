@@ -1,0 +1,228 @@
+---
+sidebar_position: 20
+title: "Unity Catalog — Architecture Guide"
+description: "Databricks' unified governance layer for data and AI assets — a three-level namespace with central permissions, lineage, and audit spanning the Lakehouse."
+---
+
+# Unity Catalog
+
+## 1. Executive Summary
+Unity Catalog is the account-level governance layer that provides a single permission, lineage, discovery, and audit model for all data and AI assets across every Databricks workspace.
+
+## 2. Primary Purpose
+- **Why it exists:** replace per-workspace, per-tool access controls with one consistent governance model.
+- **Business problem:** fragmented ownership, unclear lineage, and audit gaps that block compliance (GDPR, HIPAA, SOX) and slow data sharing.
+- **Technical problem:** identities, grants, and metadata previously lived in disconnected Hive metastores, table ACLs, and cloud IAM — impossible to reason about centrally.
+- **Scope:** governs tables, views, volumes (files), ML models, functions, and now AI assets (agents, vector indexes) under one namespace.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Users / BI / Notebooks / AI Agents / SQL / Apps
+        ↓
+Compute (Serverless, Clusters, SQL Warehouses)
+        ↓
+┌─────────────────────────────────────────────┐
+│  UNITY CATALOG  (account-level control plane) │
+│  identity · grants · lineage · audit · ABAC   │
+│  three-level namespace: catalog.schema.object │
+└─────────────────────────────────────────────┘
+        ↓
+External Locations + Storage Credentials
+        ↓
+Delta Lake / Parquet / Volumes on cloud object storage
+```
+- Sits **between compute and storage** — every read/write is authorized and logged here.
+- **Account-scoped, not workspace-scoped:** one metastore serves many workspaces per region.
+- Owns the mapping from logical names to physical cloud storage via storage credentials + external locations.
+- It is the enforcement point, not a query engine — compute (Photon/Spark/DBSQL) does the work under UC's grants.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☐ Developer Experience
+☐ Data Engineering
+☑ Data Governance
+☑ AI
+☐ Machine Learning
+☐ Storage
+☑ Security
+☑ Administration
+☑ Monitoring
+```
+- Core **Data Governance** primitive; every other feature grants/reads through it.
+- **Security + Administration** because it holds identity federation, grants, and metastore admin.
+- Touches **AI** and **Monitoring** via governed models/agents, lineage, and audit/system tables.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+|---|---|---|
+| Single governance model across many workspaces | ✅ | Account-level metastore unifies grants |
+| Fine-grained access (row/column) on tables | ✅ | Row filters + column masks native |
+| Attribute-based access at scale | ✅ | ABAC policies via governed tags |
+| End-to-end column-level lineage | ✅ | Captured automatically at runtime |
+| Regulatory audit (who accessed what) | ✅ | System tables + audit logs |
+| Governing ML models and features | ✅ | Models/features are UC objects |
+| Governing GenAI agents & vector indexes | ✅ | AI assets live in the namespace |
+| Cross-org data sharing | ✅ | Delta Sharing built on UC |
+| Governed file/unstructured data | ✅ | Volumes provide managed paths |
+| Querying external sources in place | ✅ | Lakehouse Federation registers them |
+| Self-service data discovery/search | ✅ | Catalog Explorer + metadata tags |
+| Central business metric definitions | ✅ | Metric Views are UC objects |
+| Multi-cloud single namespace | ⚠️ | Metastore is per-region/per-cloud |
+| Sub-millisecond OLTP authorization | ⚠️ | Optimized for analytics, not OLTP path |
+| Governing assets fully outside Databricks | ⚠️ | Federation helps but coverage varies |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Use as a general-purpose IAM for non-data apps | ❌ | Scoped to data/AI assets, not app identity |
+| Replacement for cloud KMS/secret storage | ❌ | Use Secrets + cloud KMS instead |
+| Single global namespace across all regions | ⚠️ | One metastore per region |
+| Legacy Hive metastore feature parity expectation | ⚠️ | Some legacy patterns differ or are dropped |
+| Row-level security on classic no-isolation clusters | ⚠️ | Fine-grained needs shared/serverless UC compute |
+| Transactional low-latency lookups | ⚠️ | Governance path adds overhead |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 5 |
+| Analytics Engineers | 5 |
+| Platform Engineers | 5 |
+| Data Scientists | 4 |
+| BI Teams | 4 |
+| AI Engineers | 4 |
+| Executives | 4 |
+| Architects | 5 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 4 |
+| Implementation Speed | 3 |
+| Governance | 5 |
+| Security | 5 |
+| Maintainability | 5 |
+| Scalability | 5 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 3 |
+| Business Value | 5 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Delta Lake | Default governed table format UC secures and tracks. |
+| Cloud object storage + IAM | Physical layer accessed via storage credentials. |
+| Databricks account & identity federation | Supplies users, groups, and service principals. |
+| Lakeflow (Connect/Pipelines/Jobs) | Reads/writes governed tables and emits lineage. |
+| Databricks SQL & Photon | Enforce UC grants at query time. |
+| MLflow / Model Registry | Registers models as governed UC objects. |
+| Mosaic AI Vector Search & Agents | AI assets governed within the namespace. |
+| Delta Sharing | Open cross-org sharing built on UC. |
+| Lakehouse Federation | Registers external sources as UC catalogs. |
+| System Tables & Audit Logs | Surface governance, lineage, and usage data. |
+| Volumes | Govern non-tabular files under the namespace. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Legacy Hive Metastore | In-Databricks (legacy) | Workspace-scoped, no lineage/ABAC/AI governance. |
+| Cloud-native IAM only (S3/ADLS policies) | External | Coarse, storage-level; no table/row/column control. |
+| AWS Glue Data Catalog / Lake Formation | External | AWS-centric; weaker AI-asset and lineage coverage. |
+| Apache Ranger / Atlas | External OSS | Self-managed; integration and lineage effort high. |
+| Snowflake Horizon / other warehouse governance | External | Strong in-platform, but tied to that engine. |
+| Collibra / Alation | External catalog | Discovery/stewardship strong; not the enforcement point. |
+
+## 11. Strengths
+- Single account-level model for grants across all workspaces.
+- Three-level namespace (`catalog.schema.object`) organizes data + AI assets consistently.
+- Automatic, runtime column-level lineage — no manual instrumentation.
+- Row filters, column masks, and ABAC via governed tags.
+- Governs beyond tables: volumes, models, functions, agents, vector indexes.
+- Open by design — built on Delta and open APIs (Unity Catalog OSS).
+- Delta Sharing and Clean Rooms extend governance across organizations.
+- Rich audit via system tables for cost, access, and lineage analytics.
+- Catalog Explorer + tags enable self-service discovery.
+- Enables secure serverless and shared compute (Lakeguard isolation).
+
+## 12. Limitations
+- One metastore per region — no single global namespace out of the box.
+- Migration from Hive metastore requires deliberate effort and testing.
+- Fine-grained controls require UC-compliant (shared/serverless) compute.
+- Some legacy cluster/access modes lose features under UC.
+- ABAC and newer AI-governance capabilities mature at different rates.
+- Cross-cloud governance still spans separate metastores.
+- Deep policy design (tags, groups, ABAC) has a real learning curve.
+- Lineage covers Databricks-run operations; external writes may be missed.
+- External-source governance depth depends on Federation connector coverage.
+- Overly broad grants are easy to create without disciplined group design.
+
+## 13. Common Mistakes
+- Granting to individual users instead of groups — unmanageable at scale.
+- Leaving workloads on the legacy Hive metastore indefinitely.
+- Flat catalog design (one catalog, many schemas) with no environment/domain separation.
+- Treating `ALL PRIVILEGES` or account-admin as a convenience default.
+- Ignoring storage credentials/external location scoping, over-permissioning cloud paths.
+- No tagging strategy, so ABAC and discovery never become usable.
+- Assuming lineage captures non-Databricks pipelines.
+- Not enabling or reviewing system tables/audit logs.
+- Designing per-workspace instead of account-first governance.
+
+## 14. Design Recommendations
+- ✔ Grant to **groups** (ideally SCIM-synced from your IdP), never individuals.
+- ✔ Use catalogs for environment/domain boundaries (`prod`, `dev`, business domain).
+- ✔ Adopt a **tag taxonomy early** to power ABAC, discovery, and cost attribution.
+- ✔ Scope storage credentials and external locations to least privilege.
+- ✔ Standardize on serverless/shared UC compute for fine-grained enforcement.
+- ✔ Enable system tables and audit logs from day one.
+- ✔ Plan and time-box Hive metastore migration; validate lineage after cutover.
+- ✔ Codify grants and objects via Terraform / Asset Bundles for repeatability.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+|---|---|
+| Central data + AI governance | ✅ Purpose-built |
+| Row/column-level security | ✅ Native controls |
+| Attribute-based access | ✅ ABAC via tags |
+| Automatic lineage | ✅ Runtime capture |
+| Regulatory audit | ✅ System tables + logs |
+| Cross-org data sharing | ✅ Via Delta Sharing |
+| Governed ML/GenAI assets | ✅ First-class objects |
+| Data discovery/search | ✅ Catalog Explorer |
+| Single global (cross-region) namespace | ⚠️ Metastore per region |
+| Fine-grained on legacy compute | ⚠️ Needs UC compute |
+| App/user IAM outside data | ❌ Out of scope |
+| Secret/key management | ❌ Use Secrets + KMS |
+
+## 16. Quick Comparison
+| Criterion | Unity Catalog | Legacy Hive Metastore | Glue / Lake Formation | External catalog (Collibra/Alation) |
+|---|---|---|---|---|
+| Scope | Account, multi-workspace | Per workspace | AWS account | Org-wide (catalog only) |
+| Enforcement point | Yes | Partial (table ACLs) | Yes (AWS) | No |
+| Lineage | Automatic, column-level | None | Limited | Manual/imported |
+| AI-asset governance | Yes | No | Limited | Limited |
+| Cross-org sharing | Delta Sharing | No | Limited | No |
+| Openness | Open (UC OSS) | Open (Hive) | AWS-tied | Proprietary |
+
+## 17. Maturity
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | Medium–High |
+
+## 18. Cost Considerations
+- **Licensing:** included with Databricks; no separate UC license. Verify current pricing.
+- **Compute:** governance itself is not billed, but fine-grained enforcement requires serverless/shared compute (which is billed as compute).
+- **Storage:** managed tables/volumes consume cloud object storage; predictive optimization maintenance incurs compute.
+- **Operational Overhead:** metastore setup, migration, group/tag design, and ongoing stewardship are the main real costs.
+- **Training:** upskilling on the namespace model, grants, ABAC, and lineage; budget for a governance owner/CoE.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** any organization standardizing data + AI governance across multiple Databricks workspaces.
+- ✔ **Avoid when:** you need it as a general application IAM or secret store — that is out of scope.
+- ✔ **Biggest benefit:** one consistent permission, lineage, and audit model spanning data and AI.
+- ✔ **Biggest limitation:** one metastore per region, so a single global namespace requires design work.
+- ✔ **Overall recommendation:** adopt as the mandatory governance foundation; design account-first with group-based grants and a tag taxonomy from day one.
