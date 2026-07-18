@@ -311,8 +311,7 @@ conceptually (we build the real version across Parts 2–4):
 5. **The system captures a trace** of exactly what was retrieved and what was produced (Part 5), so it can be evaluated (Part 6), monitored, and audited (Part 9).
 6. **The analyst gets an answer in seconds**, with citations they can verify — instead of spending two hours.
 
-Every numbered step maps to a later Part. This lesson is the frame that makes those
-Parts make sense.
+Every numbered step maps to a later Part.
 
 ## Hands-on Examples
 
@@ -477,19 +476,6 @@ An AI Function like `ai_query` in SQL — it applies a model per row and Spark p
 It supplies the model with real, relevant source text in the prompt and instructs it to answer only from that context, so it generates from evidence instead of from unconstrained plausibility.
 
 </details>
-
-## Summary
-
-Generative AI is a branch of Machine Learning whose models *create* content, and
-the Large Language Model — a next-token predictor trained on massive text — is its
-text-based workhorse. The one idea that reorganizes your entire mental model is
-that these systems are **probabilistic, not deterministic**: same input, possibly
-different output; correctness is graded, not binary; and confident-but-wrong
-answers are a real failure mode. That single shift is the reason AI systems need
-new approaches to evaluation, tracing, and governance — the throughline of this
-course. Crucially, the LLM is just one box in the middle; most of the engineering
-is the data plumbing *around* it, which is exactly where your Data Engineering
-skills transfer directly.
 
 ## Key Takeaways
 

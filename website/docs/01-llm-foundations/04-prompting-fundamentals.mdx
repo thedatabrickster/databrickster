@@ -675,21 +675,6 @@ is faster, cheaper, and more reliable.
 
 </details>
 
-## Summary
-
-A prompt is the query you write for an LLM — your only per-request lever over an
-opaque next-token model. Modern models take that prompt as a **chat format**: a
-`messages` array of role-tagged turns. `system` sets standing rules (like `SET`
-session settings), `user` is the request, and `assistant` is the model's reply —
-which you also replay on later turns to simulate memory, because the API is
-**stateless** and your code owns the conversation history. An effective prompt has
-up to five parts — instruction, context, delimited input, output format, and
-optional examples. Start **zero-shot**; add **few-shot** examples (sample rows) only
-to fix a specific failure. For pipelines, **enforce structured JSON** with
-`responseFormat` (SQL) or `response_format` (Python) so an LLM's output becomes
-governed, typed data. Use chain-of-thought sparingly and only where real reasoning
-is needed. Delimit untrusted input and validate output — prompt injection is real.
-
 ## Key Takeaways
 
 - The prompt *is* the interface — vague prompt, vague pipeline.

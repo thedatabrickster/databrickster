@@ -185,7 +185,7 @@ You do not need a GPU or a model to build token intuition. You need a **tokenize
 
 **Exercise B — Watch a rare word shatter.** Tokenize `"tokenization"`, then `"antidisestablishmentarianism"`, then a made-up string like `"Northwind"`. Print the individual pieces. Watching a long or invented word break into fragments is the "aha" moment for BPE.
 
-The code below does both. A note on tools: `tiktoken` is the tokenizer used by several popular models and is perfect for *illustration* because it is tiny and instant. The exact token boundaries and IDs differ from one model family to another, so treat the numbers as representative, not as the ground truth for the specific Databricks-hosted model you will bill against. The **concept** transfers exactly; the **counts** are approximate across model families.
+The code below does both, using `tiktoken` — a tiny, instant tokenizer that is perfect for illustration. Treat its numbers as representative, not as the ground truth for the specific Databricks-hosted model you will bill against: the **concept** transfers exactly, the **counts** are approximate across model families.
 
 ## Code Examples
 
@@ -273,8 +273,7 @@ A concise, well-scoped prompt is the LLM equivalent of column pruning and predic
 ## Performance Considerations
 
 - **Latency scales with output tokens.** Because generation is sequential — one token at a time — a 1,000-token answer takes roughly 5x longer to produce than a 200-token answer. If a response feels slow, the first lever is *ask for less output*.
-- **Input tokens cost time too**, but they are processed together up front (the "prefill"), so a long prompt mainly adds a fixed startup delay; long *outputs* dominate end-to-end latency.
-- **Fewer tokens = faster and cheaper, simultaneously.** Concision is not just a cost tactic; it is a latency tactic. Tight prompts and bounded outputs win on both axes.
+- **Input tokens cost time too**, but they are processed together up front (the "prefill"), so a long prompt mainly adds a fixed startup delay; long *outputs* dominate end-to-end latency. Concision is therefore both a cost tactic and a latency tactic — tight prompts and bounded outputs win on both axes.
 - **Batch thoughtfully.** When running `ai_query` across many rows, throughput is governed by total tokens in flight, not row count — the same total-work-not-row-count reasoning you apply to Spark stages.
 
 ## Security Considerations
@@ -352,10 +351,6 @@ Very likely the **500 filings**, despite being 20x fewer documents. Cost tracks 
 Generally (c), then (b), then (a). Non-English text the tokenizer saw little of fragments the most (sometimes near one token per character); code is punctuation- and identifier-dense so it runs well above the 0.75 rule; clean English prose is the most token-efficient.
 
 </details>
-
-## Summary
-
-A **token** is the sub-word chunk that an LLM actually reads and generates — the model's equivalent of a record, the granular unit text is split into before processing. Models use sub-word tokens (learned via **BPE**) because whole-word vocabularies are infinite and break on unseen words, while single characters are hopelessly inefficient; sub-words give compact common words and fragmentable rare words with no out-of-vocabulary failures. Text is **encoded** into token IDs, the model operates only on those IDs, and the IDs are **decoded** back to text in a deterministic, lossless round-trip. As a rule of thumb, **1 token ≈ 0.75 English words ≈ 4 characters**, inflated by punctuation, formatting, numbers, code, and non-English text. Most importantly, the token is the unit of **two** hard limits: **billing** (Databricks Foundation Model APIs charge per input + output token — the LLM's DBU) and the **context window** (a fixed token budget shared by prompt and answer). Reasoning in tokens instead of documents is the foundation for every cost, latency, and quality decision you'll make from here.
 
 ## Key Takeaways
 

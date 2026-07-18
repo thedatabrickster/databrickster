@@ -443,10 +443,6 @@ In the `modelParameters` argument, as a `named_struct`, e.g. `named_struct('temp
 
 </details>
 
-## Summary
-
-A language model produces a probability distribution over the next token; **decoding** is how that distribution becomes actual text. **Greedy decoding** always takes the top token (repeatable, sometimes flat), while **sampling** rolls a weighted die (varied, non-reproducible). **Temperature** reshapes the distribution before sampling — low sharpens toward greedy focus, high flattens toward creative risk. **top_p** and **top_k** truncate the candidate pool, with top_p adapting to the distribution's shape. **max_tokens** caps output length and **stop** sequences end generation cleanly. `temperature=0` gives near-deterministic output but not a mathematical guarantee, because of floating-point effects, replica routing, and model updates — so you engineer idempotency *around* the model with version pinning and caching, exactly the mindset you already apply to Spark configs and MERGE retries.
-
 ## Key Takeaways
 
 - The model outputs a distribution; **decoding picks the token.** The knobs act on decoding, not on what the model "knows."

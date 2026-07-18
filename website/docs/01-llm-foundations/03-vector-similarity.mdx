@@ -377,9 +377,6 @@ Behind that single function call is everything from this lesson: the query text 
 
 ## Best Practices
 
-- **Default to cosine similarity for text.** It's the standard for a reason: magnitude-invariant, focused on meaning.
-- **Normalize at index time; use dot product at query time.** Free cosine, faster queries.
-- **Use ANN (HNSW) once you exceed a few thousand vectors.** Let Databricks Vector Search manage it.
 - **Keep query and document embeddings in lock-step** — same model, same version, same normalization, same dimension.
 - **Combine similarity with metadata filters** for correctness, security, and tenancy.
 - **Evaluate retrieval explicitly.** Measure recall/precision on a labeled query set before trusting the pipeline in production.
@@ -436,12 +433,9 @@ The comparison is meaningless. Different models produce vectors in different, in
 
 </details>
 
-## Summary
-
-Embeddings give you coordinates for meaning; **vector similarity** is how you measure closeness between those coordinates. The three core metrics are **dot product** (mixes direction and magnitude), **Euclidean distance** (straight-line distance, magnitude-sensitive, lower = closer), and **cosine similarity** (angle only, magnitude-invariant, higher = closer). For text, **cosine is the default** because meaning lives in direction, not length. Similarities are ranked descending; distances ascending — inverting that quietly breaks search. **Nearest-neighbor search** — embed the query, find the closest document vectors — is the engine behind semantic search and RAG. Brute-force search is an O(N × D) full table scan; **ANN indexes** like HNSW behave like a B-tree index, reaching the answer in roughly O(log N) by trading a little recall for enormous speed. On Databricks, all of this is delivered by Databricks Vector Search and the SQL `vector_search()` function, which you'll master in Part 2.
-
 ## Key Takeaways
 
+- Embeddings give you coordinates for meaning; **vector similarity** is how you measure closeness between those coordinates.
 - Similarity turns "close in vector space" into a computable number — a **fuzzy semantic join** replacing hard `=` matching.
 - **Cosine similarity is the standard for text**: it ignores magnitude and focuses on direction (meaning). Range -1 to +1.
 - Know your sign convention: **similarity sorts DESC, distance sorts ASC.** This is the most common bug.

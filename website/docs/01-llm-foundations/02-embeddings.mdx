@@ -343,9 +343,7 @@ The two "money out" sentences share almost no words yet score high; the address 
 
 ## Production Considerations
 
-- **Model consistency (this is the big one).** A query embedding and the stored document embeddings **must come from the same model and same version**. Vectors from `databricks-gte-large-en` and `databricks-bge-large-en` live in *different* spaces and are not comparable — comparing them yields garbage similarities, silently. Pin the model name everywhere and treat a model change as a full re-embed of your corpus.
-
-- **Re-embedding on model upgrades.** When you upgrade the embedding model, every stored vector is now in the "old" space. You must regenerate all embeddings. Design your pipeline so a full re-embed is a routine, repeatable job, not a heroic effort. Store the model name/version in the table so you always know what produced a vector.
+- **Model consistency (this is the big one).** A query embedding and the stored document embeddings **must come from the same model and same version**. Vectors from `databricks-gte-large-en` and `databricks-bge-large-en` live in *different* spaces and are not comparable — comparing them yields garbage similarities, silently. Pin the model name everywhere, store the model name/version in the table so every vector is self-describing, and treat a model upgrade as a full re-embed of your corpus. Design your pipeline so that re-embed is a routine, repeatable job, not a heroic effort.
 
 - **Idempotency & incrementality.** Embedding is expensive (a model call per row). Don't re-embed unchanged rows. Use a hash of the source text (`sha2(body, 256)`) as a change key; only embed rows whose text hash changed. This is classic incremental ETL thinking applied to embeddings.
 
@@ -450,10 +448,6 @@ Because the model **pools** its per-token vectors into a single vector of the mo
 A normal join matches on **key equality** (`a.id = b.id`). Embedding retrieval is a **similarity join**: rows "match" when their meaning vectors are *close* (e.g. cosine similarity above a threshold), not when values are identical. This is what lets it match paraphrases with no shared words.
 
 </details>
-
-## Summary
-
-An embedding turns the meaning of text (or images, audio) into a fixed-length vector of floats, engineered so that similar meanings land near each other in a high-dimensional space. This solves the core limitation of keyword and exact matching, which only ever compares surface form. Embedding models differ from LLMs: they emit a vector, not text, and serve search, retrieval, clustering, dedup, and recommendations. Internally, text is tokenized, each token is looked up and contextualized through transformer layers, then pooled into one fixed-length vector — which is why any input length yields the same output dimensionality (1024 for `databricks-gte-large-en` and `databricks-bge-large-en`). On Databricks you generate embeddings with `ai_query` in SQL or the OpenAI-compatible client in Python, and store them as an `ARRAY<FLOAT>` column in Delta — a computed column capturing semantics. Comparing embeddings is a similarity join, not an equality join, and doing it fast at scale is the job of Vector Search, which we'll cover soon.
 
 ## Key Takeaways
 

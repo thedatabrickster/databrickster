@@ -479,10 +479,6 @@ Silent truncation. A hard error is loud and catchable — the pipeline can log i
 
 </details>
 
-## Summary
-
-The context window is the model's bounded working memory for a single request — a fixed number of **tokens** shared by input and output. It is limited because attention cost grows super-linearly with length and the maximum is fixed at training time. Because input and output share the budget, a long prompt steals room from the answer, and `max_tokens` must fit in what remains. Overflow either errors (loud, safe) or silently truncates (quiet, dangerous), and silent truncation is the LLM version of a job that drops rows without telling you. Even when everything fits, "lost in the middle" means the model may not *use* the middle well — so relevance beats volume, and more context can hurt accuracy while adding cost and latency. The way you stay inside the buffer is the way you already tame big data: prune to what's relevant. Trim, summarize, and above all **retrieve** — which is exactly the road into RAG in Part 2.
-
 ## Key Takeaways
 
 - The context window is a **token** budget shared by **input + output** — one buffer, not two.
