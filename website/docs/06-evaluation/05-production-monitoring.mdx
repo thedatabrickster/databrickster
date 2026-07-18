@@ -55,7 +55,7 @@ When someone comes out of surgery, the operation going well is not the end of th
 
 Your AI app is the same. Passing offline evaluation is the successful surgery. Production monitoring is the recovery-room monitor: it watches the live patient, tracks the vital signs, and raises an alarm when a number drifts out of the safe range.
 
-And you have an even closer analogy from your day job: **a pipeline dashboard.** You already stare at freshness, failure rates, and row counts. Production monitoring is that same dashboard, with quality scores added as new "vital signs."
+And you have an even closer analogy from your day job: **a pipeline dashboard.** Production monitoring is that same dashboard you already stare at, with quality scores added as new "vital signs."
 
 ```mermaid
 flowchart LR
@@ -106,7 +106,7 @@ flowchart TB
 
 How does monitoring actually get its hands on live traffic? Through **tracing**, which you met in Part 5.
 
-Remember: every time your deployed app answers a request, it produces a **trace**, the itemized receipt of what happened (the question, what the retriever pulled, the exact prompt, the model's answer, the latency, the token count). In production, those traces are captured automatically and stored.
+Every time your deployed app answers a request, it produces a **trace**, the itemized receipt of what happened (the question, what the retriever pulled, the exact prompt, the model's answer, the latency, the token count). In production, those traces are captured automatically and stored.
 
 Production monitoring sits on top of that stream of traces. Here's the loop, in plain terms:
 
@@ -342,10 +342,6 @@ So the numbers are comparable. If offline groundedness was 0.95 and live grounde
 Add that question (and the correct expected behavior) to your evaluation dataset, and collect human feedback on it. That closes the loop: your offline gate now covers this case, so the same class of failure is caught before deploy next time. Production is your best source of new test cases.
 
 </details>
-
-## Summary
-
-Evaluation doesn't stop at launch. Offline evaluation is a gate: a one-time check on a fixed dataset that decides whether a version ships. Online monitoring is a continuous watch: it runs the *same* scorers and judges on a *sample* of live traffic, captured as traces, and tracks quality, latency, and cost on dashboards over time. This lets you catch drift, get alerted when a metric slips, trace the cause, and feed real-world failures back into your evaluation dataset. It's the same discipline you already apply to your data pipelines, pointed at AI quality.
 
 ## Key Takeaways
 

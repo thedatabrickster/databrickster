@@ -378,12 +378,9 @@ Customers are hitting **cold starts**, the one-time delay after idle while the e
 
 </details>
 
-## Summary
-
-Mosaic AI Model Serving is the **serving layer** of the Databricks AI platform, the always-on front counter that turns any model into a REST endpoint you call by name. One endpoint can host Foundation Model APIs, proxied external models, your own custom models, or deployed agents, and you query all of them with the same OpenAI-compatible interface, so your code stays simple and swappable. Autoscaling keeps it responsive under load, scale-to-zero keeps it cheap when idle (at the cost of an occasional cold start), and Unity Catalog plus the AI Gateway keep it governed and safe. If you get the SQL-warehouse analogy, you already get this: same idea, aimed at models instead of tables.
-
 ## Key Takeaways
 
+- If you get the SQL-warehouse analogy, you already get this: same idea, aimed at models instead of tables.
 - A **serving endpoint** is a named, always-on REST API for a model. You call it **by name** and never manage the machines.
 - **One** Model Serving endpoint can host any of four things: **Foundation Model APIs, external models, custom models, and agents.**
 - The **unified, OpenAI-compatible query interface** means your calling code barely changes when you swap what's behind the endpoint.

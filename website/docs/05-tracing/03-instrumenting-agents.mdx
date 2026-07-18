@@ -383,10 +383,6 @@ Automatic covers library calls (like the model call) with one line, and manual c
 
 </details>
 
-## Summary
-
-Instrumenting your agent is how you turn the recorder on. There are two modes. Automatic tracing (autologging) is a single line that captures every call to a supported library. Manual tracing puts `@mlflow.trace` on your own functions so each becomes a named span, and lets you add attributes for extra detail. You point all of this at an MLflow experiment, which is the folder where traces collect. The best real-world setup uses both modes together, and it is usually just a line of setup plus a couple of decorators, not a big rewrite. Those traces then power the Trace UI, evaluation in Part 6, and production monitoring.
-
 ## Key Takeaways
 
 - **Automatic** = one line (`mlflow.openai.autolog()`) covers library calls.

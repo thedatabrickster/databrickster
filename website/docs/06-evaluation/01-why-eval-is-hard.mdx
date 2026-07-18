@@ -271,7 +271,7 @@ report = summarize(results)
 # report -> {"correct": 0.94, "faithful": 0.98, "relevant": 0.91, "safe": 1.0}
 ```
 
-Reading this top to bottom: we define a small dataset where each row carries a question, its source context, and an ideal answer. We loop over every row, ask the AI, and grade the answer against the rubric. We collect all the scores and then `summarize()` averages them into one report. That final `report` dictionary is the thing you show your boss and your regulator. It is the "it answers correctly 94% of the time" sentence, made of code. This is the whole promise of the lesson delivered.
+Reading this top to bottom: we define a small dataset where each row carries a question, its source context, and an ideal answer. We loop over every row, ask the AI, and grade the answer against the rubric. We collect all the scores and then `summarize()` averages them into one report. That final `report` dictionary is the thing you show your boss and your regulator. It is the "it answers correctly 94% of the time" sentence, made of code.
 
 Databricks gives you managed tools to run exactly this kind of loop without hand-building `grade()` and `summarize()`. You will meet them in later lessons. If you are curious now, the official overview lives at [https://docs.databricks.com/aws/en/generative-ai/agent-evaluation/](https://docs.databricks.com/aws/en/generative-ai/agent-evaluation/).
 
@@ -362,10 +362,6 @@ They are missing online monitoring. Offline testing only covers questions they t
 A math quiz has one right answer, so grading is an exact match. An essay has many valid forms and must be judged against a rubric of qualities (clear, accurate, on-topic). GenAI answers are free-form text with many correct phrasings, so they need rubric-based grading, not exact match.
 
 </details>
-
-## Summary
-
-Testing generative AI is not like testing a SQL job. A SQL job has one deterministic answer you can assert equality against. A GenAI answer is an essay: many phrasings are correct, some wrong answers look right, and the same input can even produce different outputs. So you cannot use `==`. You **grade** the answer against a **rubric** of qualities - correctness, faithfulness, relevance, safety - and you get a score, not a pass/fail. You do this **offline** on a fixed dataset before you ship, and you **monitor online** on real traffic after you ship, feeding failures back into your dataset. Grading itself uses three tools: cheap programmatic checks for structured bits, expensive human judgment as the gold standard, and LLM-as-a-judge for nuance at scale. Above all: "it feels better" is not a metric. Numbers are.
 
 ## Key Takeaways
 

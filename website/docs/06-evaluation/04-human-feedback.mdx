@@ -84,7 +84,7 @@ The Review App is a purpose-built web app where subject-matter experts can inter
 - **Label existing traces.** You send experts a batch of real traces (real agent runs you already captured), and they work through them, attaching labels. This is the structured, systematic way to build a graded dataset.
 
 **2. Labeling existing traces.**
-This is worth calling out on its own because it is so useful. Your agent has already run, in development or in production, and each run left a trace. You can take those traces and ask experts to label them after the fact. You are not making up test questions, you are grading *real* traffic. That keeps your evaluation grounded in what users actually ask.
+This flavor of the Review App deserves its own mention because it is so useful. Your agent has already run, in development or in production, and each run left a trace. Instead of making up test questions, you ask experts to label that *real* traffic after the fact, which keeps your evaluation grounded in what users actually ask.
 
 **3. End-user feedback (thumbs up/down).**
 When your agent is deployed to real users, you add a small feedback control to the app, usually a thumbs-up and thumbs-down button. When a user clicks it, your app logs that reaction as feedback attached to that run's trace. It costs the user one click and gives you a continuous stream of real-world signal.
@@ -111,9 +111,7 @@ flowchart TD
     H --> A
 ```
 
-*Figure 1: The virtuous feedback loop. Agent outputs are graded by humans in the Review App and by end users. Those human labels do double duty: they enrich your evaluation datasets and they calibrate your LLM judges, which makes your automated evaluation trustworthy enough to run at scale, on the next batch of agent outputs.*
-
-The single most important idea in this whole lesson lives in that diagram: human labels are not just grades, they are the fuel that makes automated grading believable.
+*Figure 1: The virtuous feedback loop. Agent outputs are graded by humans in the Review App and by end users. Those human labels do double duty: they enrich your evaluation datasets and they calibrate your LLM judges, which makes your automated evaluation trustworthy enough to run at scale, on the next batch of agent outputs. Human labels are not just grades; they are the fuel that makes automated grading believable.*
 
 ## Internal Working
 
@@ -331,10 +329,6 @@ No. Thumbs measure user satisfaction, not deep correctness. A confidently wrong 
 (1) They become new **evaluation examples** (grades and gold answers) that enrich your evaluation dataset. (2) They **calibrate and validate your LLM judges**, so you can trust the automated scores and run evaluation at scale.
 
 </details>
-
-## Summary
-
-Automated judges are wonderful for scale, but they are only trustworthy if humans have checked their work. On Databricks, MLflow 3 for GenAI lets you collect human feedback three ways: experts review and label in the **Review App**, you can **label existing traces** from real traffic, and you can gather **end-user thumbs-up/down** from a deployed app. Every grade is stored as an assessment (feedback or expectation) attached to a trace. Those human labels do double duty: they enrich your evaluation datasets and they calibrate your LLM judges. That calibration is what lets you scale evaluation without a human on every answer. And for high-stakes, nuanced correctness, like a compliance officer confirming a policy answer, humans remain irreplaceable.
 
 ## Key Takeaways
 

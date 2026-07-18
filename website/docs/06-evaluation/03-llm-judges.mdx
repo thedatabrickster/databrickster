@@ -410,10 +410,6 @@ The judge is itself an imperfect model, so its scores are not guaranteed to be r
 
 </details>
 
-## Summary
-
-You learned that grading AI answers at scale comes down to **scorers**. Some scorers are cheap **heuristics** (exact match, contains, latency, cost) that check mechanical things perfectly and instantly. Others are **LLM judges** — a model reading each answer against a rubric, returning a score and a rationale for the fuzzy dimensions that rules cannot capture: correctness, relevance, groundedness, safety, and retrieval quality. You ran a full evaluation with `mlflow.genai.evaluate`, added a custom heuristic, and wrote a custom judge with your own rubric. And you saw the honest catch: judges are imperfect, so you validate them against human labels.
-
 ## Key Takeaways
 
 - A **scorer** outputs a score; an **LLM judge** is a scorer that is itself a model grading against a rubric.

@@ -184,7 +184,7 @@ total = tokens_per_day(
 print(f"Estimated tokens per night: {total:,}")
 ```
 
-Let us narrate that. The function just adds input and output tokens to get a per-row cost in tokens, then multiplies by rows per day. Plugging in Northwind Trust's numbers prints `Estimated tokens per night: 1,500,000,000`. That one number — 1.5 billion tokens a night — is what drives the whole decision. High and steady means "consider reserving."
+Let us narrate that. The function just adds input and output tokens to get a per-row cost in tokens, then multiplies by rows per day. Plugging in Northwind Trust's numbers prints `Estimated tokens per night: 1,500,000,000`. That one number — 1.5 billion tokens a night, high and steady — is what drives the whole decision.
 
 ## Code Examples
 
@@ -269,7 +269,7 @@ response = client.chat.completions.create(
 print(response.choices[0].message.content)
 ```
 
-Let us narrate the query step. Notice how little changed: you point `model` at **your endpoint name** instead of a shared model name. Everything else is the same. That is the payoff of the shared interface — you can graduate from prototype to production without rewriting your calling code.
+Let us narrate the query step. Notice how little changed: you point `model` at **your endpoint name** instead of a shared model name. Everything else is the same.
 
 ### Example 3: A back-of-envelope cost comparison
 
@@ -384,10 +384,6 @@ Provisioned throughput. High steady volume tends to be cheaper on reserved capac
 Because requests vary enormously in size. One request might produce a 50-token answer and another a 2,000-token answer. Tokens per second measures the actual work the capacity must sustain, so it is the honest unit for sizing.
 
 </details>
-
-## Summary
-
-Foundation Model APIs come in two modes, and now you can tell them apart with confidence. **Pay-per-token** is a metered utility: shared, always-on, billed by tokens, zero idle cost, perfect for prototyping and spiky or low-volume work. **Provisioned throughput** is a reserved lane: dedicated capacity you size in throughput units, billed over time, giving predictable latency and sustained throughput, and required for fine-tuned models and strict SLAs. Choosing well comes down to two numbers — tokens per day and required latency — plus a quick metered-versus-reserved cost comparison to find your crossover point. Northwind Trust used exactly that reasoning to move its big nightly job to provisioned throughput while keeping a metered endpoint for experiments.
 
 ## Key Takeaways
 

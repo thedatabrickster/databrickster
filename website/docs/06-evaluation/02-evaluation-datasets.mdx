@@ -109,7 +109,7 @@ flowchart TD
 
 **2. Subject-matter experts.** People who know the domain write questions and mark up what a correct answer must contain. For a banking policy agent, that is a compliance officer writing, "If asked about early withdrawal penalties, the answer must mention the 90-day interest forfeit." Fewer rows, but very high quality.
 
-**3. Synthetic, then human-reviewed.** You use an LLM to generate plausible questions (and draft expected answers) from your source documents, then a human checks them before they go in. This gets you volume fast. The human review step is not optional - unreviewed synthetic data can bake in the model's own mistakes.
+**3. Synthetic, then human-reviewed.** You use an LLM to generate plausible questions (and draft expected answers) from your source documents, then a human checks them before they go in. This gets you volume fast (more on this next).
 
 ### Synthetic evaluation sets
 
@@ -407,12 +407,9 @@ The evaluation dataset (the questions and expected answers/facts), your app or a
 
 </details>
 
-## Summary
-
-An evaluation dataset is a regression test suite for your AI's answers: a curated, versioned set of questions, optionally paired with expected answers or expected facts. You build it from real production traces, expert examples, and reviewed synthetic data. You store it centrally, version it, and grow it by adding every real failure as a new row. It is passive - the active grading happens in an evaluation run, which combines your dataset, your app, and your scorers. Get the dataset right and every future change to your agent becomes measurable instead of a guess.
-
 ## Key Takeaways
 
+- Get the dataset right and every future change to your agent becomes measurable instead of a guess.
 - An evaluation dataset = exam paper + marking guide = a regression suite for answers.
 - A row is: input (always), expected answer (optional), expected facts/context (optional).
 - Prefer expected facts over exact answers for open-ended questions.
