@@ -1,0 +1,49 @@
+---
+sidebar_position: 19
+title: "LakeWatch — Agentic SIEM"
+description: "A security lakehouse pitched as a SIEM: full-fidelity telemetry on open OCSF, decoupled storage/compute, and agentic detection authored in natural language — but the name and acquisitions may be deck-coined."
+---
+
+# LakeWatch — Agentic SIEM
+
+> A SIEM rebuilt on the lakehouse: full-fidelity telemetry in your own cloud storage, storage/compute decoupled, and detection authored and hunted in natural language via Genie — pitched against Splunk, Sentinel, and Chronicle.
+
+*Announced at DAIS 2026 (June 16–17, 2026). Source: community deck — verify officially.*
+
+## Overview
+- The deck positions **LakeWatch** as "a SIEM built on the lakehouse": full-fidelity telemetry, decoupled storage/compute, and **agentic detection at machine speed**.
+- **Security, HR, collaboration, and transaction data** unified in one governed environment on the **open OCSF schema** (Open Cybersecurity Schema Framework).
+- **Genie Code & Genie Spaces** author detection rules, cut false positives, and let analysts **threat-hunt in natural language**.
+- **Petabytes of full-fidelity telemetry** kept in your own cloud storage (**Delta / Iceberg**), with **years hot-queryable** — no forced retention tiering.
+- Ecosystem: **17+ Open Security Lakehouse partners**; **Claude** powers cross-domain reasoning; deck cites **Antimatter** and **SiftD.ai** acquisitions.
+- Deck metrics (**all unverified**): a mean-time-to-exploit trend 2025→2026; cost cut by decoupling storage/compute; the partner count; and zero-days reportedly found by an LLM.
+
+## Where it fits
+- **Security analytics / detection-and-response layer** — sits on Unity Catalog governance, drawing telemetry already landing in the lakehouse.
+- **SOC and threat-hunting teams**: OCSF normalization plus Genie natural-language querying lowers the barrier to ad-hoc hunts over huge log volumes.
+- **Cost-pressured security orgs** drowning in Splunk/Sentinel ingest and retention bills — decoupled storage/compute is the core economic pitch.
+- **Cross-domain investigations**: co-locating security with HR, collaboration, and transaction data enables insider-risk and fraud correlation SIEMs handle poorly.
+- **Regulated / data-residency shops**: telemetry stays in your own cloud buckets (Delta / Iceberg), not a vendor's index.
+- Pairs with **Genie Code**, **Genie Spaces**, **Unity Catalog**, and **Claude** for reasoning across domains.
+
+## Where it fails
+- **The name is suspect.** "LakeWatch" and the **Antimatter / SiftD.ai** acquisitions may be **deck-coined or forward-looking** — treat as unconfirmed until Databricks says so officially.
+- **SIEM is deeply entrenched**: Splunk, Microsoft Sentinel, Google Chronicle/SecOps, and Panther own the market with mature detection content and SOC integrations.
+- **Detection-content maturity is the moat, and it's the hardest to bootstrap** — incumbents ship thousands of tuned rules, ATT&CK mappings, and threat-intel feeds; a new platform starts near zero.
+- **Agentic detection cuts both ways**: LLM-authored rules risk **false negatives** (missed attacks) and noisy **false positives**; "cut false positives" is asserted, not demonstrated.
+- **Every deck metric is unverified** — mean-time-to-exploit trends, cost savings, partner count, and "zero-days found by an LLM" have no cited methodology.
+- **Tool inertia is brutal in security**: SOCs are built around existing consoles, runbooks, SOAR wiring, and analyst muscle memory — rip-and-replace is rare and slow.
+- **Full lakehouse query latency vs a purpose-built SIEM index** is unproven for interactive, real-time triage at petabyte scale.
+
+## Response
+- **Verdict: Watch — with a narrow Pilot for cost.** The economics of decoupled storage/compute on OCSF are genuinely compelling, but nothing here is proven detection tech yet.
+- **Pilot as a security data lake / cold-and-warm tier** behind your existing SIEM — offload retention and threat-hunting, keep incumbent detection running.
+- **Do not rip out Splunk/Sentinel/Chronicle** on the strength of a community deck; detection content and SOC workflow are years of accumulated value.
+- **Watch the acquisitions and the name** — if Antimatter/SiftD.ai and "LakeWatch" get official confirmation, re-rate; until then assume forward-looking.
+- Market context: the "security data lake" pattern (Snowflake + Panther, Amazon Security Lake on OCSF, Cribl routing) already exists — Databricks is entering a real but contested category, not inventing it.
+
+## Personal impression
+- The strategic logic is sound — SIEM economics are broken, OCSF is the right open bet, and co-locating security with HR/transaction data is a real differentiator incumbents can't easily match.
+- But this reads as **vision-forward**: a coined name, unverified acquisitions, and metrics with no methodology stacked on the genuinely hard part — detection content and SOC trust — which a slide can't conjure.
+- Agentic detection is the seductive claim and the riskiest; in security a confident-but-wrong LLM rule is worse than no rule.
+- **Hype level: High.** **Bottom line:** A credible security-data-lake and threat-hunting story worth piloting alongside your SIEM — but treat "agentic SIEM," the LakeWatch name, and the acquisitions as unconfirmed until Databricks ships and names them officially.

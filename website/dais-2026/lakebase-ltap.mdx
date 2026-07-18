@@ -1,0 +1,51 @@
+---
+sidebar_position: 2
+title: "Lakebase & LTAP"
+description: "Serverless Postgres plus a claimed Lake Transactional/Analytical Processing architecture — OLTP, OLAP, and streaming on one governed copy of data."
+---
+
+# Lakebase & LTAP
+
+> One governed copy of data serving transactions, analytics, and streaming — serverless Postgres on the lakehouse, with the operational data instantly queryable.
+
+*Announced at DAIS 2026 (June 16–17, 2026). Source: community deck — verify officially.*
+
+## Overview
+- The deck frames this as the **world's first Lake Transactional/Analytical Processing (LTAP)** architecture — a strong marketing claim.
+- Premise: **OLTP + OLAP + streaming on a single governed copy** — operational data instantly queryable for analytics, with no replicas and no pipelines.
+- **Lakebase** = serverless Postgres on open object storage, with git-style branching and snapshots plus autonomous ops.
+- Promises **ACID transactions in Postgres**, analytics scale across the lakehouse, and strict isolation between the two workloads.
+- Storage is **Delta and Iceberg under Unity Catalog**, with a single identity and permission model.
+- Deck metrics (unverified): a "database launches per day" figure, a "% of Fortune 500 on Databricks" figure, and the OLTP+OLAP+streaming unification claim.
+- Launch ecosystem: **60+ vetted partners**; common use is storing **agent state, memory, and config** in serverless Postgres. Named: Accenture, Deloitte, EY, Fivetran, Confluent, Retool, Replit, ThoughtSpot.
+
+## Where it fits
+- **Operational layer of the lakehouse** — the transactional store the platform previously lacked.
+- **Agent backing store**: state, memory, and config for agents — the partner-cited primary use.
+- **App backends** that need Postgres semantics without a separate managed database.
+- Teams wanting **fresh operational data in analytics** without CDC pipelines or nightly loads.
+- Pairs with **Unity Catalog** (one identity/permission model) and the rest of the DAIS 2026 stack.
+- Fits shops standardizing on **Postgres wire protocol** so existing tooling and drivers mostly work.
+- **Branching/snapshots** suit dev/test, blue-green data changes, and reproducible experiments.
+
+## Where it fails
+- **"World's first LTAP" is a marketing coinage.** HTAP has existed for years (SingleStore, TiDB, SAP HANA, Snowflake Unistore); the "first" label is hard to defend.
+- **OLTP on object storage is physically hard.** Object stores have high per-op latency; low-latency, high-concurrency writes usually need a caching/local tier — verify real transaction latency, not just batch numbers.
+- **"Single copy, strict isolation" is in tension.** True workload isolation typically implies separate storage/compute paths; expect nuance behind the one-copy claim.
+- **Postgres compatibility gaps** are likely early on — extensions, edge SQL features, and specific isolation-level behavior.
+- **Maturity/preview risk**: a launch-stage transactional database carries operational and durability questions until proven at scale.
+- **Metrics are unverified** — "launches per day" and "% of Fortune 500" are deck-cited with no source; treat as marketing.
+- **Lock-in**: a Databricks-native Postgres deepens platform dependence versus a portable managed Postgres.
+- **The obvious competitor is doing nothing new** — plain Postgres/Aurora plus a warehouse (with CDC) already covers most needs at known cost and maturity.
+
+## Response
+- **Verdict: Pilot** — for agent state/config and net-new app backends, where the convenience of in-platform Postgres is real and the blast radius is small.
+- **Watch for LTAP/HTAP claims** — do not migrate a system-of-record OLTP workload until independent latency, concurrency, and isolation numbers exist.
+- Market context: this is Databricks answering **Snowflake Unistore** and the broader HTAP push; the differentiator is Unity Catalog governance, not the transactional engine itself.
+- Default alternative stays valid: **managed Postgres/Aurora + warehouse + CDC** is boring, portable, and battle-tested.
+- Cost check: serverless pricing on hot transactional paths can surprise — model it before committing.
+
+## Personal impression
+- The genuinely interesting part is **governed Postgres inside the lakehouse** and its fit as an agent memory store — that solves a real gap.
+- The **"world's first LTAP"** framing is overreach; HTAP is a decade old, and object-storage OLTP has known physics working against it.
+- **Hype level: High.** **Bottom line:** pilot Lakebase for agent state and greenfield apps; keep your systems-of-record on proven Postgres/Aurora until the LTAP claims survive independent benchmarks.

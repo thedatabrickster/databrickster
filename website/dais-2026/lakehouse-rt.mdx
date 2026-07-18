@@ -1,0 +1,53 @@
+---
+sidebar_position: 3
+title: "Lakehouse//RT"
+description: "A real-time data warehouse on the new 'Reyden' engine — millisecond queries directly on Delta/Iceberg with no separate serving layer."
+---
+
+# Lakehouse//RT
+
+> A real-time data warehouse that queries the lakehouse in milliseconds — no separate serving store, no data duplication, per the deck.
+
+*Announced at DAIS 2026 (June 16–17, 2026). Source: community deck — verify officially.*
+
+## Overview
+
+- Positioned as a **real-time data warehouse** powered by a new **"Reyden" engine** — treat the name as likely deck-coined or forward-looking until Databricks confirms it.
+- Serves **Delta and Iceberg directly under Unity Catalog** — no duplicate pipelines, no separate serving layer, no copied policies (as presented).
+- The deck cites **up to 16x faster** than traditional real-time serving; **~10ms on small data**, **sub-100ms at scale**; **12,000+ queries/second** — all unverified.
+- **AUTO sizing** replaces t-shirt sizing; **incremental autoscaling** adds single nodes rather than whole warehouse copies.
+- Claims to handle **joins, window functions, and subqueries** that specialized real-time engines often struggle with.
+- Customer claims (unverified): **Meta** tens-of-ms, **Enverus** up to 100x, **Magnite** sub-200ms dashboards, **Bally's** 7x sub-second. Intro discount reportedly through **Jan 2027**.
+
+## Where it fits
+
+- **Real-time OLAP on the lakehouse** — dashboards, operational analytics, and user-facing metrics without shipping data to a separate store.
+- Best for teams **already standardized on Unity Catalog** with Delta/Iceberg who want one governance model across batch and real-time.
+- Removes a common failure point: the **ETL-to-serving-layer hop** and its duplicated pipelines, policies, and drift.
+- Pairs naturally with **Lakebase/LTAP** (transactional), **Lakeflow** (ingestion), and AI/BI dashboards for the last-mile serving.
+- Attractive where queries are **relationally complex** (multi-table joins, windows) — the historical weak spot of Druid/Pinot-style engines.
+- The AUTO sizing / single-node autoscaling story targets **cost efficiency** for spiky, unpredictable real-time load.
+
+## Where it fails
+
+- **"Reyden" is likely a deck/forward-looking name.** Verify it exists as a shipping product and check its preview/GA status before planning around it.
+- **Every benchmark is unverified and vendor-framed.** "Up to 16x", "12,000+ QPS", and the customer multipliers need independent, workload-matched validation.
+- Headline latencies (~10ms small data, sub-100ms at scale) are **best-case**; real-world tail latency under concurrency and complex joins is what matters and isn't shown.
+- Purpose-built engines — **ClickHouse, Druid, Pinot, Rockset** — remain extremely strong on high-QPS point/aggregation workloads and may still win on raw latency and cost.
+- **Lock-in risk**: the value depends on Unity Catalog + Databricks; the "no duplication" benefit doesn't transfer if your serving lives elsewhere.
+- Customer logos with big multipliers are **marketing signals, not benchmarks** — different data, queries, and baselines.
+- Intro discount through Jan 2027 hints at **early-stage pricing**; watch for cost cliffs after the promo.
+
+## Response
+
+- **Verdict: Pilot** — if you already run Delta/Iceberg on Unity Catalog and have a concrete real-time serving pain, the "no separate layer" pitch is worth a scoped test.
+- **Watch** if you're happy with an existing OLAP engine — don't rip out a working ClickHouse/Druid/Pinot deployment on deck claims.
+- Benchmark against your **actual** queries and QPS, including complex joins and p99 latency under concurrency — not the demo numbers.
+- Market context: this competes with real-time OLAP (**ClickHouse, Druid, Pinot, Rockset**) and warehouse serving (Snowflake, BigQuery); the wedge is **governance unification and no data movement**, not necessarily raw speed.
+
+## Personal impression
+
+- The strategic idea is right: killing the copy-to-serving-layer step and keeping one Unity Catalog governance boundary is genuinely valuable if the latency holds under real load.
+- But the numbers are a highlight reel, and complex-join performance at high QPS is exactly where these claims usually soften.
+- **Hype level: High.**
+- **Bottom line:** compelling direction for lakehouse-committed shops; pilot it against your own workload before believing a single benchmark, and confirm "Reyden" is real before you architect around it.

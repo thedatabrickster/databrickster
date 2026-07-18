@@ -1,0 +1,54 @@
+---
+sidebar_position: 6
+title: "Unity Catalog — Agentic-Era Governance"
+description: "Unity Catalog reframed around Control, Context, and Choice — now governing models, agents, and MCP services alongside data."
+---
+
+# Unity Catalog — Agentic-Era Governance
+
+> Governance for the agentic era, organized into three pillars — **Control, Context, Choice** — extending Unity Catalog to govern models, agents, and MCP services, not just tables.
+
+*Announced at DAIS 2026 (June 16–17, 2026). Source: community deck — verify officially.*
+
+## Overview
+
+- Unity Catalog repositioned as **governance for the agentic era**, structured around three pillars: **Control, Context, Choice**.
+- **Control:** Unity AI Gateway, Contextual Service Policies, ABAC expansions, RBAC, AI spend caps, and unified agent tracing.
+- **Context:** business Glossary, Domains, expanded Metrics, external lineage (per the deck, now GA), and column popularity insights.
+- **Choice / Openness:** four-level cross-cloud namespace, managed disaster recovery, a multimodal `FILE` type, geospatial (GA), and OpenSharing.
+- Governance scope now explicitly covers **models, agents, and MCP services** as first-class governed objects.
+- The deck cites growth metrics — orgs on Unity Catalog, agents operating on enterprise data, external lineage and geospatial adoption — all **unverified**.
+
+## Where it fits
+
+- The **governance and security layer** of the stack: the control plane under agents, Genie, and the AI platform.
+- Teams building **agentic workloads** who need one place to set who/what an agent may touch, and to trace what it did.
+- **AI spend caps** and the AI Gateway land where finance and platform teams worry about runaway agent/model costs.
+- **ABAC + Contextual Service Policies** fit orgs that have outgrown pure RBAC and need attribute- and context-driven access.
+- **Glossary, Domains, Metrics** pair with Genie and BI — shared semantics so natural-language and agent queries mean the same thing.
+- **External lineage + column popularity** help data platform and governance teams see impact and prune unused assets.
+- **Multimodal `FILE` type, geospatial, four-level namespace** suit multi-cloud and unstructured/spatial data shops.
+
+## Where it fails
+
+- **Breadth is complexity.** Three pillars spanning ~15 features is a lot of surface area; most orgs will adopt a fraction and still owe migration and training.
+- **Preview vs GA is muddy.** The deck flags some items GA (external lineage, geospatial) but names may be deck-coined or forward-looking — confirm each feature's real status before planning.
+- **Four-level namespace migration is not free.** Changing the namespace model ripples through code, grants, and integrations; expect a real project, not a toggle.
+- **Governing autonomous agents is genuinely hard.** Policy + tracing help, but non-deterministic agents acting on live data create audit, blast-radius, and accountability gaps that governance UI does not fully close.
+- **AI spend caps** need honest granularity — per-agent, per-team, hard vs soft — or they become dashboards, not guardrails. Detail unconfirmed.
+- **Lock-in tension.** Deep Unity Catalog features cut against open catalogs — **Iceberg REST catalog** and **Apache Polaris / Snowflake Open Catalog** — so weigh portability before committing governance logic here.
+- **Every deck metric is unverified.** Adoption and agent-activity figures are attributed to the deck; do not quote them externally.
+
+## Response
+
+- **Adopt now (core):** if you are already on Unity Catalog, ABAC/RBAC, Glossary, and lineage are the low-risk, high-value pieces — keep investing.
+- **Pilot:** Unity AI Gateway, agent tracing, and AI spend caps — valuable but new; run them against one real agentic workload before standardizing.
+- **Watch:** four-level namespace and managed DR — plan the migration, but wait for GA confirmation and reference customers.
+- **Market context:** the open-catalog camp (Iceberg REST, Polaris, plus Snowflake Horizon) is the real competitive check — keep table formats interoperable even if you centralize policy in Unity Catalog.
+
+## Personal impression
+
+- The **Control/Context/Choice** framing is a clean story, and extending governance to agents and MCP is the right direction — that is where the risk is moving.
+- But "govern the agentic era" is easy to slide and hard to deliver; the honest test is whether spend caps and agent tracing actually constrain a misbehaving agent, not whether they render a nice lineage graph.
+- Treat GA claims and every metric as **unverified** until you see the official docs.
+- **Hype level: Medium.** **Bottom line:** strong, coherent governance vision — adopt the mature core, pilot the agent-governance pieces, and keep your table formats open so the catalog stays a choice, not a cage.

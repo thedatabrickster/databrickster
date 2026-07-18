@@ -1,0 +1,95 @@
+---
+sidebar_position: 1
+slug: /
+title: "DAIS 2026 — The Modern Databricks Stack"
+description: A high-level, opinionated field guide to the Data + AI Summit 2026 announcements — the Modern Databricks Stack — with, for each update, where it fits, where it fails, a response, and a personal impression.
+---
+
+# DAIS 2026 — The Modern Databricks Stack
+
+A fast, opinionated tour of what Databricks announced at **Data + AI Summit 2026**
+(June 16–17, 2026). The keynote theme was the **"Modern Databricks Stack"**: an open
+lakehouse foundation, unified governance, and — the big shift — an **agentic** layer for
+work and development sitting on top.
+
+Use the **left pane** to jump to any update. Each page is short and consistent:
+
+- **Overview** — what was announced.
+- **Where it fits** — the use cases and the layer of the stack it lands in.
+- **Where it fails** — limits, gaps, and hype-vs-reality.
+- **Response** — the practical move (adopt / pilot / watch / ignore) and market context.
+- **Personal impression** — a candid verdict.
+
+:::warning[Unofficial — read this first]
+This tab is compiled from a **community interactive deck** ("DAIS 2026 · The Modern
+Databricks Stack", by Ashraf Osman — *"a learning companion, not an official Databricks
+product"*), itself built from Databricks blog posts around June 16–17, 2026. Treat names,
+metrics, and capabilities as **the deck's framing, not confirmed product facts** — several
+items (e.g. *Reyden engine, LTAP, Omnigent, CustomerLake, LakeWatch*) may be deck-coined,
+paraphrased, or forward-looking. **Verify anything load-bearing against official Databricks
+sources** before you plan around it. The "Where it fails" and "Personal impression"
+sections carry the healthy skepticism.
+:::
+
+## The stack, top to bottom
+
+```text
+Agentic Work & Development   Agent Bricks · Genie (Code/One/Agents/ZeroOps/Ontology) ·
+                             Omnigent · AI Platform (Real-Time ML) · Governed Vibe Coding
+        ↑
+Unified Governance & Security   Unity Catalog · Unity AI Gateway · OpenSharing ·
+                                Platform Security & Compliance
+        ↑
+Open Lakehouse Foundation    Lakebase + LTAP · Lakehouse//RT · Lakeflow ·
+                             AI-First Data Engineering · Delta / Iceberg (open formats)
+        ↑
+Runs on                      AWS · Azure · GCP (cloud substrate)
+```
+
+*The narrative: the lakehouse foundation is now real-time and transactional; governance
+extends to models, agents, and MCP; and an agentic layer automates the "other 99%" of
+data + AI work.*
+
+## The updates
+
+> Grouped by stack layer. Every entry links to its page.
+
+### Open Lakehouse Foundation
+- **[Lakebase & LTAP](/dais-2026/lakebase-ltap)** — serverless Postgres + Lake Transactional/Analytical Processing
+- **[Lakehouse//RT](/dais-2026/lakehouse-rt)** — real-time data warehouse on the "Reyden" engine
+- **[Lakeflow](/dais-2026/lakeflow)** — agentic data engineering (Connect, Designer GA, Zerobus)
+- **[AI-First Data Engineering](/dais-2026/ai-first-data-engineering)** — `ai_*` functions + serverless batch inference in ETL
+
+### Unified Governance & Security
+- **[Unity Catalog](/dais-2026/unity-catalog)** — governance for the agentic era (Control · Context · Choice)
+- **[Unity AI Gateway](/dais-2026/unity-ai-gateway)** — govern runtime AI: models, agents, MCP, skills
+- **[OpenSharing & SecureConnect](/dais-2026/opensharing)** — next-gen Delta Sharing + managed proxy
+- **[Platform Security & Compliance](/dais-2026/platform-security-compliance)** — identity, zero-trust ingress, new compliance
+
+### Agentic Work & Development
+- **[Agent Bricks](/dais-2026/agent-bricks)** — from a launch to a full agent platform
+- **[Genie Code](/dais-2026/genie-code)** — agentic command center for data & ML work
+- **[Genie One](/dais-2026/genie-one)** — the enterprise AI coworker (50+ tools)
+- **[Genie Agents](/dais-2026/genie-agents)** — conversational analytics agents
+- **[Genie ZeroOps](/dais-2026/genie-zeroops)** — autonomous background fix-it agent
+- **[Genie Ontology](/dais-2026/genie-ontology)** — continuous-learning semantic layer
+- **[Omnigent](/dais-2026/omnigent)** — open-source meta-harness over agents
+- **[AI Platform — Real-Time ML](/dais-2026/ai-platform-real-time-ml)** — AI Runtime, serverless GPUs, real-time serving
+- **[Agentic CDP (CustomerLake)](/dais-2026/agentic-cdp)** — agent-first customer data platform
+- **[LakeWatch — Agentic SIEM](/dais-2026/lakewatch)** — security lakehouse
+
+### Apps, BI & Sharing
+- **[Apps on Databricks Marketplace](/dais-2026/apps-marketplace)** — install third-party apps on your own data
+- **[Governed Vibe Coding](/dais-2026/governed-vibe-coding)** — App Spaces, Genie App Builder, Serverless Micro Apps
+- **[AI/BI — Beautiful Dashboards](/dais-2026/aibi-dashboards)** — theming, accessibility, palettes
+
+### Editions & Ecosystem
+- **[Free Edition](/dais-2026/free-edition)** — five new products, free (Genie Code, Serverless GPUs, Lakebase, Agent Bricks, Lakeflow Designer)
+- **[Azure Databricks at DAIS 2026](/dais-2026/azure-databricks)** — OneLake integration, modernization stories
+- **[AWS & Databricks at DAIS 2026](/dais-2026/aws-databricks)** — Bedrock, AgentCore, Kiro
+
+:::info[Independent project]
+Databrickster is a free, independent educational resource — **not affiliated with,
+endorsed by, or sponsored by Databricks, Inc.** "Databricks" and related marks belong to
+their respective owners. This tab is commentary/education, not an announcement.
+:::

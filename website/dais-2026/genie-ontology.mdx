@@ -1,0 +1,52 @@
+---
+sidebar_position: 15
+title: "Genie Ontology"
+description: "A continuous-learning semantic layer that captures business meaning so every agent and Genie Space answers consistently."
+---
+
+# Genie Ontology
+
+> A continuous-learning semantic layer that captures your business meaning — so every agent answers consistently, grounded in how your company actually works.
+
+*Announced at DAIS 2026 (June 16–17, 2026). Source: community deck — verify officially.*
+
+## Overview
+
+- A **semantic layer** that captures business meaning — fiscal calendars, org structure, metric definitions, synonyms, and the rationale behind past decisions.
+- Goal: **every agent and every Genie Space shares the same business context** — no more conflicting numbers from different tools.
+- Presented as **continuous-learning** — it keeps learning your team's query patterns and terminology over time.
+- Positioned as the **"Context" pillar of Agent Bricks**, grounded in Unity Catalog.
+- Framed as the source of consistency for natural-language and agent-driven analytics across the platform.
+
+## Where it fits
+
+- The **semantic / context layer** of the stack — sits between Unity Catalog metadata and the agents, Genie Spaces, and BI tools that query it.
+- Best for orgs where **the same metric means different things** in different dashboards and teams want one authoritative definition.
+- Pairs directly with **Genie** (natural-language BI) and **Agent Bricks** — shared vocabulary so questions resolve consistently.
+- Helps when **onboarding agents or analysts** who lack tribal knowledge of fiscal calendars, org hierarchy, and naming quirks.
+- Complements **Unity Catalog Metric Views**, Glossary, and Domains as the human-meaning layer over governed data.
+- Useful anywhere **synonym resolution** matters — "revenue" vs "bookings" vs "net sales" mapped to one definition.
+
+## Where it fails
+
+- **Semantic layers are curation-heavy.** The value is only as good as the definitions someone maintains; this is an ongoing human commitment, not a one-time setup.
+- **"Continuous learning" cuts both ways.** A layer that auto-learns from usage can drift, absorb bad patterns, or silently change meaning — trust and auditability of learned context is the open question.
+- **Overlap with Unity Catalog Metric Views** is unclear — is this a new layer, a rebrand, or a wrapper? Confirm before building on it, or risk duplicating metric definitions in two places.
+- **Crowded category.** It competes conceptually with **dbt Semantic Layer**, **LookML**, and **Cube** — teams already invested there face a migration or dual-maintenance decision.
+- **Lock-in risk.** A Databricks-native semantic layer keeps definitions inside the platform; portability to non-Databricks BI or agents is unproven.
+- **Preview-stage naming.** "Genie Ontology" may be deck-coined or forward-looking — treat capabilities as unconfirmed until official docs land.
+- **No metrics to verify, and that's telling** — the deck makes qualitative promises ("no more conflicting numbers") without evidence of accuracy at scale; treat as aspirational.
+
+## Response
+
+- **Pilot** — the shared-context problem is real and worth testing, but only against one domain where metric definitions already conflict.
+- **Watch** for the Metric Views relationship and GA status before making it your system of record for definitions.
+- **Don't rip out dbt/LookML/Cube** for it yet — run in parallel and compare governance, drift control, and portability.
+- **Market context:** the semantic-layer war is active — dbt, Looker/LookML, and Cube all claim the "one definition" high ground; Databricks' edge is native agent + Genie integration, not the concept itself.
+
+## Personal impression
+
+- The pitch is exactly right — inconsistent numbers across tools is a genuine enterprise pain, and grounding agents in shared business meaning is the correct direction.
+- But "continuous-learning semantic layer" is where hype meets reality: semantic layers fail on **maintenance discipline**, and auto-learning adds a drift-and-trust problem on top of that.
+- The overlap with Unity Catalog Metric Views needs a straight answer before anyone commits.
+- **Hype level: Medium.** **Bottom line:** promising and on-strategy, but semantic layers live or die on curation — pilot it on one messy domain, insist on human-reviewable definitions, and keep your existing semantic tooling until it proves it can hold meaning steady over time.

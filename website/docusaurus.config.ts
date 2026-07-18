@@ -109,6 +109,16 @@ const config: Config = {
         remarkPlugins: [remarkAcronyms],
       },
     ],
+    [
+      '@docusaurus/plugin-content-docs',
+      {
+        id: 'dais-2026',
+        path: 'dais-2026',
+        routeBasePath: 'dais-2026',
+        sidebarPath: './sidebarsDais2026.ts',
+        remarkPlugins: [remarkAcronyms],
+      },
+    ],
   ],
 
   themeConfig: {
@@ -162,6 +172,13 @@ const config: Config = {
           position: 'left',
           label: 'Databricks Features',
         },
+        {
+          type: 'docSidebar',
+          docsPluginId: 'dais-2026',
+          sidebarId: 'dais2026Sidebar',
+          position: 'left',
+          label: 'DAIS 2026',
+        },
         {to: '/blog', label: 'Deep Dives', position: 'left'},
         {to: '/about', label: 'About', position: 'right'},
         {
@@ -196,6 +213,10 @@ const config: Config = {
             {
               label: 'Databricks Features',
               to: '/databricks-features',
+            },
+            {
+              label: 'DAIS 2026',
+              to: '/dais-2026',
             },
           ],
         },

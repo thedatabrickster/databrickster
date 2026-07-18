@@ -1,0 +1,50 @@
+---
+sidebar_position: 8
+title: "OpenSharing & SecureConnect"
+description: "The next evolution of Delta Sharing — share data, models, agents, and Genie Agents across clouds and vendors under Unity Catalog, with a managed proxy that removes per-recipient network config."
+---
+
+# OpenSharing & SecureConnect
+
+> Delta Sharing grows up: share not just data but models, agents, and governed Genie Agents across clouds and vendors — and a Databricks-managed proxy kills the per-recipient firewall dance.
+
+*Announced at DAIS 2026 (June 16–17, 2026). Source: community deck — verify officially.*
+
+## Overview
+- Positioned as the **next evolution of Delta Sharing** — share data, models, agents, and **Genie Agents** across clouds and vendors, governed by Unity Catalog.
+- **Governed conversational analytics as a share**: cap prompts, hide instructions, and meter usage on shared Genie Agents.
+- **SecureConnect** is a Databricks-managed proxy that ends per-recipient IP allowlisting and firewall coordination — configure once, share with anyone.
+- Network details per the deck: **serverless recipients need zero config**, optional NCC private link, mutual TLS, and **data stays in the provider's bucket**.
+- **Auto cross-region / cross-cloud replication** — recipients query a local replica, reportedly with **no egress fees**.
+- Open posture: **Linux Foundation** spec, **Iceberg REST Catalog** support, and on-prem partners (**MinIO, VAST, Qumulo**).
+- Deck metrics (unverified): total Delta Sharing recipients, % of shares that are cross-platform, data under partner management, and egress saved via local replicas.
+
+## Where it fits
+- **Data collaboration layer** — the outbound edge of the lakehouse for partners, subsidiaries, and customers.
+- Teams sharing across **multiple clouds or vendors** who currently pay egress and hand-maintain allowlists.
+- **Productizing analytics**: ship a governed Genie Agent to a customer instead of raw tables, with prompt caps and usage metering for billing.
+- **Model and agent distribution** — internal platform teams handing curated models/agents to downstream business units.
+- Pairs with **Unity Catalog** (single governance plane) and **serverless recipients** that get the zero-config path.
+- Fits **on-prem / hybrid** shops via the MinIO/VAST/Qumulo partner story and Iceberg REST Catalog interop.
+- SecureConnect suits orgs where **security review of firewall changes** is the real bottleneck to any data share.
+
+## Where it fails
+- **Sharing agents across vendors raises governance and liability questions** — who owns a bad answer, whose logs, whose prompt policy wins? Largely unaddressed.
+- **The managed proxy is a new dependency and trust boundary** — SecureConnect becomes a single control point and potential single point of failure for all external sharing.
+- **Replication has cost and consistency tradeoffs** — "no egress fees" hides storage duplication cost and replica staleness; ask for the freshness SLA.
+- **"Open" is in tension with a Databricks-managed control plane** — the spec may be Linux Foundation, but SecureConnect and metering are proprietary; recipients still lean on Databricks infrastructure.
+- **Metrics are deck-cited and unverified** — recipient counts, cross-platform %, and egress-saved figures have no source; treat as marketing.
+- **Zero-config only for serverless recipients** — everyone else still touches NCC/private link, so the "configure once" promise is partial.
+- **Maturity/preview risk** — cross-vendor agent sharing is novel; expect gaps in RBAC, audit, and revocation semantics early.
+
+## Response
+- **Verdict: Pilot** SecureConnect + data/model sharing — the network-config elimination is a concrete, real pain removed with low blast radius.
+- **Watch** cross-vendor Genie Agent sharing — genuinely new, but wait for clear liability, audit, and revocation answers before exposing agents externally.
+- Model the **replication economics** before trusting "no egress" — duplicated storage and consistency needs can erase the savings.
+- Market context: this competes with **Snowflake Data Sharing / cloud-native shares (AWS Data Exchange, BigQuery Analytics Hub)**; the differentiator is agent/Genie sharing plus managed networking, not raw data sharing.
+- Keep a **portable fallback** — the Linux Foundation Delta Sharing spec is the open part; lean on it so you are not fully bound to the managed proxy.
+
+## Personal impression
+- SecureConnect is the quietly useful piece — killing per-recipient firewall coordination solves a boring, real problem that stalls most external sharing deals.
+- Sharing **governed Genie Agents** is the flashy bet, and also the riskiest: cross-vendor conversational analytics without settled liability is a lawyer's field day.
+- **Hype level: Medium.** **Bottom line:** pilot the managed-networking and model/data sharing now; treat cross-vendor agent sharing as a Watch until governance and liability are spelled out.

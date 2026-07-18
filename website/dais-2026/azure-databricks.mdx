@@ -1,0 +1,50 @@
+---
+sidebar_position: 24
+title: "Azure Databricks at DAIS 2026"
+description: "Deeper Microsoft integrations — Unity Catalog external locations to OneLake and zero-copy federation for Azure Data Manager for Energy — plus customer modernization stories from GEODIS, TK Elevator, and Lippert."
+---
+
+# Azure Databricks at DAIS 2026
+
+> Positioned as the best data + AI platform on Azure: deeper Microsoft integrations (OneLake, ADME) and a set of customer modernization stories — mostly integrations and proof points, not net-new tech.
+
+*Announced at DAIS 2026 (June 16–17, 2026). Source: community deck — verify officially.*
+
+## Overview
+- Pitch per the deck: **the best data + AI platform on Azure**, leaning on first-party status and deeper Microsoft integration.
+- **Unity Catalog external locations to OneLake** — govern and query Fabric OneLake data from Azure Databricks without copying, as presented.
+- **Zero-copy federation for Azure Data Manager for Energy (ADME)** — federated analytics over energy-industry data in place.
+- Customer story — **GEODIS**: logistics modernization on **Iceberg + Cloudera** migration path.
+- Customer story — **TK Elevator**: a **unified lake** consolidating fragmented data estates.
+- Customer story — **Lippert**: **finance AI** use cases on the platform.
+- Deck metrics (unverified): UC external-location support to OneLake and federated analytics for ADME — capabilities cited, no benchmarks given.
+
+## Where it fits
+- **Governance + integration layer** for shops already standardized on Azure and Microsoft Fabric.
+- Enterprises with data landing in **OneLake** who want Databricks/Unity Catalog governance without a second copy.
+- **Energy-sector** teams on ADME wanting analytics over operational/subsurface data in place.
+- **Logistics and manufacturing** modernizers (GEODIS, TK Elevator) moving off legacy Hadoop/Cloudera or siloed lakes.
+- **Finance/FP&A** teams (Lippert) building AI on governed enterprise data.
+- Pairs with **Unity Catalog** (single governance plane), **Delta/Iceberg** interop, and existing **Microsoft 365 / Power BI** estates.
+- Best fit where the buyer wants **one Azure-native stack** rather than stitching multiple analytics vendors.
+
+## Where it fails
+- **Microsoft Fabric is both partner and competitor** — OneLake integration deepens reliance on a platform Microsoft also positions against Databricks; the alignment can shift.
+- **OneLake integration depth and maturity are unproven** — "external locations to OneLake" per the deck; verify write paths, permission mapping, and performance before trusting it in production.
+- **First-party Azure Databricks has real nuances** — billing, identity (Entra), networking, and feature-parity timing differ from AWS/GCP Databricks; assumptions do not transfer cleanly.
+- **Mostly integrations + customer stories, not net-new technology** — value is packaging and proof points, so differentiation is thinner than the framing suggests.
+- **ADME zero-copy federation is narrow** — energy-specific; federated queries also carry latency and pushdown limits versus co-located data.
+- **Customer stories are curated wins** — GEODIS/TK Elevator/Lippert outcomes lack independent metrics, cost, or timeline detail.
+- **Lock-in tension** — leaning into Azure-first integrations trades multi-cloud portability for convenience.
+
+## Response
+- **Verdict: Watch** the OneLake external-location integration — promising for Fabric shops, but confirm maturity, write support, and permission fidelity before committing.
+- **Pilot** ADME zero-copy federation **only if** you are an energy customer already on that stack — otherwise it is not relevant.
+- **Adopt** the underlying **Unity Catalog + governance** story regardless — that is stable and valuable independent of the Azure-specific packaging.
+- Market context: this is the **Databricks vs. Microsoft Fabric** frontier — evaluate Fabric's native lakehouse and Synapse alternatives head-to-head, not just the Databricks framing.
+- Treat customer stories as **reference calls to request**, not proof — ask GEODIS/TK Elevator/Lippert peers for real cost and migration effort.
+
+## Personal impression
+- This reads less like an announcement and more like an Azure go-to-market update — solid integrations wrapped in customer logos, with little genuinely new underneath.
+- The OneLake tie-in is the one to watch precisely because the partner-and-competitor dynamic with Fabric makes its depth and durability uncertain.
+- **Hype level: Low-Medium.** **Bottom line:** useful if you are Azure-committed, but verify OneLake maturity and weigh the Fabric relationship — this is integration and proof points, not net-new platform capability.

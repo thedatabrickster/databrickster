@@ -1,0 +1,53 @@
+---
+sidebar_position: 21
+title: "Governed Vibe Coding"
+description: "Natural-language app building with enterprise guardrails — App Spaces set data access, security, and cost once; Genie App Builder generates apps from a prompt or screenshot; Serverless Micro Apps run them with scale-to-zero isolation."
+---
+
+# Governed Vibe Coding
+
+> Fast, natural-language app building with enterprise guardrails — App Spaces, Genie App Builder, and Serverless Micro Apps aim to make "vibe coding" safe for line-of-business teams.
+
+*Announced at DAIS 2026 (June 16–17, 2026). Source: community deck — verify officially.*
+
+## Overview
+
+- Per the deck: build apps in natural language with **enterprise guardrails baked in** — three pieces stitched together for governed, low-effort app creation.
+- **App Spaces**: configure **data access, security, and cost once** per space; every app inside inherits it — governance lives at the space, not the app.
+- **Genie App Builder**: **describe it (or paste a screenshot)**, get a **live preview**; reportedly built on the **AppKit TypeScript SDK** underneath.
+- **Serverless Micro Apps**: **micro-VM isolation**, **scale-to-zero**, and **usage-based pricing** — aimed at bursty, low-traffic line-of-business tools.
+- Deck metrics (all **unverified**): the deck cites active running apps and weekly app users "in 6 months," and repeats that governance is enforced **per space, not per app**.
+
+## Where it fits
+
+- **Line-of-business micro-tools**: approval forms, small dashboards, data-entry apps — the bursty, internal stuff that never justified a real dev project.
+- **Sits at the app/serving layer** on top of the lakehouse; pairs with Unity Catalog for permissions and Genie for the natural-language front door.
+- **Scale-to-zero economics** fit apps used a few times a day — you pay for use, not for an idle always-on server.
+- **App Spaces suit platform teams** who want to set guardrails once and let analysts self-serve inside a fenced sandbox.
+- The **screenshot-to-app** path helps non-developers reproduce an existing UI or mockup without writing markup.
+- Benefits **already-on-Databricks orgs** — data, auth, and cost controls are in one place, so a generated app inherits governance for free.
+
+## Where it fails
+
+- **"Vibe coding" quality is the core doubt** — generated apps are easy to spin up, hard to maintain; you inherit code nobody wrote and nobody fully understands.
+- **Governed sprawl is still sprawl.** App Spaces bound *access*, not *count* — you can end up with hundreds of shadow-IT micro apps that are individually harmless and collectively unmanageable.
+- **Generated-app security** needs scrutiny — inherited data scopes help, but injection, logic flaws, and over-broad queries in auto-written code won't be caught by space-level guardrails alone.
+- **Ownership is unanswered**: who maintains, patches, and deprecates an app the original author generated in five minutes and forgot?
+- **Crowded category** — this is Retool, Streamlit, and Power Apps territory; Databricks' edge is native governance and data proximity, not the builder itself.
+- **Lock-in**: apps wired to App Spaces, AppKit, and serverless micro-VMs are hard to port off Databricks later.
+- **The metrics are unverified and vague** — "active apps" and "weekly users in 6 months" are adoption shapes, not evidence of durable value; treat as directional only.
+
+## Response
+
+- **Verdict: Pilot.** The governance-first framing is the right idea for internal tools, but quality and sprawl risks mean it earns a bounded trial, not a rollout.
+- **Pilot inside one App Space** with a clear owner and a hard cap on cost and data scope — prove the inherited guardrails actually hold before opening it up.
+- **Set a lifecycle policy up front** — naming, ownership, and an expiry/review date per app — or you'll rediscover shadow IT with a Databricks bill attached.
+- Market context: **Retool/Power Apps** lead on ecosystem and connectors, **Streamlit** on Python-native data apps; Databricks wins only if native data governance genuinely beats bolting auth onto those tools.
+- **Watch** the security story for generated code — pilot with low-stakes, read-mostly apps until injection and access review are proven.
+
+## Personal impression
+
+- The insight is real: the reason internal app builders scare enterprises isn't the building, it's the *governance* — and setting access, security, and cost once per space is a genuinely better default than per-app config.
+- But "vibe coding" plus "enterprise" is an uneasy pairing; the easier it is to conjure an app, the more orphaned, half-maintained apps you'll be governing in a year.
+- **Hype level: Medium.** Smart governance model, real competitors, and unproven quality/maintainability on the generated code itself.
+- **Bottom line:** Great for governed internal micro-tools if you enforce ownership and lifecycle from day one — not a place to build anything you'd be sad to see abandoned.
