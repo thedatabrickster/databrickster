@@ -1,0 +1,225 @@
+---
+sidebar_position: 20
+title: "Databricks Terraform Provider — Architecture Guide"
+description: "Terraform provider for provisioning and governing Databricks as infrastructure-as-code — accounts, workspaces, Unity Catalog, clusters, jobs, and permissions across AWS, Azure, and GCP."
+---
+
+# Databricks Terraform Provider
+
+## 1. Executive Summary
+The Databricks Terraform provider is a HashiCorp/Databricks-maintained provider that manages the full Databricks platform as declarative, state-tracked infrastructure-as-code — account-level objects, workspaces, Unity Catalog, compute, jobs, and permissions — consistently across AWS, Azure, and GCP.
+
+## 2. Primary Purpose
+- **Why it exists:** provision and govern Databricks infrastructure the same way as the rest of the cloud estate, in one Terraform workflow.
+- **Business problem:** manually created workspaces and grants drift, are unauditable, and cannot be reliably reproduced across regions, clouds, or environments.
+- **Technical problem:** codify account/workspace/UC provisioning with dependency ordering, state, plan/apply, and drift detection.
+- **Positioning:** the recommended IaC path for **platform infrastructure**; complements Databricks Asset Bundles, which own **application resources**.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Platform / DevOps Engineer + Git Repo
+        ↓
+Terraform config (.tf) + state backend
+        ↓
+terraform plan → apply
+        ↓
+Databricks Account API + Workspace APIs
+        ↓
+Accounts · Workspaces · Metastores · Networking · Identity
+        ↓
+Unity Catalog · Clusters · Jobs · Permissions
+        ↓
+Delta Lake
+```
+- Sits in the **provisioning / administration layer**, beneath the resources that DABs and users later consume.
+- Spans **both** account-level (workspaces, metastores, users) and workspace-level (clusters, jobs, grants) objects.
+- Owns platform foundations; is not where day-to-day application code or workloads are deployed.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☑ Developer Experience
+☐ Data Engineering
+☑ Data Governance
+☐ AI
+☐ Machine Learning
+☐ Storage
+☑ Security
+☑ Administration
+☐ Monitoring
+```
+- Primarily an **Administration** capability — codifies accounts, workspaces, and platform config.
+- Strong **Data Governance** and **Security** role via Unity Catalog objects, grants, and identity as code.
+- Touches **Developer Experience** by bringing plan/review/CI to infrastructure changes.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+| --- | --- | --- |
+| Provisioning workspaces across clouds | ✅ | One config pattern for AWS, Azure, GCP |
+| Account-level setup (metastore, users, SSO) | ✅ | Account provider manages account objects |
+| Unity Catalog object + grant management | ✅ | Catalogs, schemas, grants declared and versioned |
+| Network config (VPC/VNet, PrivateLink) | ✅ | Composes with cloud providers in one plan |
+| Standing up new environments/regions | ✅ | Reproducible modules with parameterized inputs |
+| Enforcing cluster policies at scale | ✅ | Policies and permissions as reviewable code |
+| Identity and group provisioning (SCIM) | ✅ | Users, groups, service principals as code |
+| Managing permissions/ACLs org-wide | ✅ | `databricks_permissions` covers most objects |
+| Multi-workspace consistency | ✅ | Shared modules enforce a golden pattern |
+| Disaster recovery / rebuild | ✅ | Re-apply config to rebuild platform state |
+| Secret scopes and secrets provisioning | ✅ | Declarative scopes wired to backends |
+| Baseline jobs/pipelines infrastructure | ⚠️ | Works, but DABs fits app-code lifecycle better |
+| Per-user dev resource deployment | ⚠️ | DABs dev targets are the better model |
+| Packaging application code with resources | ⚠️ | No artifact build/upload; use DABs |
+| One-off exploratory workspace tweak | ⚠️ | IaC overhead rarely justified |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+| --- | --- | --- |
+| Deploying notebooks/wheels with jobs | ❌ | No code packaging; DABs owns app artifacts |
+| Rapid app-resource dev → prod promotion | ❌ | DABs targets are purpose-built for this |
+| Ad-hoc interactive exploration | ❌ | No benefit from codifying throwaway work |
+| Teams with no state-backend discipline | ⚠️ | Shared state and locking are prerequisites |
+| Fast-changing per-PR ephemeral resources | ⚠️ | DABs teardown is lighter for app resources |
+| Org with no Git or review process | ⚠️ | IaC value depends on plan review and CI |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+| --- | --- |
+| Data Engineers | 3 |
+| Analytics Engineers | 2 |
+| Platform Engineers | 5 |
+| Data Scientists | 1 |
+| BI Teams | 1 |
+| AI Engineers | 2 |
+| Executives | 2 |
+| Architects | 5 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+| --- | --- |
+| Developer Productivity | 3 |
+| Implementation Speed | 3 |
+| Governance | 5 |
+| Security | 5 |
+| Maintainability | 4 |
+| Scalability | 5 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 2 |
+| Business Value | 4 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+| --- | --- |
+| Cloud providers (AWS/Azure/GCP) | Provision underlying networking, storage, and IAM in the same plan. |
+| Terraform state backend | Stores state and locks for safe, concurrent applies. |
+| Databricks Account API | Manages account-level workspaces, metastores, and identity. |
+| Unity Catalog | Catalogs, schemas, grants, and external locations declared as resources. |
+| Clusters / Compute | Cluster definitions, pools, and policies managed as code. |
+| Lakeflow Jobs | Baseline job and schedule infrastructure defined declaratively. |
+| Identity (SCIM) | Users, groups, and service principals provisioned as code. |
+| Secret Scopes | Scopes and secret bindings created and wired to backends. |
+| Databricks Asset Bundles | Complementary — DABs consumes the platform Terraform provisions. |
+| Git / CI runner | Drives plan on PRs and apply on protected branches. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+| --- | --- | --- |
+| Databricks Asset Bundles | Native app IaC | Owns app resources + code packaging; not for account/workspace/network infra |
+| Pulumi (Databricks provider) | External IaC | General-purpose languages and real code; smaller community, same underlying APIs |
+| CLI / REST / SDK scripts | Custom scripting | Maximum control; you build idempotency, ordering, state, and drift yourself |
+| CloudFormation / ARM / Bicep | Cloud-native IaC | Handles cloud infra well; no first-class Databricks resource coverage |
+| Ansible / config mgmt | Imperative automation | Good for config drift tasks; weak declarative model for platform objects |
+| Manual UI (click-ops) | Interactive | Fast to start; no versioning, review, state, or reproducibility |
+
+## 11. Strengths
+- Single workflow for Databricks plus cloud infra (networking, storage, IAM).
+- Covers account, workspace, and Unity Catalog objects — the widest IaC surface.
+- Real state, plan/apply, and drift detection with dependency ordering.
+- Multi-cloud consistency: one module pattern across AWS, Azure, and GCP.
+- Reusable modules enforce golden workspace and governance patterns.
+- Strong for identity, permissions, and grant management at org scale.
+- First-party maintained; tracks new resource types over time.
+- Integrates with any CI runner and standard Terraform tooling.
+- Rebuild/DR story: re-apply config to reconstruct platform state.
+- Rich ecosystem (workspaces, Terragrunt, policy-as-code, Sentinel/OPA).
+
+## 12. Limitations
+- No application-code packaging (wheels, notebooks) — that is DABs' job.
+- State management is a hard prerequisite; mismanaged state causes outages.
+- Steep learning curve for teams new to Terraform and HCL.
+- Some resources need provider version discipline; behavior shifts across releases.
+- Account vs workspace provider split adds authentication complexity.
+- Newer Databricks features may lag full provider coverage at launch.
+- Large estates yield sprawling configs; module design is non-trivial.
+- Destructive plans can delete workspaces/data if reviewed carelessly.
+- Drift from UI click-ops still requires import or reconciliation.
+- Secrets in state must be protected with encrypted, access-controlled backends.
+
+## 13. Common Mistakes
+- Committing or exposing state files containing secrets and tokens.
+- No remote state backend or locking, causing concurrent-apply corruption.
+- One monolithic root module instead of layered, scoped modules.
+- Mixing account and workspace providers without clear aliasing.
+- Managing app resources (jobs/pipelines code) here instead of in DABs.
+- Applying to prod without a reviewed `plan` and approval gate.
+- Ignoring drift from manual UI edits until a later apply destroys changes.
+- Pinning no provider version, so upgrades change behavior silently.
+- Hardcoding cloud/region values instead of variables and workspaces.
+
+## 14. Design Recommendations
+- ✔ Use a remote, encrypted state backend with locking from day one.
+- ✔ Layer modules: account/network, workspace, Unity Catalog, permissions.
+- ✔ Pin provider and Terraform versions; upgrade deliberately.
+- ✔ Separate the account provider and workspace providers with clear aliases.
+- ✔ Gate prod with reviewed `plan` output and required approvals in CI.
+- ✔ Reserve Terraform for platform infra; use DABs for application resources.
+- ✔ Authenticate CI via service principals, never personal tokens.
+- ✔ Add policy-as-code (Sentinel/OPA) to block destructive or non-compliant plans.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+| --- | --- |
+| Workspace / account provisioning | ✅ Core purpose |
+| Multi-cloud consistency | ✅ One pattern, all clouds |
+| Unity Catalog + grants as code | ✅ Broad resource coverage |
+| Identity / SCIM provisioning | ✅ Users, groups, SPs as code |
+| Network + PrivateLink setup | ✅ Composes with cloud providers |
+| Deploying app code with jobs | ❌ Use DABs |
+| Dev → prod app promotion | ⚠️ DABs targets fit better |
+| Ephemeral per-PR resources | ⚠️ DABs teardown is lighter |
+| One-off notebook work | ❌ IaC overhead unjustified |
+| Drift detection on platform infra | ✅ State + plan built for it |
+
+## 16. Quick Comparison
+| Criterion | Terraform provider | DABs | Pulumi | CLI/REST scripts |
+| --- | --- | --- | --- | --- |
+| Declarative | Yes | Yes | Yes | No |
+| Account/infra scope | Yes | No | Yes | Custom |
+| Packages app code | No | Yes | No | Custom |
+| State / plan model | Strong | Limited | Strong | None |
+| Multi-cloud infra | Strong | N/A | Strong | Custom |
+| UC governance depth | Strong | Partial | Strong | Custom |
+| Learning curve | High | Medium | High | Medium |
+
+## 17. Maturity
+| Dimension | Rating |
+| --- | --- |
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+- **Licensing:** the provider is open-source with no separate fee; Terraform Cloud/Enterprise or state backends may carry cost — verify current pricing.
+- **Compute:** no direct cost from the provider; cost comes from the workspaces, clusters, and jobs it provisions.
+- **Storage:** minimal — state files plus any backend storage (object store, Terraform Cloud).
+- **Operational Overhead:** authoring modules, managing state, provider upgrades, and CI approval gates.
+- **Training:** significant upfront investment in Terraform, HCL, and state discipline for teams new to IaC.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** platform teams provisioning workspaces, Unity Catalog, identity, and networking as code across clouds.
+- ✔ **Avoid when:** deploying application code, jobs, or pipelines that move dev → prod — use Databricks Asset Bundles.
+- ✔ **Biggest benefit:** one state-tracked, multi-cloud IaC workflow for the entire Databricks platform, ending click-ops drift.
+- ✔ **Biggest limitation:** steep Terraform/state learning curve and no application-code packaging.
+- ✔ **Overall recommendation:** adopt as the foundation for Databricks platform provisioning and governance; pair with DABs for application resources.

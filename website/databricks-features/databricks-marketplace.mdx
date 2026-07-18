@@ -1,0 +1,224 @@
+---
+sidebar_position: 20
+title: "Databricks Marketplace — Architecture Guide"
+description: "An open exchange for discovering and consuming third-party data products, AI models, notebooks, and solutions with no data copy, delivered over Delta Sharing and governed by Unity Catalog."
+---
+
+# Databricks Marketplace
+
+## 1. Executive Summary
+Databricks Marketplace is an open exchange where providers list data products, AI models, notebooks, and solution accelerators, and consumers access them in place through Delta Sharing under Unity Catalog governance — without copying the data.
+
+## 2. Primary Purpose
+- **Why it exists:** create a single catalog to discover, evaluate, and consume external data and models directly inside the lakehouse.
+- **Business problem:** buying and onboarding third-party data is slow — contracts, feeds, and ETL pipelines delay time-to-insight.
+- **Technical problem:** traditional data acquisition means file drops or APIs that must be ingested, transformed, and re-governed, creating stale copies.
+- **Model:** listings are shared, not shipped — consumers attach a provider's share as a read-only catalog and query it live.
+- **Two-sided:** providers monetize or distribute assets; consumers acquire them with governance and lineage intact.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Provider account                     Consumer account
+  Delta tables / models                  Users → BI / SQL / ML
+        ↓  publish listing                       ↑
+        └──────── MARKETPLACE (catalog) ─────────┘
+                        ↓
+              Delta Sharing (open, no copy)
+                        ↓
+        Unity Catalog (shared catalog, read-only)
+                        ↓
+                     Delta
+```
+- Sits at the **entry point** of the lakehouse — external assets arrive as governed catalogs, not ingested files.
+- Built on **Delta Sharing** for zero-copy delivery and **Unity Catalog** for grants, lineage, and audit.
+- Consumed assets appear as normal UC objects usable by SQL, notebooks, BI, and ML.
+- Spans provider (publish) and consumer (discover, request, consume) sides of the same exchange.
+
+## 4. Typical Architecture Placement
+```
+☑ User Interface
+☐ Developer Experience
+☑ Data Engineering
+☑ Data Governance
+☑ AI
+☐ Machine Learning
+☐ Storage
+☐ Security
+☑ Administration
+☐ Monitoring
+```
+- A **discovery and distribution** surface (User Interface) layered over Data Engineering intake.
+- Primarily **Governance + Administration**: listings, shares, and recipients are lifecycle-managed under Unity Catalog.
+- Touches **AI** because model listings and solution accelerators are first-class products, not just tables.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+|---|---|---|
+| Acquire external reference data (firmographics, geo) | ✅ | Live catalog, no ingestion pipeline |
+| Consume market, weather, or economic feeds | ✅ | Query in place, always current |
+| Enrich internal tables with third-party data | ✅ | Join shared catalog to owned tables |
+| Distribute your own data products to customers | ✅ | Publish once, share to many recipients |
+| Evaluate a dataset before purchase | ✅ | Sample or trial listings before committing |
+| Access pre-trained / open models | ✅ | Model listings consumable via Model Serving |
+| Deploy solution accelerators and notebooks | ✅ | Jump-start use cases with prebuilt assets |
+| Monetize proprietary data externally | ✅ | Provider side supports paid distribution |
+| Internal data product catalog for a large org | ⚠️ | Works, but UC Delta Sharing may suffice |
+| Cross-cloud / cross-region data acquisition | ✅ | Delta Sharing spans clouds and regions |
+| Share with non-Databricks consumers | ⚠️ | Open sharing works; UI experience is richer on-platform |
+| Time-sensitive data that must always be fresh | ✅ | No copy means no refresh lag |
+| One-off small static file exchange | ⚠️ | Simple file transfer may be lower overhead |
+| Regulated data with residency constraints | ⚠️ | Zero-copy helps, but verify provider terms |
+| Bundling data + model + notebook as a product | ✅ | Multi-asset listings are supported |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| You need to physically own the raw files | ❌ | Sharing is access, not transfer of custody |
+| Heavy per-row writes back to provider data | ❌ | Shared data is read-only to the consumer |
+| Sub-second operational lookups on shared data | ⚠️ | Sharing suits analytics, not transactional serving |
+| Internal team-to-team sharing, one account | ⚠️ | Use Unity Catalog grants directly |
+| Provider unwilling to expose governed Delta | ❌ | Requires shareable, UC-managed source assets |
+| Bespoke bilateral contract with custom SLAs | ⚠️ | Private exchange or direct agreement may fit better |
+| Highly interactive joint computation with a partner | ❌ | Use Clean Rooms, not a listing |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 4 |
+| Analytics Engineers | 4 |
+| Platform Engineers | 3 |
+| Data Scientists | 4 |
+| BI Teams | 4 |
+| AI Engineers | 4 |
+| Executives | 3 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 4 |
+| Implementation Speed | 5 |
+| Governance | 5 |
+| Security | 4 |
+| Maintainability | 4 |
+| Scalability | 5 |
+| Cost Optimization | 4 |
+| Ease of Adoption | 4 |
+| Business Value | 4 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Delta Sharing | Open protocol that delivers listings to consumers without copying data. |
+| Unity Catalog | Governs the shared catalog, grants, lineage, and audit on both sides. |
+| Delta Lake | Underlying table format for shared data products. |
+| Databricks SQL | Queries shared catalogs the same way as owned tables. |
+| Model Serving | Deploys consumed AI model listings behind endpoints. |
+| Notebooks | Package and run solution accelerators distributed as listings. |
+| Lakeflow Jobs | Operationalizes pipelines that enrich internal data with shared feeds. |
+| Catalog Explorer | Browses and manages received shares as UC objects. |
+| Audit / System Tables | Record listing requests, grants, and consumption for compliance. |
+| Clean Rooms | Complementary path when parties need joint compute, not one-way access. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Unity Catalog Delta Sharing (direct) | In-Databricks | Same protocol without a storefront; you manage discovery and recipients yourself. |
+| Databricks Clean Rooms | In-Databricks | For joint, approved computation rather than one-way data consumption. |
+| Snowflake Marketplace | External | Strong if consumers are on Snowflake; weaker cross-platform via open protocols. |
+| AWS Data Exchange | External | Broad catalog, but AWS-centric delivery and less lakehouse-native governance. |
+| Google / other cloud data exchanges | External | Cloud-locked distribution; integration outside that cloud is harder. |
+| Direct vendor feeds (API / SFTP) | External | Maximum flexibility, but you build ingestion, refresh, and re-governance. |
+| Data broker / licensed file delivery | External | Familiar procurement, but creates stale copies and manual onboarding. |
+
+## 11. Strengths
+- Zero-copy consumption — shared data is queried in place, never ingested or duplicated.
+- Built on open Delta Sharing, so consumers are not locked to one vendor or cloud.
+- Governance, lineage, and audit apply to shared assets through Unity Catalog.
+- Multi-asset listings: data, AI models, notebooks, and solution accelerators in one exchange.
+- Fast onboarding — attach a share and query in minutes, no pipeline build.
+- Cross-cloud and cross-region delivery via the sharing protocol.
+- Consumed data is always current; there is no refresh lag from copies.
+- Provider side enables distribution and monetization without shipping files.
+- Trial and sample listings let teams evaluate before committing.
+- Consistent surface — shared catalogs behave like native UC objects in SQL, BI, and ML.
+
+## 12. Limitations
+- Shared data is read-only to consumers; no writes back to the provider.
+- Depth of the catalog depends on provider participation and listing quality.
+- Best for analytical access, not transactional or sub-second operational serving.
+- Providers must expose governed, shareable Delta assets — a real prerequisite.
+- Monetization, billing, and contract terms vary by listing and region — verify each.
+- Non-Databricks consumers get a less integrated experience than on-platform ones.
+- Not a substitute for Clean Rooms when parties need mutual, approved computation.
+- Data residency and compliance depend on provider terms, not the exchange alone.
+- Discovery and quality signals are still maturing versus long-established data marketplaces.
+- No control over provider-side schema changes beyond versioning discipline.
+
+## 13. Common Mistakes
+- Treating a listing as a file transfer and expecting to own the raw data.
+- Copying shared tables into local storage, defeating the zero-copy model.
+- Skipping evaluation of provider update cadence and schema-change policy.
+- Ignoring licensing and usage terms embedded in a listing.
+- Not governing received shares with the same rigor as internal data.
+- Assuming all consumers are on Databricks and getting the full UI experience.
+- Using a public listing where a private exchange or direct share was appropriate.
+- Confusing Marketplace (one-way access) with Clean Rooms (joint compute).
+
+## 14. Design Recommendations
+- ✔ Confirm assets are governed in Unity Catalog before publishing or consuming.
+- ✔ Query shared catalogs in place; avoid materializing copies unless required.
+- ✔ Review provider refresh cadence, versioning, and schema-change terms up front.
+- ✔ Track licensing and consumption via audit and system tables.
+- ✔ Use private exchanges for restricted or contractual distribution.
+- ✔ Prefer Clean Rooms when the need is joint computation, not one-way access.
+- ✔ Pilot with a trial or sample listing before committing to a paid product.
+- ✔ Route enrichment through Lakeflow Jobs to keep pipelines governed and repeatable.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+|---|---|
+| Acquire external data fast | ✅ Core purpose |
+| Consume without building ingestion | ✅ Zero-copy sharing |
+| Enrich internal data with third-party feeds | ✅ Join shared catalogs |
+| Distribute your own data products | ✅ Provider side supported |
+| Access external AI models | ✅ Model listings supported |
+| Internal team-to-team sharing | ⚠️ Use UC grants directly |
+| Joint computation with a partner | ❌ Use Clean Rooms |
+| Write back to provider data | ❌ Shared data is read-only |
+| Open, non-lock-in delivery | ✅ Built on Delta Sharing |
+| Regulated / residency-constrained data | ⚠️ Verify provider terms |
+
+## 16. Quick Comparison
+| Criterion | Databricks Marketplace | Snowflake Marketplace | AWS Data Exchange | Direct Vendor Feeds |
+|---|---|---|---|---|
+| Delivery model | Zero-copy (Delta Sharing) | Zero-copy (Snowflake share) | Copy / API delivery | Copy via API or file |
+| Underlying protocol | Delta Sharing (open) | Snowflake-native | AWS-native | Proprietary per vendor |
+| Cross-platform reach | Broad via open protocol | Snowflake-centric | AWS-centric | Varies |
+| Asset types | Data, models, notebooks | Mostly data, apps | Mostly data | Data only |
+| Governance integration | Unity Catalog | Snowflake RBAC | AWS IAM / Lake Formation | Self-built |
+| Onboarding effort | Low | Low (on Snowflake) | Medium | High |
+
+## 17. Maturity
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | Medium–High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | Medium–High |
+
+## 18. Cost Considerations
+- **Licensing:** the exchange is part of the platform; individual listings may carry provider fees — verify current pricing per listing.
+- **Compute:** consumers pay for compute that queries shared data; no separate marketplace charge for access.
+- **Storage:** minimal for consumers — data stays with the provider; only materialized copies incur storage.
+- **Operational Overhead:** low intake cost, but track licensing terms, versioning, and provider schema changes.
+- **Training:** modest for existing Databricks users; learn share consumption and provider publishing flows.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** fast, governed acquisition of third-party data and models — and distribution of your own — without building pipelines or copying data.
+- ✔ **Avoid when:** you need physical custody of raw files, write access to the source, or joint computation with a partner.
+- ✔ **Biggest benefit:** zero-copy, always-current access over open Delta Sharing with Unity Catalog governance intact.
+- ✔ **Biggest limitation:** catalog depth and terms depend on provider participation, and shared data is read-only analytical access.
+- ✔ **Overall recommendation:** adopt to shorten data-acquisition cycles and monetize data products; verify listing terms, keep consumption zero-copy, and use Clean Rooms for joint compute. See the [feature catalog](/databricks-features) for related sharing and governance features.

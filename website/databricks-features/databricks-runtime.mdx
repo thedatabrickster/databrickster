@@ -1,0 +1,236 @@
+---
+sidebar_position: 20
+title: "Databricks Runtime (DBR) — Architecture Guide"
+description: "The versioned, managed compute image — Spark, Photon, and curated libraries — that every Databricks cluster runs, with ML and LTS variants."
+---
+
+# Databricks Runtime (DBR)
+
+## 1. Executive Summary
+Databricks Runtime is the versioned, pre-optimized software image — Apache Spark, Photon, the JVM/Python stack, and curated libraries — that every cluster boots, giving workloads a consistent, patched, and performance-tuned execution environment.
+
+## 2. Primary Purpose
+- **Why it exists:** assembling and tuning a compatible Spark/Python/Java/library stack per cluster is error-prone; DBR ships it as one tested image.
+- **Business problem solved:** predictable, reproducible compute with security patches and support, without teams hand-building distributions.
+- **Technical problem solved:** version-locked dependency compatibility, Photon acceleration, optimized cloud I/O connectors, and preinstalled data/ML libraries.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Users / Notebooks / Jobs / SQL / ML
+        ↓
+Cluster / Compute        (driver + workers)
+        ↓
+Databricks Runtime (DBR) →→→ Spark + Photon + libraries + connectors
+        ↓
+Governance               (Unity Catalog: permissions, lineage)
+        ↓
+Table Format             (Delta Lake: transaction log + Parquet)
+        ↓
+Object Storage           (S3 / ADLS / GCS)
+```
+
+- DBR is the **software image layer** between provisioned compute and the engine that runs work.
+- It packages **Spark + Photon** plus the connectors that read/write **Delta** and object storage.
+- Its version is a **per-cluster choice**, decoupled from the workspace and control plane.
+- ML variants add the deep-learning and data-science stack on top of the base image.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☑ Developer Experience
+☑ Data Engineering
+☐ Data Governance
+☐ AI
+☑ Machine Learning
+☐ Storage
+☐ Security
+☐ Administration
+☐ Monitoring
+```
+- Core placement is **Data Engineering** — the tuned engine image for all ETL and streaming.
+- **Machine Learning** via the DBR ML variant (preinstalled ML/DL frameworks, GPU support).
+- **Developer Experience**: the runtime version defines library availability and API behavior developers build against.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+|---|---|---|
+| Standard Spark ETL and batch pipelines | ✅ | Tuned, patched Spark image with no manual assembly |
+| Photon-accelerated SQL/DataFrame workloads | ✅ | Photon is bundled and enabled in recent DBR |
+| Production jobs needing stability | ✅ | Pin an LTS release for long support windows |
+| ML training and experimentation | ✅ | DBR ML preinstalls scikit-learn, XGBoost, PyTorch, MLflow |
+| GPU deep-learning workloads | ✅ | DBR ML GPU images ship CUDA/cuDNN drivers |
+| Reproducible environments across teams | ✅ | A fixed DBR version freezes the base stack |
+| Databricks Connect / IDE development | ✅ | Client version must match the cluster DBR major.minor |
+| Reading/writing Delta with latest features | ✅ | Newer DBR unlocks newer Delta protocol/features |
+| Optimized cloud object-storage I/O | ✅ | Bundled, tuned S3/ADLS/GCS connectors |
+| Multi-year regulated platforms | ✅ | LTS releases give predictable, supported baselines |
+| Early access to new Spark/Delta features | ⚠️ | Use latest (non-LTS) DBR; expect shorter support |
+| Custom OS packages or system libraries | ⚠️ | Use init scripts or a custom container instead |
+| Exotic/pinned library versions | ⚠️ | May conflict with bundled versions; test carefully |
+| Serverless-first workloads | ⚠️ | Serverless abstracts DBR; version control is limited |
+| Legacy code tied to an old Spark version | ⚠️ | Pin an older supported DBR; plan a migration path |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Wanting a fully custom base OS/distribution | ⚠️ | Use custom containers (DCS) rather than fighting the image |
+| Running unsupported/end-of-life DBR indefinitely | ❌ | No patches or support; security and compatibility risk |
+| Mismatched Databricks Connect client version | ❌ | Client/runtime version skew breaks the session |
+| Assuming DBR equals OSS Spark exactly | ⚠️ | Photon and Databricks patches change behavior/perf |
+| Pinning "latest" for critical production jobs | ⚠️ | Non-LTS moves fast; prefer LTS for stability |
+| Mixing DBR versions expecting identical results | ⚠️ | Library/engine deltas can shift outputs subtly |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 5 |
+| Analytics Engineers | 4 |
+| Platform Engineers | 5 |
+| Data Scientists | 5 |
+| BI Teams | 3 |
+| AI Engineers | 4 |
+| Executives | 2 |
+| Architects | 5 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 4 |
+| Implementation Speed | 5 |
+| Governance | 3 |
+| Security | 4 |
+| Maintainability | 4 |
+| Scalability | 5 |
+| Cost Optimization | 4 |
+| Ease of Adoption | 5 |
+| Business Value | 4 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Clusters / Compute | The provisioned VMs that boot and run the DBR image. |
+| Apache Spark | The distributed engine packaged and tuned inside DBR. |
+| Photon | Native vectorized engine bundled into recent DBR versions. |
+| Delta Lake | Default table format whose supported features track the DBR version. |
+| Unity Catalog | Governs access; certain UC features require a minimum DBR. |
+| Databricks Connect | External client whose version must match the cluster DBR. |
+| Cluster Policies | Restrict which DBR versions users may launch. |
+| MLflow | Preinstalled in DBR ML for tracking and model management. |
+| Lakeflow Jobs | Schedules workloads and pins a DBR version per task. |
+| Init Scripts / Libraries | Extend the base image with extra packages at startup. |
+| Custom Containers (DCS) | Alternative to init scripts for fully controlled images. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| OSS Apache Spark distribution | Self-managed engine | Full control and no license cost; you build, patch, and tune the stack, and Photon is absent. |
+| Databricks Container Services (custom image) | In-Databricks custom image | Full OS/library control; you own image maintenance and lose some managed-runtime guarantees. |
+| Serverless compute | Managed, abstracted runtime | No version management at all; less control over exact runtime/libraries. |
+| Amazon EMR / Google Dataproc runtimes | Managed cloud Spark images | Cloud-native and managed; no Photon/DBR tuning or lakehouse-native optimizations. |
+| Conda/venv on generic VMs | DIY environment | Maximum flexibility; heavy operational burden and no Spark tuning out of the box. |
+
+## 11. Strengths
+- One tested image bundles compatible Spark, Photon, JVM, Python, and libraries.
+- Photon acceleration is included and enabled without code changes.
+- LTS releases offer long, predictable support windows for production.
+- ML variants preinstall the data-science and deep-learning stack, including GPU drivers.
+- Security patches and CVE fixes are delivered through runtime updates.
+- Optimized cloud I/O connectors improve object-storage read/write performance.
+- Version pinning makes environments reproducible across clusters and teams.
+- Newer DBR versions unlock newer Delta and Spark capabilities.
+- Cluster policies can enforce approved runtime versions org-wide.
+- Removes the toil of assembling and validating a distribution per workload.
+
+## 12. Limitations
+- Photon and Databricks patches mean DBR is not byte-for-byte OSS Spark.
+- Bundled library versions can conflict with pinned application dependencies.
+- Non-LTS "latest" releases move quickly and have short support lifetimes.
+- End-of-life versions lose patches, forcing periodic migration work.
+- Databricks Connect and some tools require exact version matching.
+- Base OS and system-level customization needs init scripts or custom containers.
+- Upgrading across major versions can surface behavior or dependency changes.
+- ML images are large, adding to cluster startup time.
+- Serverless hides DBR, reducing version control when you need it.
+- Version choice is per cluster, so drift across a fleet is easy without policy.
+
+## 13. Common Mistakes
+- Running end-of-life DBR versions long past their support window.
+- Using "latest" for critical production instead of a pinned LTS.
+- Ignoring the Databricks Connect / cluster version-match requirement.
+- Assuming OSS-Spark behavior and tuning transfer unchanged to DBR/Photon.
+- Installing conflicting library versions on top of the bundled stack.
+- Letting each team pick arbitrary versions, creating fleet drift.
+- Using the base image for ML instead of DBR ML and reinstalling frameworks by hand.
+- Skipping upgrade testing and being surprised by dependency changes.
+- Overusing init scripts where a custom container would be cleaner.
+
+## 14. Design Recommendations
+- ✔ Standardize production on an LTS release and schedule upgrades before end-of-life.
+- ✔ Pin explicit DBR versions in Jobs and asset bundles for reproducibility.
+- ✔ Use cluster policies to restrict clusters to approved runtime versions.
+- ✔ Match Databricks Connect and local tooling to the target cluster version.
+- ✔ Use DBR ML (and GPU images) for data-science and deep-learning work.
+- ✔ Prefer custom containers over sprawling init scripts for heavy customization.
+- ✔ Test upgrades in a lower environment before promoting to production.
+- ✔ Keep Photon enabled for SQL/DataFrame workloads to cut runtime.
+- ✔ Track version-dependent Delta/Unity Catalog features when choosing a runtime.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+|---|---|
+| Standard Spark ETL | ✅ Default tuned image |
+| Long-term production stability | ✅ Pin an LTS release |
+| ML / deep-learning workloads | ✅ Use DBR ML variant |
+| Photon acceleration | ✅ Bundled in recent DBR |
+| IDE / Databricks Connect development | ✅ Match client to DBR version |
+| Fully custom base OS/libraries | ⚠️ Custom container instead |
+| Bleeding-edge Spark/Delta features | ⚠️ Latest (non-LTS), shorter support |
+| Zero runtime management | ⚠️ Serverless abstracts DBR |
+| Running unsupported versions | ❌ No patches or support |
+| Exact OSS-Spark parity | ⚠️ Photon/patches differ |
+
+## 16. Quick Comparison
+
+| Criteria | DBR (LTS) | DBR (latest) | OSS Spark (self-managed) | Custom container (DCS) |
+|---|---|---|---|---|
+| Managed patching | Yes | Yes | No | Partial |
+| Support window | Long | Short | N/A | Long (base DBR) |
+| Photon | Yes | Yes | No | Yes (if based on DBR) |
+| Feature recency | Moderate | Highest | Manual | Base DBR level |
+| Customization | Low | Low | Full | High |
+| Ops burden | Low | Low | High | Medium |
+
+## 17. Maturity
+
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | Medium (via cluster policies / Unity Catalog) |
+| AI Readiness | High (DBR ML) |
+
+## 18. Cost Considerations
+- **Licensing:** the runtime carries no separate license; compute bills as DBUs plus cloud VMs, and Photon/serverless carry their own rates. Verify current pricing.
+- **Compute:** version choice affects performance — Photon in newer DBR can shorten jobs and lower total cost even at a higher per-DBU rate.
+- **Storage:** negligible for the image itself; ML images are larger and can add slightly to startup.
+- **Operational Overhead:** low — patching and tuning are managed; main effort is planning periodic upgrades off end-of-life versions.
+- **Training:** low — teams pick a version; deeper knowledge needed for upgrade testing and dependency management.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** running all Databricks compute on a tested, patched, Photon-accelerated image with predictable versions.
+- ✔ **Avoid when:** you need a fully custom base OS or exact OSS-Spark parity — use custom containers or self-managed Spark.
+- ✔ **Biggest benefit:** one managed, reproducible stack (Spark + Photon + libraries) with LTS support and an ML variant.
+- ✔ **Biggest limitation:** version-dependent behavior and matching requirements (e.g., Databricks Connect) demand disciplined upgrade planning.
+- ✔ **Overall recommendation:** standardize production on LTS, enforce approved versions via cluster policies, and use DBR ML for data-science workloads.
+
+See the full [feature catalog](/databricks-features) for related guides.

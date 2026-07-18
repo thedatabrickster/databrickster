@@ -1,0 +1,229 @@
+---
+sidebar_position: 20
+title: "DBFS (Databricks File System) — Architecture Guide"
+description: "Legacy filesystem abstraction over cloud object storage, largely superseded by Unity Catalog Volumes and external locations."
+---
+
+# DBFS (Databricks File System)
+
+## 1. Executive Summary
+
+DBFS is a legacy workspace-scoped filesystem abstraction that maps `dbfs:/` paths onto cloud object storage, now largely superseded by Unity Catalog Volumes and external locations.
+
+## 2. Primary Purpose
+
+- **Why it exists:** predate Unity Catalog by giving notebooks and jobs a POSIX-like path (`/dbfs`, `dbfs:/`) over S3/ADLS/GCS.
+- **Business problem solved:** let early Databricks teams read and write cloud files without cloud SDK boilerplate.
+- **Technical problem solved:** a uniform path scheme and mount points that hide provider-specific storage APIs.
+- **Scope note:** DBFS is a convenience layer, not a governance layer — it has no table, column, or lineage semantics.
+- **Current status:** legacy. New workloads should target Volumes, external locations, or direct cloud URIs.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Users → Notebooks / Jobs → DBFS path (dbfs:/, /dbfs, mounts) → Cloud Object Storage → Delta
+         (code)             (legacy path layer)                (S3 / ADLS / GCS)      (tables)
+```
+
+- Sits at the **Storage access** edge — a thin path translator, not a storage tier of its own.
+- The **DBFS root** is a workspace-managed bucket created at deployment; treat it as internal scratch, not a data lake.
+- **Mounts** (`/mnt/...`) attach external buckets to a workspace path using stored credentials.
+- Increasingly bypassed: modern code addresses storage through Volumes or cloud URIs governed by Unity Catalog.
+
+## 4. Typical Architecture Placement
+
+```
+☐ User Interface
+☐ Developer Experience
+☑ Data Engineering
+☐ Data Governance
+☐ AI
+☐ Machine Learning
+☑ Storage
+☐ Security
+☐ Administration
+☐ Monitoring
+```
+
+- Primary home is **Storage access** — path resolution between workspace code and object stores.
+- Touches **Data Engineering** as an ingestion/staging path in older pipelines.
+- It deliberately does **not** cover Governance or Security — that gap is the main reason to migrate off it.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+|---|---|---|
+| Reading existing files already on DBFS mounts | ⚠️ | Works, but plan migration to Volumes |
+| Cluster init scripts (legacy location) | ⚠️ | Historically stored here; now prefer workspace files/Volumes |
+| Quick throwaway scratch in a sandbox workspace | ⚠️ | Convenient, but not governed |
+| Accessing `/databricks-datasets` samples | ✅ | Read-only public samples still served here |
+| Interim compatibility during UC migration | ⚠️ | Bridge only, with an exit plan |
+| Storing libraries/JARs for legacy clusters | ⚠️ | Migrate to Volumes or workspace files |
+| New raw ingestion landing zone | ❌ | Use Volumes or external locations |
+| Governed data shared across teams | ❌ | No UC permissions on DBFS |
+| Sensitive or regulated data | ❌ | DBFS root lacks fine-grained control |
+| Cross-workspace data sharing | ❌ | DBFS is workspace-scoped |
+| Production tables | ❌ | Register Delta tables in Unity Catalog |
+| Credential-free access to external buckets | ❌ | Mount credentials are broadly scoped |
+| Auditable file access | ❌ | Weak per-user attribution |
+| Lineage-tracked artifacts | ❌ | No lineage on DBFS paths |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Storing sensitive/regulated data on DBFS root | ❌ | Shared workspace bucket, coarse access |
+| New governed data platforms | ❌ | No Unity Catalog integration on `dbfs:/` |
+| Per-user or per-team access isolation | ❌ | Mounts grant workspace-wide access |
+| Long-lived credential mounts | ❌ | Stored secrets, broad blast radius |
+| Cross-workspace collaboration | ❌ | Paths and mounts are workspace-local |
+| Production ingestion pipelines | ⚠️ | Prefer Volumes/external locations for governance |
+| Audit-critical workloads | ⚠️ | Limited fine-grained access logging |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 2 |
+| Analytics Engineers | 1 |
+| Platform Engineers | 2 |
+| Data Scientists | 2 |
+| BI Teams | 1 |
+| AI Engineers | 1 |
+| Executives | 1 |
+| Architects | 2 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 3 |
+| Implementation Speed | 3 |
+| Governance | 1 |
+| Security | 1 |
+| Maintainability | 2 |
+| Scalability | 3 |
+| Cost Optimization | 2 |
+| Ease of Adoption | 3 |
+| Business Value | 2 |
+| Innovation | 1 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Cloud Object Storage (S3/ADLS/GCS) | The actual backing store behind every DBFS path. |
+| Unity Catalog Volumes | The governed replacement for DBFS file paths. |
+| External Locations | UC-governed way to reach external buckets without mounts. |
+| Delta Lake | Tables historically written to DBFS paths, now UC-managed. |
+| Clusters / Compute | Resolve DBFS mounts and expose the FUSE `/dbfs` path. |
+| Lakeflow Jobs | May still reference legacy DBFS paths in older pipelines. |
+| Secrets / Credentials | Mount setup stores cloud credentials for path access. |
+| Databricks CLI / dbutils.fs | Tooling that reads and writes DBFS paths. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Unity Catalog Volumes | In-Databricks | Governed, permissioned, lineage-aware; requires UC enablement |
+| External Locations + Storage Credentials | In-Databricks | Fine-grained UC control over external buckets; more setup |
+| Direct cloud URIs (`s3://`, `abfss://`) | In-Databricks | No abstraction layer; needs credential passthrough/UC |
+| Workspace Files | In-Databricks | Better home for code, small config, init scripts |
+| Native cloud SDK access | External | Full provider control; loses uniform path convenience |
+
+## 11. Strengths
+
+- Simple, familiar path model (`dbfs:/`, `/dbfs`) usable from any language.
+- Zero setup for the DBFS root — available the moment a workspace exists.
+- FUSE mount lets local file APIs read cloud objects without SDK code.
+- `/databricks-datasets` provides convenient read-only sample data.
+- Mounts abstract provider-specific storage endpoints behind one path.
+- Broad backward compatibility with older notebooks, scripts, and jobs.
+- Works uniformly across Spark, pandas, and shell tooling.
+- Low learning curve for teams new to cloud storage.
+
+## 12. Limitations
+
+- **No Unity Catalog governance** — no catalog/schema permissions on `dbfs:/`.
+- **DBFS root is shared** — every workspace user can read/write it; poor isolation.
+- Mounts grant **workspace-wide** access regardless of the caller's identity.
+- Stored mount credentials create a broad security blast radius.
+- Weak per-user attribution and audit granularity.
+- Workspace-scoped — no cross-workspace sharing or lineage.
+- Sensitive data on the DBFS root is a recurring compliance finding.
+- Mounts are deprecated guidance; Databricks steers new work to Volumes.
+- No fine-grained (row/column/volume) access control.
+- Not supported the same way on serverless/UC-first paths as legacy compute.
+
+## 13. Common Mistakes
+
+- Storing production or sensitive data on the **DBFS root**.
+- Treating mounts as an access-control boundary (they are not).
+- Building new pipelines on `dbfs:/` instead of Volumes/external locations.
+- Sharing one broad mount credential across many unrelated workloads.
+- Assuming DBFS paths carry Unity Catalog permissions or lineage.
+- Leaving stale mounts and credentials configured indefinitely.
+- Hardcoding `dbfs:/` paths that block later migration.
+- Using the DBFS root as a durable data lake rather than scratch.
+
+## 14. Design Recommendations
+
+- ✔ Default all new storage access to **Unity Catalog Volumes**.
+- ✔ Reach external buckets via **external locations + storage credentials**.
+- ✔ Keep the **DBFS root** for transient, non-sensitive scratch only.
+- ✔ Inventory existing mounts and map each to a Volume/external location.
+- ✔ Move init scripts and libraries to workspace files or Volumes.
+- ✔ Remove unused mounts and rotate/retire their credentials.
+- ✔ Abstract paths in config so migration does not require code rewrites.
+- ✔ Block sensitive data from the DBFS root via policy and review.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+|---|---|
+| New governed data platform | ❌ Use UC Volumes/external locations |
+| Fine-grained access control | ❌ No UC permissions on DBFS |
+| Quick sandbox scratch space | ⚠️ OK but ungoverned |
+| Access public sample datasets | ✅ `/databricks-datasets` |
+| Cross-workspace sharing | ❌ Workspace-scoped only |
+| Sensitive/regulated data | ❌ Root lacks isolation |
+| Compatibility with legacy jobs | ⚠️ Works, plan migration |
+| Auditable file access | ❌ Weak attribution |
+| Production ingestion | ❌ Prefer Volumes |
+
+## 16. Quick Comparison
+
+| Criterion | DBFS | UC Volumes | External Locations | Direct cloud URI |
+|---|---|---|---|---|
+| Governance | None | Full (UC) | Full (UC) | Via UC/passthrough |
+| Access control | Coarse | Fine-grained | Fine-grained | Provider IAM |
+| Lineage | No | Yes | Yes | Limited |
+| Cross-workspace | No | Yes (UC) | Yes (UC) | Yes |
+| Setup effort | Minimal | Low | Medium | Medium |
+| Recommended for new work | No | Yes | Yes | Situational |
+
+## 17. Maturity
+
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High (mature, legacy) |
+| Enterprise Readiness | Low |
+| Production Readiness | Low (for new work) |
+| Governance Readiness | Low |
+| AI Readiness | Low |
+
+## 18. Cost Considerations
+
+- **Licensing:** DBFS itself carries no separate license; verify current pricing.
+- **Compute:** no direct cost; incurred by the clusters/jobs accessing paths.
+- **Storage:** DBFS root and mounts bill as underlying cloud object storage.
+- **Operational Overhead:** hidden cost of ungoverned data, audit gaps, and eventual migration.
+- **Training:** low to learn; higher long-term cost from technical debt and remediation.
+
+## 19. Executive Takeaway
+
+- ✔ **Best for:** compatibility with existing DBFS-based notebooks, jobs, and public sample datasets.
+- ✔ **Avoid when:** building any new governed, sensitive, or cross-team data workload.
+- ✔ **Biggest benefit:** frictionless, familiar file paths with zero setup.
+- ✔ **Biggest limitation:** no Unity Catalog governance and a shared, weakly isolated DBFS root.
+- ✔ **Overall recommendation:** treat DBFS as legacy — standardize on Unity Catalog Volumes and external locations, and migrate off it deliberately.

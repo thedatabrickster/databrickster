@@ -1,0 +1,232 @@
+---
+sidebar_position: 20
+title: "Databricks Notebooks — Architecture Guide"
+description: "The in-workspace, multi-language collaborative notebook environment for interactive development, exploration, and lightweight scheduling on Databricks compute."
+---
+
+# Databricks Notebooks
+
+## 1. Executive Summary
+Databricks Notebooks are the in-workspace, browser-based, multi-language (Python, SQL, Scala, R) authoring surface for interactive development, exploration, visualization, and collaboration against Databricks compute, with real-time co-editing, version history, Git integration, and a built-in Assistant.
+
+## 2. Primary Purpose
+- **Why it exists:** to give data teams a single interactive surface to write, run, and share code and results against Lakehouse compute without local setup.
+- **Business problem solved:** faster time-to-insight and cross-role collaboration (engineers, scientists, analysts) on shared, reproducible artifacts.
+- **Technical problem solved:** cell-based execution against remote Spark/serverless compute, mixing languages, inline results, and visualization in one governed document.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Users            (engineers, scientists, analysts in the browser)
+        ↓  Databricks Notebook (cells: Python / SQL / Scala / R + Assistant)
+Compute          (classic cluster or serverless — Spark driver + Photon)
+        ↓
+Governance       (Unity Catalog: permissions, lineage, credentials)
+        ↓
+Table Format     (Delta Lake: transaction log + Parquet)
+        ↓
+Object Storage   (S3 / ADLS / GCS)
+```
+
+- Notebooks are the **primary interactive developer/UI surface** — authoring, not a compute or storage layer.
+- Cells attach to remote compute; **all execution runs on the cluster or serverless**, results stream back inline.
+- Data access is governed by **Unity Catalog**, identical to jobs and SQL.
+- A notebook can be promoted directly to a **Lakeflow Job** task for scheduled runs.
+
+## 4. Typical Architecture Placement
+```
+☑ User Interface
+☑ Developer Experience
+☑ Data Engineering
+☐ Data Governance
+☑ AI
+☑ Machine Learning
+☐ Storage
+☐ Security
+☐ Administration
+☐ Monitoring
+```
+- Core placement is **User Interface / Developer Experience** — the default interactive authoring canvas.
+- Supports **Data Engineering, ML, and AI** by hosting the code that builds pipelines, trains models, and prototypes agents.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+|---|---|---|
+| Interactive data exploration | ✅ | Cell-by-cell iteration with inline results |
+| Multi-language analysis in one document | ✅ | Switch Python/SQL/Scala/R per cell with `%` magics |
+| Cross-role collaboration | ✅ | Real-time co-editing, comments, shared results |
+| Ad-hoc SQL against Unity Catalog | ✅ | `%sql` cells with governed access and charts |
+| ML experimentation and model training | ✅ | MLflow autologging, GPU compute, rich output |
+| Prototyping AI agents and LLM calls | ✅ | Fast loop with Assistant and inline debugging |
+| Lightweight scheduled ETL | ✅ | Attach notebook as a Lakeflow Job task |
+| Onboarding and knowledge sharing | ✅ | Documented, runnable, reproducible artifacts |
+| Data visualization and quick dashboards | ✅ | Built-in charts and notebook dashboards |
+| Parameterized runs via widgets | ✅ | Inputs drive both interactive and job execution |
+| Teaching, demos, and runbooks | ✅ | Narrative markdown next to executable cells |
+| Reproducing a data incident | ✅ | Version history and result snapshots |
+| Large shared codebases / libraries | ⚠️ | Prefer Repos + modules; notebooks scale poorly |
+| Complex production DAGs | ⚠️ | Use Lakeflow Jobs/Declarative Pipelines to orchestrate |
+| Heavy unit-tested engineering | ⚠️ | Author in IDE with Connect; import as modules |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Large multi-module software projects | ❌ | Cells hinder packaging, imports, and refactoring |
+| Rigorous unit/integration test suites | ❌ | pytest and IDE tooling belong in Repos + Connect |
+| Low-latency application backends | ❌ | Use Model Serving or Databricks Apps instead |
+| Business-user self-service BI | ❌ | Use AI/BI Dashboards and Genie, not raw notebooks |
+| Complex production orchestration | ⚠️ | Notebook-in-notebook chaining is fragile; use Jobs |
+| Strict code-review gating | ⚠️ | JSON/source diffs are noisier than plain `.py` files |
+| Shared mutable global state at scale | ⚠️ | Hidden execution order causes non-reproducible bugs |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 4 |
+| Analytics Engineers | 4 |
+| Platform Engineers | 2 |
+| Data Scientists | 5 |
+| BI Teams | 3 |
+| AI Engineers | 4 |
+| Executives | 1 |
+| Architects | 3 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 5 |
+| Implementation Speed | 5 |
+| Governance | 4 |
+| Security | 4 |
+| Maintainability | 3 |
+| Scalability | 3 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 5 |
+| Business Value | 4 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Clusters / Serverless compute | Executes every cell; the notebook is only an editor. |
+| Unity Catalog | Enforces permissions, lineage, and credentials on data access. |
+| Delta Lake | The default table format read and written from cells. |
+| Git folders (Repos) | Version-controls notebooks against GitHub/GitLab/Azure DevOps. |
+| Lakeflow Jobs | Schedules and orchestrates notebooks as production tasks. |
+| Databricks Assistant | In-context AI for code generation, fixes, and explanation. |
+| MLflow | Autologs experiments, params, and models from cells. |
+| Databricks Widgets | Parameterizes notebooks for interactive and job runs. |
+| Databricks Asset Bundles | Packages and deploys notebooks across environments as code. |
+| AI/BI Dashboards | Consume outputs; a governed alternative to notebook charts. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Databricks SQL editor | In-Databricks | SQL-only; better for pure analytics, no multi-language. |
+| Local IDE + Databricks Connect | In-Databricks | Real engineering tooling and tests; no co-editing/inline UI. |
+| Lakeflow Declarative Pipelines | In-Databricks | Declarative production ETL; not interactive authoring. |
+| Jupyter / JupyterLab | External | Familiar, but no managed compute, governance, or co-editing. |
+| Google Colab | External | Free hosted notebooks; no Unity Catalog or Lakehouse data. |
+| Amazon SageMaker Studio | External | AWS-native ML notebooks; different governance and data plane. |
+
+## 11. Strengths
+- Zero local setup — browser access to governed Lakehouse compute.
+- Multi-language in one document via `%python`, `%sql`, `%scala`, `%r` magics.
+- Real-time co-editing, cell comments, and shared inline results.
+- Built-in version history plus Git folder integration for real branching.
+- Databricks Assistant for generation, error fixes, and explanation in context.
+- Inline visualizations and lightweight notebook dashboards.
+- Direct promotion to Lakeflow Jobs for scheduling with no rewrite.
+- Widgets parameterize the same notebook for dev and production.
+- MLflow autologging captures experiments without boilerplate.
+- Unity Catalog governance is identical to jobs and SQL — no gap.
+
+## 12. Limitations
+- Hidden, out-of-order cell execution produces non-reproducible state.
+- Poor fit for large codebases: weak modularity, imports, and packaging.
+- Diffs and code review are noisier than plain source files.
+- Testing is awkward; unit tests belong in IDE/Repos workflows.
+- Long-running interactive sessions can leave costly idle compute attached.
+- Notebook-chaining (`%run`, `dbutils.notebook.run`) scales poorly as orchestration.
+- Result size and browser rendering limits constrain large outputs.
+- Scala/R tooling is less rich than Python; some features are Python-first.
+- Shared notebooks invite accidental edits without branch discipline.
+- Not a substitute for governed BI when business users need self-service.
+
+## 13. Common Mistakes
+- Building production ETL as chains of notebooks instead of Jobs/Pipelines.
+- Relying on execution order that "Run All" then breaks.
+- Skipping Git folders and losing history to workspace-only copies.
+- Leaving interactive clusters running and accruing idle cost.
+- Embedding secrets in cells instead of secret scopes.
+- Growing a notebook into a monolith instead of importing modules.
+- Using notebook charts for business dashboards better served by AI/BI.
+- Ignoring widgets, then hardcoding environment-specific paths.
+- Treating shared notebooks as personal scratch space without branches.
+
+## 14. Design Recommendations
+- ✔ Author interactively, then graduate stable logic to modules in Repos.
+- ✔ Store all notebooks in Git folders; branch per change, review in PRs.
+- ✔ Parameterize with widgets so one notebook serves dev and job runs.
+- ✔ Promote to Lakeflow Jobs for scheduling; use Pipelines for declarative ETL.
+- ✔ Prefer serverless to avoid idle interactive-cluster cost.
+- ✔ Keep secrets in secret scopes; never inline credentials.
+- ✔ Use "Run All" regularly to catch hidden-state bugs early.
+- ✔ Package deployments with Asset Bundles for repeatable environments.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+|---|---|
+| Interactive exploration | ✅ Purpose-built canvas |
+| Multi-language analysis | ✅ Per-cell language magics |
+| Team collaboration | ✅ Real-time co-editing |
+| ML experimentation | ✅ MLflow + GPU compute |
+| AI/agent prototyping | ✅ Assistant + fast loop |
+| Lightweight scheduling | ✅ Attach as Job task |
+| Production orchestration | ⚠️ Use Lakeflow Jobs/Pipelines |
+| Large software projects | ⚠️ Prefer IDE + Repos |
+| Rigorous testing | ❌ Use IDE + Connect + pytest |
+| Business self-service BI | ❌ Use AI/BI Dashboards / Genie |
+
+## 16. Quick Comparison
+
+| Criterion | Databricks Notebooks | Local IDE + Connect | Jupyter | Colab / SageMaker |
+|---|---|---|---|---|
+| Managed Lakehouse compute | Yes | Yes (remote) | No | Partial / different |
+| Multi-language cells | Yes | Limited | Yes | Yes |
+| Real-time co-editing | Yes | No | No | Colab yes |
+| Unity Catalog governance | Yes | Yes | No | No |
+| Engineering tooling / tests | Limited | Full | Medium | Medium |
+| Path to production jobs | Direct | Via Bundles | Manual | Manual |
+| Best for | Interactive dev | Software engineering | Local analysis | Isolated/ML notebooks |
+
+## 17. Maturity
+
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | Medium (interactive-first; Jobs for prod) |
+| Governance Readiness | High |
+| AI Readiness | High |
+
+## 18. Cost Considerations
+- **Licensing:** no separate license; included with the workspace. Verify current pricing.
+- **Compute:** you pay for attached classic clusters (including idle time) or serverless per use; interactive sessions are the main cost driver.
+- **Storage:** negligible for notebook source; standard Delta/object-storage costs apply to data.
+- **Operational Overhead:** low to run; discipline needed for Git, cluster hygiene, and preventing notebook sprawl.
+- **Training:** minimal to start; some ramp on reproducibility, Repos workflow, and when to graduate to IDE/Jobs.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** interactive, collaborative development, exploration, and ML/AI prototyping on governed Lakehouse compute.
+- ✔ **Avoid when:** you need rigorous software engineering, complex production orchestration, or business-user self-service BI.
+- ✔ **Biggest benefit:** a zero-setup, multi-language, real-time collaborative surface with a direct path to scheduled jobs.
+- ✔ **Biggest limitation:** hidden execution state and weak modularity make notebooks a poor home for large, tested codebases.
+- ✔ **Overall recommendation:** adopt as the default interactive dev surface, backed by Git folders, and graduate stable code to IDE + Repos and Lakeflow Jobs for production.

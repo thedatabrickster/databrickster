@@ -1,0 +1,225 @@
+---
+sidebar_position: 20
+title: "Delta Sharing — Architecture Guide"
+description: "Open protocol for governed, no-copy sharing of data and AI assets across organizations and platforms, controlled through Unity Catalog."
+---
+
+# Delta Sharing
+
+## 1. Executive Summary
+Delta Sharing is an open protocol that lets one organization grant governed, no-copy read access to Delta tables, views, volumes, notebooks, and AI models — to recipients on Databricks or on any non-Databricks platform.
+
+## 2. Primary Purpose
+- **Why it exists:** share live data across organizational and platform boundaries without replicating it or building custom pipelines.
+- **Business problem:** partners, customers, and internal units need current data, but exports create stale copies, cost, and compliance risk.
+- **Technical problem:** cross-platform sharing historically meant FTP files, bespoke APIs, or vendor lock-in to a single warehouse's proprietary share.
+- **Model:** the provider exposes a *share*; the recipient reads directly from cloud storage via short-lived signed URLs — no ETL, no second copy.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Provider (Databricks)                 Recipient (any platform)
+   Delta / UC assets                     Spark · pandas · Power BI ·
+        ↓                                Snowflake · Java · web app
+   Unity Catalog  ── grants/audit ──┐         ↑
+        ↓                           │   Delta Sharing client
+   SHARE (tables, views,            │         ↑
+   volumes, notebooks, models)      │   signed short-lived URLs
+        ↓                           │         ↑
+   Delta Sharing Server ────────────┴─────────┘
+        ↓
+   Cloud object storage (Delta files) → read directly, no copy
+```
+- Sits **above Delta and Unity Catalog** as the outbound (and inbound) access layer.
+- The protocol is **open source**; the managed server and governance are Databricks-native.
+- **Underpins Databricks Marketplace and Clean Rooms** — both are built on Delta Sharing.
+- Recipients read **directly from storage**, so provider compute is not in the data path.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☐ Developer Experience
+☑ Data Engineering
+☑ Data Governance
+☐ AI
+☐ Machine Learning
+☑ Storage
+☑ Security
+☑ Administration
+☐ Monitoring
+```
+- Primarily a **Governance + Security** capability: it controls who reads which assets across trust boundaries.
+- Touches **Storage** because recipients read Delta files directly from object storage.
+- **Administration** because shares, recipients, and tokens are lifecycle-managed in Unity Catalog.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+|---|---|---|
+| Share data with a non-Databricks partner | ✅ | Open protocol; no recipient lock-in |
+| Databricks-to-Databricks share (D2D) | ✅ | Live tables, UC-governed both ends |
+| Cross-cloud / cross-region data delivery | ✅ | No pipeline; storage read is direct |
+| Publishing data products to customers | ✅ | Underpins Marketplace listings |
+| Multi-party collaboration on private data | ✅ | Foundation for Clean Rooms |
+| Internal sharing across business units | ✅ | Governed alternative to copy sprawl |
+| Distributing reference / lookup datasets | ✅ | Recipients always read current version |
+| Sharing to Power BI / Excel consumers | ✅ | Native and connector-based access |
+| Sharing AI models and notebooks | ✅ | Assets beyond tables travel too |
+| Monetizing data externally | ✅ | Marketplace + Delta Sharing billing |
+| Sharing volumes (files, unstructured) | ✅ | Governed non-tabular distribution |
+| Regulatory / residency-sensitive sharing | ⚠️ | Verify recipient region and egress rules |
+| Real-time streaming feed (sub-second) | ⚠️ | Batch/CDF cadence, not event streaming |
+| Row/column-level restricted sharing | ⚠️ | Share governed views, not raw tables |
+| Frequent tiny reads by many recipients | ⚠️ | Watch cloud egress and request cost |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Two-way write / mutable collaboration | ❌ | Read-only protocol by design |
+| OLTP or transactional integration | ❌ | Analytical Delta access, not a database API |
+| Sub-second event streaming | ❌ | Not a message bus; use Kafka/Kinesis |
+| Sharing non-Delta proprietary formats | ⚠️ | Source must be Delta / UC-governed |
+| Fine-grained masking on raw tables | ⚠️ | Enforce via shared views instead |
+| Recipient needs full compute isolation | ⚠️ | Use Clean Rooms for approved-compute model |
+| Ultra-low-latency dashboard refresh | ⚠️ | Cadence tied to data commits, not push |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 5 |
+| Analytics Engineers | 4 |
+| Platform Engineers | 5 |
+| Data Scientists | 3 |
+| BI Teams | 4 |
+| AI Engineers | 3 |
+| Executives | 4 |
+| Architects | 5 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 4 |
+| Implementation Speed | 5 |
+| Governance | 5 |
+| Security | 4 |
+| Maintainability | 5 |
+| Scalability | 5 |
+| Cost Optimization | 4 |
+| Ease of Adoption | 4 |
+| Business Value | 5 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Unity Catalog | Defines shares/recipients and enforces grants, lineage, and audit. |
+| Delta Lake | Source format; recipients read Delta files and history directly. |
+| Cloud object storage | Holds the data; signed short-lived URLs grant scoped read access. |
+| Change Data Feed | Enables incremental (change-only) reads for recipients. |
+| Databricks Marketplace | Public/commercial distribution layer built on Delta Sharing. |
+| Clean Rooms | Privacy-preserving compute layer built on Delta Sharing. |
+| Databricks SQL / Spark | Provider and recipient compute for authoring and consuming shares. |
+| Open-source clients | pandas, Spark, Power BI, and others read shares off Databricks. |
+| Networking / egress controls | Govern cross-cloud and cross-region data movement and cost. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| File exports / SFTP | External | Stale copies, manual ops, no governance or audit. |
+| Cloud-native shares (S3/ADLS access) | External | Storage-level access, no table semantics or UC governance. |
+| Snowflake data sharing | External | Mature, but proprietary; both sides must be Snowflake. |
+| Custom REST / API feeds | External | Full control but high build/maintenance cost. |
+| Managed replication / CDC tools | External | Real copies to maintain; added latency and spend. |
+| Databricks Marketplace | In-Databricks | Discovery + commerce layer; still Delta Sharing underneath. |
+| Clean Rooms | In-Databricks | Approved-compute privacy model; use when raw reads not allowed. |
+| Catalog federation | In-Databricks | Query external catalogs in place; not cross-org distribution. |
+
+## 11. Strengths
+- **Open protocol** with clients across Spark, pandas, Power BI, Java, and more — no recipient lock-in.
+- **No-copy** access: recipients read live Delta files directly from storage.
+- Shares to **non-Databricks platforms**, not just Databricks-to-Databricks.
+- **UC-governed**: central grants, revocation, lineage, and audit logs.
+- Shares **beyond tables** — views, volumes, notebooks, and AI models.
+- **Incremental reads** via Change Data Feed reduce transfer volume.
+- Provider **compute stays out of the data path**, controlling cost.
+- **Underpins Marketplace and Clean Rooms**, so one primitive serves many patterns.
+- **Short-lived signed URLs** limit credential exposure.
+- Minimal setup — no pipeline to build or operate.
+
+## 12. Limitations
+- **Read-only**: no write-back or bidirectional collaboration.
+- **Not real-time**: cadence follows commits/CDF, not sub-second events.
+- Source must be **Delta / UC-governed**; other formats need conversion.
+- **Cross-region/cross-cloud egress** costs and latency accrue to the provider.
+- Fine-grained masking requires **shared views**, not raw table shares.
+- Recipient experience varies by **client maturity** across platforms.
+- **Open sharing** (token to non-Databricks) has coarser identity than D2D.
+- Very high fan-out of small reads can raise **request/egress cost**.
+- No native **transformation** — recipients get data as-is.
+- Historical time-travel access depends on **retained Delta versions**.
+
+## 13. Common Mistakes
+- Sharing **raw tables** when a governed view would enforce row/column limits.
+- Ignoring **egress cost** when recipients live in another cloud or region.
+- Treating it as **streaming** and expecting event-level latency.
+- Leaving **recipient tokens** long-lived instead of rotating them.
+- Not enabling **Change Data Feed**, forcing full re-reads.
+- Skipping **audit log review** of who accessed what.
+- Assuming recipients need Databricks — overlooking open clients.
+- Over-sharing entire schemas instead of **scoped shares**.
+
+## 14. Design Recommendations
+- ✔ Share **governed views**, not raw tables, when access must be restricted.
+- ✔ Enable **CDF** on shared tables so recipients read only changes.
+- ✔ Prefer **Databricks-to-Databricks** sharing where both sides are on UC.
+- ✔ Co-locate provider and recipient **region/cloud** to cut egress.
+- ✔ **Rotate recipient tokens** and set expirations.
+- ✔ Use **Marketplace** for discovery/commerce, **Clean Rooms** for private compute.
+- ✔ Monitor **audit logs** and egress as part of operations.
+- ✔ Document **share contracts** (columns, cadence, SLAs) for recipients.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+|---|---|
+| Share live data, no copies | ✅ Core purpose |
+| Reach non-Databricks recipients | ✅ Open protocol |
+| Cross-cloud / cross-region delivery | ✅ Direct storage read |
+| Central governance and audit | ✅ Via Unity Catalog |
+| Publish/monetize data products | ✅ Through Marketplace |
+| Privacy-preserving joint compute | ⚠️ Use Clean Rooms on top |
+| Row/column-restricted sharing | ⚠️ Share views |
+| Two-way / write-back collaboration | ❌ Read-only |
+| Sub-second event streaming | ❌ Not a message bus |
+| OLTP / transactional access | ❌ Analytical access only |
+
+## 16. Quick Comparison
+| Criteria | Delta Sharing | File export / SFTP | Snowflake sharing | Custom API feed |
+|---|---|---|---|---|
+| Copy created | No | Yes | No | Usually |
+| Cross-platform recipients | Yes (open) | Yes | No (Snowflake only) | Yes |
+| Governance / audit | UC-native | Manual | Native (in-platform) | Build it |
+| Live / current data | Yes | Stale | Yes | Depends |
+| Build / maintenance | Low | Medium | Low | High |
+| AI assets + files | Yes | Files only | Limited | Custom |
+
+## 17. Maturity
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+- **Licensing:** protocol is open source; managed server included with Databricks. Verify current pricing.
+- **Compute:** provider compute is off the read path; recipients pay their own query compute.
+- **Storage:** no duplicate copies, so no added storage on the provider side.
+- **Operational Overhead:** low — no pipelines to run; main effort is grants, tokens, and audit review.
+- **Training:** modest; providers learn share/recipient concepts, recipients use standard clients.
+- **Watch:** cross-cloud/cross-region **egress** and high-fan-out request costs.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** governed, no-copy sharing of live data and AI assets across orgs and platforms.
+- ✔ **Avoid when:** you need write-back, sub-second streaming, or OLTP access.
+- ✔ **Biggest benefit:** open, no-copy reach to any recipient with central UC governance.
+- ✔ **Biggest limitation:** read-only and batch-cadence, with provider-borne egress costs.
+- ✔ **Overall recommendation:** adopt as the default cross-boundary sharing primitive; layer Marketplace for distribution and Clean Rooms for private compute. See the [feature catalog](/databricks-features).

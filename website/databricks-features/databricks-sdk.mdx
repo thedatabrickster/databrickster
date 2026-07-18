@@ -1,0 +1,236 @@
+---
+sidebar_position: 20
+title: "Databricks SDK — Architecture Guide"
+description: "Official language SDKs (Python, Java, Go, and more) that wrap the Databricks REST APIs with unified authentication and typed access for programmatic automation."
+---
+
+# Databricks SDK
+
+## 1. Executive Summary
+
+The Databricks SDKs are official, language-native client libraries (Python, Java, Go, JS/TS, R, and .NET among others) that wrap the full workspace and account REST APIs with unified authentication and typed models, so applications and jobs can control the platform programmatically.
+
+## 2. Primary Purpose
+
+- **Why it exists:** give developers idiomatic, typed access to Databricks APIs from application code instead of hand-rolling HTTP calls.
+- **Business problem solved:** integrations and internal tools need repeatable, credential-safe access to the platform that survives API changes.
+- **Technical problem solved:** unified auth (OAuth U2M/M2M, tokens, cloud-native identity), pagination, retries, error typing, and full API coverage in one library.
+- **Scope note:** the SDK is a *client library embedded in your code* — it invokes the control plane; it does not itself run Spark or process data.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+App / Job / Service → Databricks SDK → Unified Auth (OAuth/token/cloud) → REST API → Workspace/Account → Jobs, UC, Serving, Delta
+   (your code)          (typed client)     (auto credential chain)          (HTTPS)     (control plane)     (managed resources)
+```
+
+- Sits in the **Developer Experience / Administration** layer — a library inside your process, in front of the control plane.
+- The integration layer beneath Databricks Apps, custom services, and internal tooling that must call the platform.
+- Manages and triggers resources (jobs, clusters, UC objects, serving endpoints) but performs no data processing itself.
+- Shares its auth model with the CLI and Terraform provider, so credentials and profiles are consistent across all three.
+
+## 4. Typical Architecture Placement
+
+```
+☐ User Interface
+☑ Developer Experience
+☐ Data Engineering
+☐ Data Governance
+☐ AI
+☐ Machine Learning
+☐ Storage
+☐ Security
+☑ Administration
+```
+
+- Primary home is **Developer Experience** — the programmatic surface for embedding Databricks control into applications and jobs.
+- Strong **Administration** role: scripts and services manage workspaces, service principals, permissions, and UC objects through typed calls.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+|---|---|---|
+| Backend logic inside a Databricks App | ✅ | App runtime ships the SDK and default credentials |
+| Custom internal tools calling the platform | ✅ | Typed models beat hand-written HTTP |
+| Triggering and polling job runs from a service | ✅ | Wait helpers track run state to completion |
+| Automating Unity Catalog object management | ✅ | Full coverage of catalogs, schemas, grants |
+| Managing serving endpoints programmatically | ✅ | Create, update, query endpoints from code |
+| Provisioning users, groups, service principals | ✅ | SCIM and account APIs are fully wrapped |
+| Long-running orchestration with conditional logic | ✅ | Real language beats shell scripting |
+| Reading/writing workspace files and secrets | ✅ | Typed file and secret operations |
+| Multi-workspace or account-level automation | ✅ | AccountClient plus per-workspace clients |
+| Data upload/download via the Files API | ✅ | Streamed uploads to UC Volumes |
+| Embedding platform calls in a web/API service | ✅ | Connection reuse, retries built in |
+| Ad-hoc scripting a data engineer would automate | ⚠️ | CLI is faster for simple one-liners |
+| Declarative asset promotion across environments | ⚠️ | Asset Bundles / CLI are purpose-built |
+| Full infra state management with drift detection | ⚠️ | Terraform provider tracks state |
+| Interactive data exploration | ⚠️ | Use notebooks, SQL editor, or Genie |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Running SQL queries for analytics | ⚠️ | Use the SQL Connector or DBSQL, not control-plane calls |
+| Heavy in-cluster data transformation | ❌ | Spark/Lakeflow execute; SDK only orchestrates |
+| Declarative CI/CD asset deployment | ⚠️ | Asset Bundles express this more cleanly |
+| Infra-as-code with reconciliation | ⚠️ | Terraform provider tracks and heals drift |
+| Business-user self-service | ❌ | Requires code and credential handling |
+| One-off command-line tasks | ⚠️ | CLI has less setup for quick jobs |
+| Real-time streaming data processing | ❌ | Not a runtime; manages definitions only |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 4 |
+| Analytics Engineers | 3 |
+| Platform Engineers | 5 |
+| Data Scientists | 3 |
+| BI Teams | 1 |
+| AI Engineers | 4 |
+| Executives | 1 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 5 |
+| Implementation Speed | 4 |
+| Governance | 3 |
+| Security | 4 |
+| Maintainability | 4 |
+| Scalability | 4 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 4 |
+| Business Value | 3 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| REST API | The SDK is a typed, generated wrapper over workspace and account endpoints. |
+| Unified Auth / OAuth | Provides the default credential chain (U2M, M2M, tokens, cloud identity). |
+| Service Principals | Recommended non-human identity for app and job authentication. |
+| Unity Catalog | Target for governed resource and grant management via typed calls. |
+| Lakeflow Jobs | Created, triggered, and polled to completion from code. |
+| Databricks Apps | App runtime ships the SDK with pre-wired default credentials. |
+| Model Serving | Endpoints are provisioned and invoked programmatically. |
+| Secrets | Read and managed through typed scope and secret operations. |
+| Files API / Volumes | Streamed upload and download of files to UC Volumes. |
+| MLflow | Registry and experiment operations reachable through the SDK. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| REST API directly | Native | Maximum control; you build auth, retries, pagination, and typing yourself. |
+| Databricks CLI | Native | Faster for shell one-liners and CI; less suited to embedding in app logic. |
+| Asset Bundles (DABs) | Native | Declarative asset promotion; not a general programmatic client. |
+| Terraform Databricks provider | External IaC | State tracking and drift detection; not for runtime app logic. |
+| Pulumi | External IaC | IaC in general-purpose languages; smaller Databricks ecosystem. |
+| SQL Connector / drivers | Native | Query-focused; not for control-plane resource management. |
+| Community/third-party clients | External | Unofficial; lag official API coverage and auth updates. |
+
+## 11. Strengths
+
+- Official, actively maintained clients across many languages with consistent design.
+- Unified auth: one credential chain covers OAuth U2M/M2M, tokens, and cloud-native identity.
+- Typed models and IDE autocomplete reduce errors versus raw HTTP.
+- Near-complete coverage of workspace and account APIs, largely generated from spec.
+- Built-in pagination, retries, and error typing remove common boilerplate.
+- Wait/poll helpers track long-running operations like job runs to completion.
+- Zero-config credentials inside Databricks Apps, notebooks, and jobs.
+- Shares profiles and auth semantics with the CLI and Terraform provider.
+- Both WorkspaceClient and AccountClient for multi-scope automation.
+- Real language constructs enable complex conditional and orchestration logic.
+
+## 12. Limitations
+
+- Not infrastructure-as-code — no state tracking or drift reconciliation.
+- API and model changes between SDK versions can break code; pin versions.
+- Language coverage and maturity vary (Python and Go are most complete).
+- No declarative asset promotion; you script what Bundles express directly.
+- More setup than the CLI for simple one-off tasks.
+- Underlying API errors can be terse and require API knowledge to interpret.
+- Long-running polling ties up a process unless designed asynchronously.
+- Some newer endpoints appear in the API before an SDK method wraps them.
+- Not a data-plane tool; large data movement should use Volumes/Spark, not loops.
+- Auth misconfiguration is a common first-run failure mode.
+
+## 13. Common Mistakes
+
+- Hardcoding PATs instead of OAuth M2M or the default credential chain.
+- Not pinning the SDK version, causing breakage on upgrades.
+- Using a personal identity in production instead of a service principal.
+- Rebuilding the credential chain manually when the default already works.
+- Ignoring built-in retries and adding fragile custom retry loops.
+- Pushing large data through control-plane calls instead of Volumes/Spark.
+- Reimplementing pagination by hand instead of using iterators.
+- Using the SDK for declarative deploys better served by Asset Bundles.
+- Logging or committing credentials pulled from the config resolver.
+- Blocking a request thread on synchronous run polling in a web service.
+
+## 14. Design Recommendations
+
+- ✔ Rely on the default credential provider chain rather than passing secrets in code.
+- ✔ Use OAuth M2M with service principals for all app and job authentication.
+- ✔ Pin the SDK version and upgrade deliberately with testing.
+- ✔ Prefer built-in pagination iterators and wait helpers over custom logic.
+- ✔ Use AccountClient for account-scope work and WorkspaceClient per workspace.
+- ✔ Route large data transfers through UC Volumes, not control-plane loops.
+- ✔ Reserve the SDK for app/service logic; use Bundles/CLI for asset delivery.
+- ✔ Handle long-running operations asynchronously in latency-sensitive services.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+|---|---|
+| Embedding platform control in app code | ✅ Core purpose |
+| Backend for a Databricks App | ✅ Pre-wired credentials |
+| Complex programmatic orchestration | ✅ Real language logic |
+| Administration and provisioning | ✅ Full API coverage |
+| Declarative asset promotion | ⚠️ Asset Bundles fit better |
+| Infra state + drift detection | ⚠️ Terraform is stronger |
+| Quick command-line tasks | ⚠️ CLI has less setup |
+| Interactive SQL / analytics queries | ❌ Use SQL Connector or Genie |
+| In-cluster ETL execution | ❌ Spark/Lakeflow do the work |
+| Business-user self-service | ❌ Requires code |
+
+## 16. Quick Comparison
+
+| Criteria | Databricks SDK | REST API | Databricks CLI | Terraform Provider |
+|---|---|---|---|---|
+| Primary use | In-app integration | Raw programmatic access | Scripting + bundle deploy | Infra as code |
+| Auth handling | Built-in credential chain | Manual | Built-in profiles/OAuth | Built-in |
+| Typing / models | Typed | None | N/A (shell) | Typed (HCL) |
+| State / drift | None | None | None | Tracked |
+| Best for | App and service code | Custom clients | Dev + CI delivery | Governed infra |
+| Learning curve | Medium | Medium | Low | Medium-High |
+
+## 17. Maturity
+
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High (Python/Go); Medium (newer languages) |
+| Governance Readiness | Medium |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+
+- **Licensing:** the SDKs are free and open source; you pay only for the resources they manage. Verify current pricing.
+- **Compute:** no cost to make API calls; jobs, clusters, and endpoints created incur normal DBU and cloud charges.
+- **Storage:** negligible for the library; data written to Volumes consumes object storage.
+- **Operational Overhead:** version pinning, auth setup, and tracking API/SDK changes are the recurring effort.
+- **Training:** low for developers in the target language; auth model and API concepts need brief onboarding.
+
+## 19. Executive Takeaway
+
+- ✔ **Best for:** teams embedding programmatic Databricks control into applications, services, and jobs.
+- ✔ **Avoid when:** you need declarative asset promotion (use Asset Bundles) or infra state tracking (use Terraform).
+- ✔ **Biggest benefit:** typed, unified-auth API access that removes HTTP boilerplate across languages.
+- ✔ **Biggest limitation:** it is a stateless client library, not a reconciling IaC engine.
+- ✔ **Overall recommendation:** adopt as the default library for in-code platform integration, paired with the CLI/Bundles for delivery and Terraform for governed infra.

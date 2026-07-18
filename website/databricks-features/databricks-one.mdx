@@ -1,0 +1,242 @@
+---
+sidebar_position: 20
+title: "Databricks One — Architecture Guide"
+description: "A simplified, consumer-grade experience that lets business users reach AI/BI dashboards, Genie, and Apps under Unity Catalog governance without clusters, notebooks, or the full technical workspace."
+---
+
+# Databricks One
+
+## 1. Executive Summary
+
+Databricks One is a stripped-down, consumer-grade surface that gives business users governed access to AI/BI dashboards, Genie, and Apps without exposing clusters, notebooks, or the technical workspace.
+
+## 2. Primary Purpose
+
+- **Why it exists:** most employees who consume data are not engineers, yet the standard workspace assumes they are.
+- **Business problem:** data products stay locked behind a technical UI, so adoption stalls at the analyst and engineer tier.
+- **Technical problem:** removes clusters, notebooks, SQL editors, and jobs from view, leaving only the consumption surfaces a business user needs.
+- **Governance angle:** every dashboard, Genie space, and app is still governed by Unity Catalog, so simplifying the UI does not weaken access control.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Business Users / Executives / Non-technical staff
+        ↓
+Databricks One  ◀ HERE  (consumer surface)
+        ↓
+Consumption Surfaces   (AI/BI Dashboards, Genie, Apps)
+        ↓
+Governance / Identity  (Unity Catalog, SSO, permissions)
+        ↓
+Data & Compute         (SQL Warehouses, Serverless)
+        ↓
+Storage                (Delta Lake)
+```
+
+- Sits at the **presentation edge** as a curated entry point, not a new engine or storage layer.
+- Presents only **governed consumption artifacts** already built in the full workspace.
+- Reuses the **same Unity Catalog permissions** — it narrows the UI, not the security model.
+- A **routing and access layer**; the dashboards, Genie spaces, and apps live where they always did.
+
+## 4. Typical Architecture Placement
+
+```
+☑ User Interface
+☐ Developer Experience
+☐ Data Engineering
+☑ Data Governance
+☑ AI
+☐ Machine Learning
+☐ Storage
+☑ Security
+☐ Administration
+☐ Monitoring
+```
+
+- Primarily a **user-interface** layer aimed at business consumers.
+- Governance and security carry through unchanged from Unity Catalog.
+- Touches **AI** by surfacing Genie and app-hosted assistants, but builds none of it.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+|---|---|---|
+| Executives viewing curated dashboards | ✅ | Clean surface, no workspace clutter |
+| Business users asking Genie questions | ✅ | Natural-language access without SQL |
+| Rolling out data access to non-technical staff | ✅ | Low training burden, familiar app feel |
+| Consuming internal Databricks Apps | ✅ | Governed apps without the full workspace |
+| Broadening adoption beyond analysts | ✅ | Removes the engineer-oriented UI barrier |
+| Frontline teams needing read-only insight | ✅ | Consumption-only, governed by UC |
+| Department heads tracking KPIs | ✅ | Curated dashboards behind one entry point |
+| Reducing accidental exposure of compute tools | ✅ | No clusters or notebooks in view |
+| Self-service questions over governed data | ✅ | Genie enforces UC permissions |
+| Standardizing a business-user landing page | ✅ | One consistent, simplified surface |
+| Building or editing dashboards | ❌ | Authoring stays in the full workspace |
+| Writing notebooks or SQL | ❌ | Not exposed by design |
+| Data engineering or pipeline work | ❌ | No compute or job surfaces |
+| Administering Unity Catalog | ⚠️ | Admin tasks belong in the full workspace |
+| Power analysts needing ad hoc SQL | ⚠️ | Too limited; use Databricks SQL instead |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Authoring dashboards or Genie spaces | ❌ | Consumption surface only, not authoring |
+| Notebook or SQL development | ❌ | Technical editors are intentionally hidden |
+| Data engineering and pipeline builds | ❌ | No cluster, job, or Lakeflow access |
+| ML model development and training | ❌ | No notebook or compute surface |
+| Platform administration | ❌ | Workspace and UC admin live elsewhere |
+| Embedding dashboards in an external portal | ⚠️ | Use dashboard embedding, not this surface |
+| Heavy ad hoc analytics | ⚠️ | Business consumers, not power analysts |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 1 |
+| Analytics Engineers | 2 |
+| Platform Engineers | 2 |
+| Data Scientists | 1 |
+| BI Teams | 3 |
+| AI Engineers | 2 |
+| Executives | 5 |
+| Architects | 3 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 2 |
+| Implementation Speed | 4 |
+| Governance | 5 |
+| Security | 5 |
+| Maintainability | 4 |
+| Scalability | 4 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 5 |
+| Business Value | 4 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Unity Catalog | Governs all data, dashboard, Genie, and app access behind the surface. |
+| AI/BI Dashboards | Primary consumption artifact presented to business users. |
+| Genie | Natural-language query experience surfaced for non-technical users. |
+| Databricks Apps | Governed internal apps exposed through the consumer surface. |
+| SQL Warehouses | Query engine backing dashboards and Genie responses. |
+| Workspace Identity / SSO | Authenticates users and maps them to UC permissions. |
+| Serverless Compute | Managed compute that runs the backing queries and apps. |
+| Delta Lake | Underlying governed storage for the data being consumed. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Full workspace access | In-Databricks | More capable but overwhelming and riskier for non-technical users. |
+| AI/BI Dashboards direct links | In-Databricks | Shares individual assets; no unified, curated business-user home. |
+| Genie shared directly | In-Databricks | Conversational only; not a single consumption surface. |
+| Embedding dashboards in an external portal | External/In-Databricks | Fits existing portals; separate auth and no unified Databricks entry point. |
+| Separate BI tool (Power BI, Tableau) | External | Familiar to business users; adds another tool, license, and governance seam. |
+| Custom internal portal over APIs | External | Full UI control; you build and own auth, governance, and maintenance. |
+
+## 11. Strengths
+
+- Removes clusters, notebooks, and jobs from view — far less to misuse or misread.
+- Same Unity Catalog governance as the full workspace; no parallel access model.
+- Low training burden for business users and executives.
+- Single curated entry point for dashboards, Genie, and apps.
+- Natural-language access via Genie without any SQL.
+- Broadens adoption beyond the analyst and engineer tier.
+- No new engine to operate — reuses existing consumption artifacts.
+- Reduces accidental exposure of compute and authoring tools.
+- Serverless-backed queries need no cluster management by the consumer.
+- Consistent, app-like experience that fits non-technical expectations.
+
+## 12. Limitations
+
+- Consumption only — no authoring of dashboards, Genie spaces, or apps.
+- Relatively new; feature set and availability are still evolving.
+- Not a fit for power analysts who need ad hoc SQL.
+- No data engineering, pipeline, or ML surfaces.
+- Value depends entirely on well-built upstream dashboards and Genie spaces.
+- Curation and content management still happen in the full workspace.
+- Not a replacement for external-portal embedding scenarios.
+- Limited customization of the surface itself.
+- Genie answer quality depends on upstream semantic modeling.
+- Admin and governance configuration remain outside the surface.
+
+## 13. Common Mistakes
+
+- Expecting business users to author content here instead of just consuming it.
+- Assuming it changes permissions — it inherits Unity Catalog, nothing more.
+- Rolling it out before dashboards and Genie spaces are actually ready.
+- Neglecting Genie semantic setup, then blaming poor answers on the surface.
+- Using it where external-portal embedding was the real requirement.
+- Treating it as a replacement for a full BI tool for heavy analysts.
+- Forgetting that curation and upkeep still require full-workspace effort.
+- Under-scoping UC grants and exposing more data than intended.
+
+## 14. Design Recommendations
+
+- ✔ Build and curate dashboards, Genie spaces, and apps in the full workspace first.
+- ✔ Scope Unity Catalog grants to what each business audience should see.
+- ✔ Invest in Genie semantic models so natural-language answers are trustworthy.
+- ✔ Use it to broaden adoption, not to replace authoring or engineering surfaces.
+- ✔ Keep power analysts on Databricks SQL; route consumers here.
+- ✔ Choose dashboard embedding when the target is an existing external portal.
+- ✔ Treat the surface as a curated home page — organize content deliberately.
+- ✔ Confirm feature availability, since the surface is still maturing.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+|---|---|
+| Business users consuming dashboards | ✅ Core use case |
+| Natural-language questions over data | ✅ Genie surfaced here |
+| Broadening adoption to non-technical staff | ✅ Low training barrier |
+| Governed access without full workspace | ✅ Inherits Unity Catalog |
+| Hiding clusters and notebooks | ✅ By design |
+| Authoring dashboards or Genie | ❌ Full workspace needed |
+| Notebook / SQL development | ❌ Not exposed |
+| Data engineering / pipelines | ❌ No compute surface |
+| Embedding in an external portal | ⚠️ Use dashboard embedding |
+| Heavy ad hoc analytics | ⚠️ Use Databricks SQL |
+
+## 16. Quick Comparison
+
+| Criterion | Databricks One | Full workspace | External portal embedding | Separate BI tool |
+|---|---|---|---|---|
+| Business-user simplicity | High | Low | Medium | High |
+| Unity Catalog governance | Native | Native | Native (embedded) | Manual / separate |
+| Authoring capability | None | Full | None | Full (in that tool) |
+| Additional tooling | None | None | Some (host portal) | Yes (new tool) |
+| Adoption barrier | Low | High | Medium | Low |
+| Genie + Apps access | Yes | Yes | Partial | No |
+
+## 17. Maturity
+
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | Medium |
+| Enterprise Readiness | Medium |
+| Production Readiness | Medium |
+| Governance Readiness | High |
+| AI Readiness | High |
+
+## 18. Cost Considerations
+
+- **Licensing:** part of the platform; no separate authoring license for consumers. Verify current pricing.
+- **Compute:** backing dashboards, Genie, and apps consume serverless DBUs when queried, billed as usual.
+- **Storage:** none added — data stays in existing Delta tables and is billed there.
+- **Operational Overhead:** low for the surface itself; effort is in curating and maintaining upstream content.
+- **Training:** minimal for business users; the learning curve stays with the teams building dashboards and Genie spaces.
+
+## 19. Executive Takeaway
+
+- ✔ **Best for:** giving business users and executives a simple, governed home for dashboards, Genie, and apps without the technical workspace.
+- ✔ **Avoid when:** users need to author content, run ad hoc SQL, or do data engineering and ML work.
+- ✔ **Biggest benefit:** broadens adoption beyond technical users while keeping Unity Catalog governance intact.
+- ✔ **Biggest limitation:** consumption-only and still maturing, so it depends on well-built upstream content.
+- ✔ **Overall recommendation:** adopt as the standard business-user entry point on Databricks; keep authoring, engineering, and external-portal embedding on their existing paths.
