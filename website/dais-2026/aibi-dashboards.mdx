@@ -8,20 +8,22 @@ description: "Theming, fonts, grid layout, and colorblind-safe palettes for bran
 
 > Theming and customization for AI/BI — branded, consistent, accessible dashboards across the workspace.
 
-*Announced at DAIS 2026 (June 16–17, 2026). Source: community deck — verify officially.*
+*Announced at Data + AI Summit 2026 (June 16–17, 2026). Source: [Databricks blog](https://www.databricks.com/blog/design-beautiful-dashboards-aibi).*
 
 ## Overview
 
-- Theming and customization for AI/BI dashboards — the pitch is **branded, consistent, accessible** dashboards standardized across the workspace (per the deck).
-- **Flexible 12-column grid** that sub-divides to 3/4/6, with widget resizing and layout guided by **Z- and F-pattern** scanning.
-- **Fonts** — web-safe plus uploaded custom fonts, applied via **workspace themes** for a shared look.
-- **Light and dark** modes, with color guided by the **60-30-10 rule** (dominant/secondary/accent).
-- **Colorblind-safe palettes** of 5–9 colors, reportedly tested against deuteranopia, protanopia and tritanopia.
-- Framed as design polish on top of AI/BI dashboards, not a change to the underlying analytics engine.
+- Theming and customization for AI/BI dashboards — branded, consistent, and accessible dashboards standardized across the workspace.
+- **12-column grid** that subdivides into **3, 4, or 6 columns** — 3-column for executive dashboards to reduce cognitive load, 6-column for dense technical dashboards.
+- **Fonts** — web-safe options (Arial, Tahoma, Verdana) plus custom local fonts, with sans-serif recommended to reduce visual strain.
+- **Workspace themes** — apply a theme once and it carries across all dashboards in the workspace automatically; individual dashboards also settable via dashboard themes.
+- **Light and dark** modes supported by every AI/BI theme, with color guided by the **60-30-10 rule** (60% dominant, 30% secondary, 10% accent).
+- **Colorblind-safe palettes** of 5–9 colors, tested against deuteranopia, protanopia, and tritanopia (roughly 4.5% of the global population has some form of color blindness).
+- **Layout guidance** — Z-pattern for imagery-heavy dashboards, F-pattern for text/table-heavy dashboards, with larger sizing for the most critical metrics.
+- Design polish on top of AI/BI dashboards, not a change to the underlying analytics engine.
 
 ## Where it fits
 
-- **Consumption/experience layer** — this is the presentation skin on AI/BI Dashboards and Genie output, not a new data or modeling capability. See [the overview](/dais-2026).
+- **Consumption/experience layer** — the presentation skin on AI/BI Dashboards and Genie output, not a new data or modeling capability. See [the overview](/dais-2026).
 - Pairs with **workspace themes** so BI teams enforce one brand across many dashboards instead of hand-styling each.
 - Benefits **BI/analytics teams and design-conscious orgs** who ship dashboards to executives, customers, or partners where look-and-feel matters.
 - The **12-column grid, resizing, and Z/F-pattern** guidance help non-designers lay out something legible without a design review.
@@ -34,7 +36,7 @@ description: "Theming, fonts, grid layout, and colorblind-safe palettes for bran
 - **Still trails mature BI** — Power BI and Tableau lead on visualization breadth, custom visuals, formatting depth, and interactivity; branded themes don't close that gap.
 - **Theming is not analytics depth** — pretty dashboards on shallow models still mislead; design can make a wrong number look authoritative.
 - **Low-stakes feature** — nice to have, but rarely the reason anyone picks or leaves a BI tool.
-- **Colorblind-safe claim is unverified** — "tested against" three deficiency types needs a real contrast/accessibility audit, not a vendor palette label; verify before relying on it for a11y compliance.
+- **Colorblind-safe palettes are a starting point, not a compliance sign-off** — run a real contrast/a11y audit of your own dashboards before claiming compliance.
 - **Custom-font and brand rollout** can drift across workspaces without governance, undercutting the "consistent" promise.
 - Grid/scanning guidance helps novices but is **no substitute for a real design system** if dashboards are a primary product surface.
 
@@ -42,7 +44,7 @@ description: "Theming, fonts, grid layout, and colorblind-safe palettes for bran
 
 - **Verdict: Adopt now (if you're already on AI/BI).** It's low-risk, no-cost polish — turn on workspace themes and use the colorblind-safe palettes for existing dashboards.
 - **Watch** for anyone choosing AI/BI over Power BI or Tableau on the strength of theming — this narrows the aesthetic gap, not the feature gap.
-- **Pilot the accessibility palettes** with a real a11y check before claiming compliance; don't take the "colorblind-safe" label on faith.
+- **Pilot the accessibility palettes** with a real a11y check before claiming compliance.
 - **Market context** — closes an obvious cosmetic deficit versus mature BI, but Databricks' actual edge remains governed data plus Genie, not chart styling.
 
 ## Personal impression

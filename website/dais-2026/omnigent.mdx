@@ -6,49 +6,46 @@ description: "An open-source meta-harness that sits above your coding agents —
 
 # Omnigent
 
-> A "harness over harnesses" — one interface to swap, sandbox, and share Claude Code, Codex, Pi, and custom agents, with policy and live collaboration bolted on.
+> A "harness over harnesses" — one interface to swap, sandbox, and share Claude Code, Codex, Pi, and custom agents, with policy and live collaboration built in.
 
-*Announced at DAIS 2026 (June 16–17, 2026). Source: community deck — verify officially.*
+*Announced at Data + AI Summit 2026 (June 16–17, 2026). Source: [Databricks blog](https://www.databricks.com/blog/introducing-omnigent-meta-harness-combine-control-and-share-your-agents).*
 
 ## Overview
 
-- Presented as an **open-source meta-harness** (Apache-2.0) that sits *above* your agents — combine, control, and share Claude Code, Codex, Pi, and custom agents through one common interface.
-- **Swap harnesses with one-line changes** — move between Claude Code, Codex, Pi, and custom agents; use different LLMs for planning vs. code generation.
-- **Stateful, contextual policies** — pause at a spend threshold, run an OS-level sandbox, and track permissions dynamically per session.
-- **Live session sharing by URL** — teammates review, comment on files, and steer agents together in real time.
-- **Two-part architecture** (as presented): a **Runner** wraps any harness in a sandbox; a **Server** enforces policy and sharing across terminal, web, mobile, and macOS.
-- Deck metric (unverified): reportedly built by Databricks engineers working on agents.
+- **Open-source meta-harness (Apache 2.0)** that sits *above* your agents — combine, control, and share Claude Code, Codex, Pi, and custom agents through one common interface. Repo: [omnigent-ai/omnigent](https://github.com/omnigent-ai/omnigent).
+- **Open source in alpha today** — early release from Databricks engineers, including Matei Zaharia, Kasey Uhlenhuth, and Corey Zumar.
+- **Swap agents with one-line changes** — move between Claude Code, Codex, Pi, and your own agents; use different LLMs for planning, search, and code generation.
+- **Stateful, contextual policies** — track agent actions and enforce guardrails like cost budgets and permissions (e.g. pause and ask to continue after every $100 spent).
+- **Live session sharing** — invite others to view a session, comment on files in its workspace, or send commands, in real time.
+- **Two-part architecture** — a **Runner** wraps any agent in a sandboxed session with a uniform API; a **Server** provides policies and sharing, exposing every session over the terminal, app, and web APIs.
 
 ## Where it fits
 
 - **Developer-tooling / orchestration layer** — sits between developers and the coding agents they run, not on the data plane. See [the overview](/dais-2026).
-- For teams running **more than one coding harness** who want a single control surface instead of per-tool config and per-tool governance.
+- For teams running **more than one coding agent** who want a single control surface instead of per-tool config and per-tool governance.
 - **Planning vs. codegen split** is the sharpest idea: route a strong reasoning model to plan and a cheaper/faster one to generate — useful for cost and latency.
-- **Spend caps and OS-level sandboxing** target the real enterprise blocker — letting agents run with guardrails auditors accept.
+- **Cost budgets and sandboxed sessions** target the real enterprise blocker — letting agents run with guardrails auditors accept.
 - **Live shared sessions** pair well with pairing/review workflows and incident debugging where two engineers steer one agent.
-- Pairs conceptually with **Agent Bricks**, which lists Omnigent as a supported harness — so it may double as Databricks' preferred coding-agent front end.
 
 ## Where it fails
 
-- **Verify it's real, official OSS first.** "Omnigent" appears in the community deck and could be deck-coined, an internal project name, or forward-looking; confirm a real Apache-2.0 repo before planning around it.
+- **Alpha maturity** — open source in alpha today; expect thin docs, rough edges, and little production track record. Plan pilots, not rollouts.
 - **Another abstraction layer** — a harness over harnesses adds indirection, its own bugs, and version-skew against fast-moving tools (Claude Code, Codex ship weekly).
-- **Lowest-common-denominator risk** — a "one common interface" tends to expose only the features all harnesses share, blunting what makes each one good.
-- **"One-line swap" rarely holds** — agents differ in tool schemas, prompt behavior, and permission models; portability usually leaks in practice.
-- **Maturity/adoption unproven** — meta-harnesses are early; expect thin docs, preview-grade sandbox/mobile support, and little production track record.
-- **vs. using one harness directly** — most teams standardize on a single agent; the multi-harness premise only pays off at real tool diversity.
-- **Attribution unverified** — "built by Databricks engineers" is deck-attributed; treat as unconfirmed until an official repo/blog says so.
+- **Lowest-common-denominator risk** — a "one common interface" tends to expose only the features all agents share, blunting what makes each one good.
+- **"One-line swap" rarely holds cleanly** — agents differ in tool schemas, prompt behavior, and permission models; portability usually leaks in practice.
+- **vs. using one agent directly** — most teams standardize on a single agent; the multi-agent premise only pays off at real tool diversity.
 
 ## Response
 
-- **Verdict: Watch.** Genuinely interesting architecture, but confirm it's a real, maintained OSS release before investing — the whole value rests on that.
-- **Pilot only if** you already run two-plus coding harnesses and feel the governance/cost pain today; test the sandbox and spend-cap claims on one team.
-- **Ignore** if you have standardized on a single harness — direct use is simpler and loses little.
-- **Adopt now: no** — too early; abstraction layers over volatile tools carry real maintenance risk.
-- **Market context** — overlaps with harness-agnostic ideas in **OpenHands**, **Aider**, and IDE agent orchestration; the sandbox + policy + live-sharing bundle is the differentiator if it ships and holds up.
+- **Verdict: Watch.** Genuinely interesting architecture with a real Apache-2.0 repo, but it's alpha — validate before investing.
+- **Pilot only if** you already run two-plus coding agents and feel the governance/cost pain today; test the sandbox and cost-budget claims on one team.
+- **Ignore** if you have standardized on a single agent — direct use is simpler and loses little.
+- **Adopt now: no** — alpha stage; abstraction layers over volatile tools carry real maintenance risk.
+- **Market context** — overlaps with harness-agnostic ideas in **OpenHands**, **Aider**, and IDE agent orchestration; the sandbox + policy + live-sharing bundle is the differentiator if it matures and holds up.
 
 ## Personal impression
 
-- The planning-vs-codegen model split and OS-level sandbox with spend pauses are the parts I'd actually want; those are real gaps in today's single-harness workflows.
+- The planning-vs-codegen model split and sandboxed sessions with cost pauses are the parts I'd actually want; those are real gaps in today's single-harness workflows.
 - But a meta-harness only earns its keep at genuine tool diversity, and most teams don't have that — for them it's an extra layer to babysit.
-- **Hype level: Medium.** Clever framing, plausible team, but unverified provenance and classic abstraction-layer risk.
-- **Bottom line:** Confirm the Apache-2.0 repo is real and maintained, then Watch; Pilot only if you're already juggling multiple coding agents and hurting for governance.
+- **Hype level: Medium.** Clever framing, strong team, real OSS repo — tempered by alpha maturity and classic abstraction-layer risk.
+- **Bottom line:** A credible open-source bet worth watching; pilot only if you're already juggling multiple coding agents and hurting for governance.

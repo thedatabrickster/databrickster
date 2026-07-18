@@ -1,53 +1,54 @@
 ---
 sidebar_position: 10
 title: "Agent Bricks"
-description: "Databricks' bet on a full agent platform — multi-model, MCP integrations, agent memory, and governance — where the agent loop is the easy 1% and the plumbing is the other 99%."
+description: "Databricks' full agent platform — multi-model choice, MCP and Genie Ontology context, Lakebase-backed agent memory, and Unity Catalog governance — where the agent loop is the easy 1% and the plumbing is the other 99%."
 ---
 
 # Agent Bricks
 
 > A play to own the "other 99%" of agents — the plumbing, memory, and governance around the loop — not just the loop itself.
 
-*Announced at DAIS 2026 (June 16–17, 2026). Source: community deck — verify officially.*
+*Announced at Data + AI Summit 2026 (June 16–17, 2026). Source: [Databricks blog](https://www.databricks.com/blog/agent-bricks-dais-2026).*
 
 ## Overview
 
-- Framing (per the deck): going "from a launch to a full agent platform" — the agent loop is ~1% of the work; the other **99% is hidden technical debt** (memory, integrations, eval, governance).
-- **Multi-model** — OpenAI, Anthropic, Gemini, Qwen, Kimi, Grok (SpaceX), plus custom models; harnesses across LangGraph, CrewAI, and Omnigent.
-- **Integrations** — MCP connectors to Drive, Jira, Slack, GitHub; Genie Ontology; agentic search (the deck cites ~3x faster, unverified); Lakebase as agent memory.
-- **Governance** — Unity AI Gateway, agent traces landing in the lakehouse, LakeWatch monitoring, and contextual policies.
-- Deck metrics (unverified): agents built since launch; tokens processed per year; a growing roster of model families including Grok.
+- Positioned as a full agent platform across three pillars: **Choice** (models/harnesses), **Context** (data and tools), and **Control** (governance).
+- **Model choice** — OpenAI, Anthropic, Gemini, Qwen, and Kimi, plus SpaceX **Grok** models now natively available on Databricks. Custom models via prompt optimization, fine-tuning, and reinforcement learning.
+- Databricks says a custom RL model can be "competitive with frontier models such as Opus and Sonnet" at significantly lower cost per query.
+- **Harnesses** — LangGraph, Agno, CrewAI, the Claude Code SDK, and OpenAI Agent SDKs; plus **Omnigent**, a managed meta-harness.
+- **Context** — MCP connectors (Google Drive, JIRA, Slack, GitHub, and more), **Genie Ontology** for business semantics, a document-search subagent, an **Agent Memory Service** powered by **Lakebase**, and a secure **Databricks Sandbox**.
+- **Control** — **Unity AI Gateway**, agent traces governed in the Lakehouse, LakeWatch monitoring, and contextual policies.
+- **Document Intelligence is GA** — `ai_parse_document`, `ai_extract`, and `ai_classify`.
+- Metrics: **100k+ agents** built since launch and **1+ quadrillion tokens per year** processed. Named customers include AstraZeneca, 7-Eleven, Fox Corporation, and Block.
 
 ## Where it fits
 
 - **Application/agent layer** of the Modern Databricks Stack — sits on top of Unity Catalog data, Genie, and the AI Gateway. See [the overview](/dais-2026).
 - Best for teams that want agents **grounded in governed lakehouse data** rather than bolted-on RAG over a copy.
-- **Lakebase-as-memory** is the real hook: durable, transactional agent state next to your data instead of a separate vector store.
-- **MCP connectors** (Drive, Jira, Slack, GitHub) cover the common enterprise action surface out of the box.
-- Pairs with the **Unity AI Gateway** for spend caps, routing, and audit — governance is the differentiator versus DIY stacks.
-- Multi-harness support (LangGraph, CrewAI, Omnigent) lets existing agent code land without a full rewrite.
+- **Lakebase-backed agent memory** is the real hook: managed session history and cross-session context next to your data instead of a separate store.
+- **MCP connectors** (Drive, JIRA, Slack, GitHub) cover the common enterprise action surface, and MCP support was added to Unity Catalog.
+- Pairs with the **Unity AI Gateway** for per-user and per-group budgets, traffic routing, and access controls — governance is the differentiator versus DIY stacks.
+- Multi-harness support (LangGraph, Agno, CrewAI, Claude Code SDK, OpenAI Agent SDKs, Omnigent) lets existing agent code land without a full rewrite.
 
 ## Where it fails
 
 - **Breadth over depth** — supporting every model, harness, and connector risks a platform that does many things shallowly. Depth on any one path is unproven.
-- **Multi-model sprawl** — six-plus providers means six-plus behaviors, prompt quirks, and failure modes to test and maintain. Portability rarely survives real prompts.
-- **Reliability and eval** — the deck is light on how agents are evaluated, regression-tested, or kept reliable in production. The "99% is technical debt" framing names the hard part but does not prove it's solved.
-- **Metrics unverified** — agents-built, tokens-per-year, and the ~3x agentic-search speedup are deck-attributed; treat as marketing until official docs confirm.
-- **Lock-in** — memory in Lakebase, traces in the lakehouse, and governance in the Gateway make agents costly to move off Databricks later.
-- **Grok inclusion** signals recency/breadth chasing more than a curated, quality-vetted model set.
-- **Maturity** — expect preview-grade coverage on newer connectors, Omnigent, and Genie Ontology integration.
+- **Multi-model sprawl** — several providers means several behaviors, prompt quirks, and failure modes to test and maintain. Portability rarely survives real prompts.
+- **Maturity gap** — only Document Intelligence is called GA; the Unity AI Gateway, Genie Ontology, Agent Memory Service, Sandbox, and contextual policies are announced without a stated GA date. Expect preview-grade coverage.
+- **Reliability and eval** — the post is light on how agents are regression-tested or kept reliable in production. The "99% is technical debt" framing names the hard part but does not prove it's solved.
+- **Lock-in** — memory in Lakebase, traces in the Lakehouse, and governance in the Gateway make agents costly to move off Databricks later.
+- **Grok inclusion** signals recency and breadth chasing more than a curated, quality-vetted model set.
 
 ## Response
 
 - **Verdict: Pilot.** The grounding-plus-governance story is genuinely differentiated; test it on one real agent with real data before committing.
 - **Adopt now only if** you are already all-in on Unity Catalog and Lakebase — the data-adjacency and native governance are the reason to be here, not the agent framework itself.
-- **Watch** the eval, reliability, and multi-model portability claims until Databricks publishes specifics and previews mature.
-- **Ignore** the token/agent-count vanity metrics for decision-making.
+- **Watch** the non-GA pieces (Gateway, Genie Ontology, Agent Memory, Sandbox, contextual policies) until they harden; Document Intelligence is the one piece you can lean on today.
 - **Market context** — competes with **LangChain/LlamaIndex** and pure DIY on flexibility, and with **cloud agent runtimes** (Bedrock AgentCore, Azure AI Foundry, Vertex Agent Builder) on managed infrastructure. Databricks' edge is governed lakehouse data and memory, not the loop.
 
 ## Personal impression
 
-- The "1% loop, 99% debt" line is the most honest thing in the deck — it correctly names why most agent demos never reach production. The open question is whether Agent Bricks actually pays down that debt or just relocates it inside a walled garden.
-- Lakebase-as-memory and native governance are the parts I'd actually pilot; the six-model roster and headline metrics read as breadth-chasing.
-- **Hype level: Medium-High.** Strong strategic framing, thin verified proof on eval and reliability.
-- **Bottom line:** Pilot for data-grounded, governed agents if you already live in Unity Catalog; stay skeptical of multi-model portability and the unverified metrics until the previews harden.
+- The "1% loop, 99% debt" framing is the most honest thing here — it correctly names why most agent demos never reach production. The open question is whether Agent Bricks pays down that debt or just relocates it inside a walled garden.
+- Lakebase-backed memory and native governance are the parts I'd actually pilot; the multi-model roster reads as breadth-chasing, and headline metrics (100k+ agents, 1+ quadrillion tokens/year) are adoption signals, not proof of quality.
+- **Hype level: Medium-High.** Strong strategic framing and real GA in Document Intelligence, but most of the platform is newly announced without stated GA timing.
+- **Bottom line:** Pilot for data-grounded, governed agents if you already live in Unity Catalog; stay skeptical of multi-model portability and lean on the GA pieces until the rest matures.

@@ -1,54 +1,53 @@
 ---
 sidebar_position: 12
 title: "Genie One"
-description: "An enterprise AI coworker that lets business teams ask in natural language, get governed answers, and trigger actions across 50+ tools — no SQL or code."
+description: "A data-smart AI coworker that lets business teams ask in natural language, get governed answers, and trigger actions across enterprise tools — no SQL or code."
 ---
 
 # Genie One
 
-> The enterprise AI coworker — business teams ask in natural language, get governed answers, and trigger actions across 50+ tools.
+> The data-smart AI coworker — business teams ask in natural language, get governed answers, and trigger actions across enterprise tools.
 
-*Announced at DAIS 2026 (June 16–17, 2026). Source: community deck — verify officially.*
+*Announced at Data + AI Summit 2026 (June 16–17, 2026). Source: [Databricks blog](https://www.databricks.com/blog/introducing-genie-one-genie-ontology-and-genie-agents).*
 
 ## Overview
 
-- Pitched as an **enterprise AI coworker** for non-technical teams — ask in natural language, get answers from across the data estate without analysts or SQL.
-- **Reasons over structured data plus enterprise knowledge**, grounded in the Genie Ontology and Unity Catalog access controls (per the deck).
-- **Takes actions, not just answers** — schedule reports, automate tasks, draft documents across Slack, Teams, Jira, email and more, reportedly no code.
-- The deck cites **50+ tool integrations** for action-taking — unverified; treat the count and coverage as a claim.
-- **Mobile and cross-platform**, with company branding and **custom agents per use case**.
-- Access governed by Unity Catalog, so answers respect existing row/column/table permissions (as presented).
+- A **data-smart AI coworker** built to move users from insight to action across enterprise data and tools — no analyst or SQL required.
+- **Answers in natural language**, grounded in enterprise data via the **Genie Ontology** (an automatic context layer) and governed through **Unity Catalog** permissions.
+- **Takes agentic action, not just answers** — schedules, alerts, monitoring, and document creation, plus multi-step workflow automation.
+- Extensible through **custom skills and MCP (Model Context Protocol)** support.
+- **Native embedding in Slack and Microsoft Teams**, plus **iOS and Android mobile apps**.
+- To get started: see the [documentation](https://www.databricks.com/blog/introducing-genie-one-genie-ontology-and-genie-agents), install the mobile app for iOS or Android, or contact your Databricks account team.
 
 ## Where it fits
 
-- **Consumption/experience layer** of the Modern Databricks Stack — the business-user front door that sits on top of Genie, the Ontology, and Unity Catalog. See [the overview](/dais-2026).
+- **Consumption/experience layer** of the Modern Databricks Stack — the business-user front door on top of Genie, the Ontology, and Unity Catalog. See [the overview](/dais-2026).
 - Targets **non-technical teams** — ops, finance, sales, marketing — who today wait on a BI analyst or SQL to get a number.
 - Pairs with **Genie Ontology** (semantic grounding) and **Unity Catalog** (governed access) — those two are what make answers trustworthy and permission-aware.
-- Action-taking pairs it with the **MCP/tool ecosystem** — Slack, Teams, Jira, email — turning it from a Q&A box into a workflow trigger.
-- Fits orgs wanting **one branded internal assistant** instead of a sprawl of point chatbots.
-- Mobile/cross-platform makes it a fit for **field and frontline** roles away from a BI desktop.
+- Action-taking pairs it with the **MCP/tool ecosystem** and native Slack/Teams embedding — turning it from a Q&A box into a workflow trigger.
+- Fits orgs wanting **one internal assistant** instead of a sprawl of point chatbots.
+- Mobile apps make it a fit for **field and frontline** roles away from a BI desktop.
 
 ## Where it fails
 
-- **"AI coworker" is heavy marketing** — the phrase promises autonomy the product has to earn. Expect assistant-grade help, not a headcount.
-- **Action-taking is the real risk** — an agent that schedules, files tickets, and drafts docs can do the wrong thing at scale. Blast radius, approval gates, and rollback matter more than the answer quality.
+- **"AI coworker" is a heavy frame** — the phrase promises autonomy the product still has to earn. Expect assistant-grade help, not a headcount.
+- **Action-taking is the real risk** — an agent that schedules, sets alerts, and drafts docs can do the wrong thing at scale. Blast radius, approval gates, and rollback matter more than answer quality.
 - **Accuracy and trust for business users** — the people least able to spot a wrong number are the ones being handed it directly. Grounding helps; it does not eliminate confident errors.
-- **The 50+ tools figure is unverified** — breadth and depth of each integration are unknown; many may be shallow or preview-grade.
 - **Naming confusion** — "Genie One" overlaps with Genie, Genie Agents, and the Genie Ontology; buyers will struggle to tell what is a product versus a feature.
 - **Grounding is only as good as the Ontology and UC setup** — orgs without a clean semantic layer and tight permissions will get plausible-but-wrong answers.
-- **Lock-in** — a branded, cross-platform coworker wired into your tools and catalog is sticky by design; switching cost compounds fast.
+- **Lock-in** — a cross-platform coworker wired into your tools and catalog is sticky by design; switching cost compounds fast.
 
 ## Response
 
 - **Verdict: Pilot (answers), Watch (actions).** The governed natural-language Q&A is the near-term win; scope a pilot to read-only answers before enabling any action-taking.
-- **Adopt now only if** you already run Genie + a mature Genie Ontology on Unity Catalog — Genie One is the payoff layer, not a standalone bet.
-- **Watch** the action/automation surface until approval controls, audit trails, and the 50+ integrations are confirmed in official docs.
+- **Adopt now only if** you already run Genie plus a mature Genie Ontology on Unity Catalog — Genie One is the payoff layer, not a standalone bet.
+- **Watch** the action/automation surface until approval controls and audit trails are proven in your environment.
 - **Market context** — competes head-on with **Microsoft Copilot**, **Glean**, and **ChatGPT Enterprise**. Databricks' edge is native grounding in the Ontology and UC-governed data; its weakness is reach into the everyday-tools estate those rivals already own.
 - Don't hand business users an action-taking agent on day one — earn trust on answers first.
 
 ## Personal impression
 
 - The strong idea is **governed answers grounded in a real semantic layer** — if the Ontology and Unity Catalog are solid, this is genuinely more trustworthy than a generic enterprise chatbot.
-- But "AI coworker" plus autonomous action-taking is exactly where hype outruns reliability, and business users are the worst-positioned to catch a confident mistake.
-- **Hype level: High.** Great grounding story, big marketing frame, and unverified breadth claims.
+- But "AI coworker" plus agentic action-taking is exactly where hype outruns reliability, and business users are the worst-positioned to catch a confident mistake.
+- **Hype level: High.** Great grounding story and a big marketing frame.
 - **Bottom line:** Pilot it as a governed answer engine; keep action-taking on a leash until the controls and integration depth are proven.

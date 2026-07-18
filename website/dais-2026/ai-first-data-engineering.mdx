@@ -8,15 +8,16 @@ description: "LLM functions (ai_extract, ai_classify, ai_parse_document, ai_quer
 
 > Call LLMs as SQL functions inside your ETL — extract, classify, translate, and parse documents without leaving the pipeline.
 
-*Announced at DAIS 2026 (June 16–17, 2026). Source: community deck — verify officially.*
+*Announced at Data + AI Summit 2026 (June 16–17, 2026). Source: [Databricks blog](https://www.databricks.com/blog/ai-first-approach-data-engineering-lakeflow-and-agent-bricks).*
 
 ## Overview
 
-- Per the deck: embed AI **directly in ETL** via SQL functions — `ai_extract`, `ai_classify`, `ai_parse_document`, and `ai_query` — orchestrated by **Lakeflow Jobs**.
+- Embed AI **directly in ETL** via SQL functions — `ai_extract`, `ai_classify`, `ai_translate`, `ai_parse_document`, and the general `ai_query` — orchestrated by **Lakeflow Jobs** on one governed platform.
 - Covers entity extraction, classification, translation, document parsing, and general LLM transforms — all expressed in **plain SQL**.
-- **Serverless batch inference** reportedly auto-provisions and scales; the deck claims "hours of processing down to minutes".
-- Customer proof points (all **unverified**, deck-cited): **Kard** — billions of transactions categorized; **Banco Bradesco** — −50% coding time; **Locala** — named, no metric.
-- Framing: the LLM becomes just another operator in the pipeline, governed and scheduled like any other transform.
+- `ai_parse_document` uses multimodal foundation models to parse text, extract tables, reason over figures, and turn images into AI-generated descriptions.
+- **Serverless batch inference** (which powers `ai_query`) automatically provisions and scales compute and runs workloads in parallel, "reducing runtimes from hours to minutes" for high-volume AI workloads.
+- Customer proof points: **Kard** uses Agent Bricks AI functions for scalable, accurate transaction categorization across **billions of transactions**; **Banco Bradesco** cut coding time by **50%** with Databricks Assistant; **Locala** used **Lakeflow Jobs** to orchestrate complex LLM training pipelines earlier schedulers couldn't handle.
+- Coming soon: **Databricks Genie** for pipeline authoring and debugging via natural language.
 
 ## Where it fits
 
@@ -29,11 +30,10 @@ description: "LLM functions (ai_extract, ai_classify, ai_parse_document, ai_quer
 
 ## Where it fails
 
-- **Cost at scale is the headline risk.** An LLM call per row across billions of rows (see the Kard claim) can dwarf normal ETL compute — token spend, not CPU, becomes the bill.
+- **Cost at scale is the headline risk.** An LLM call per row across billions of rows (see Kard) can dwarf normal ETL compute — token spend, not CPU, becomes the bill.
 - **Nondeterminism.** `ai_*` outputs vary run-to-run; reruns, backfills, and CDC replays may not reproduce, complicating idempotency and audits.
 - **Quality and eval are on you.** SQL makes the call trivial; it does nothing to measure accuracy, drift, or hallucination. No eval harness = no idea if it's right.
-- **Prompt governance gap.** Prompts embedded in SQL are config-as-code with no obvious versioning, review, or A/B story per the deck.
-- **The "hours to minutes" and −50% coding-time claims are unverified** and vendor-framed — likely best-case, workload-specific.
+- **Prompt governance gap.** Prompts embedded in SQL are config-as-code with no obvious versioning, review, or A/B story.
 - **Token-cost blowups** from verbose inputs (large documents in `ai_parse_document`) are easy to trigger and hard to cap per-job.
 - **Lock-in**: pipelines wired around Databricks-managed model endpoints are harder to port than a decoupled inference step.
 
@@ -48,6 +48,6 @@ description: "LLM functions (ai_extract, ai_classify, ai_parse_document, ai_quer
 ## Personal impression
 
 - The abstraction is right: making an LLM "just another SQL function" is where data engineering is heading, and Databricks is executing the obvious move well.
-- But convenience hides a metering problem — one careless `ai_query` over a big table is a four-figure surprise. The tooling for **cost caps and eval** needs to be as first-class as the function itself, and per the deck it isn't yet.
-- **Hype level: Medium.** Real and useful, but the customer metrics are unverified and the cost story is unproven at the scales being advertised.
+- But convenience hides a metering problem — one careless `ai_query` over a big table is a four-figure surprise. The tooling for **cost caps and eval** needs to be as first-class as the function itself.
+- **Hype level: Medium.** Real and useful, but the "hours to minutes" gain is workload-specific and the cost story is unproven at the scales being advertised.
 - **Bottom line:** Great for unstructured extraction; treat anything row-by-row over huge tables as a cost experiment until your own numbers say otherwise.

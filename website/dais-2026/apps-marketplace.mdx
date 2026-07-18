@@ -8,45 +8,45 @@ description: "Discover, install, and run third-party apps natively on your own d
 
 > Browse a catalog of partner apps, authorize their permissions, and auto-provision them on serverless compute — running against your own governed data with no data movement.
 
-*Announced at DAIS 2026 (June 16–17, 2026). Source: community deck — verify officially.*
+*Announced at Data + AI Summit 2026 (June 16–17, 2026). Source: [Databricks blog](https://www.databricks.com/blog/announcing-apps-databricks-marketplace).*
 
 ## Overview
 
-- **Third-party apps, run natively on your data** — discover, install, and launch partner apps inside your workspace, governed by Unity Catalog, with **no data movement**.
-- Install flow, per the deck: **browse → authorize permissions → auto-provision on serverless → use** — the app spins up without you managing infrastructure.
-- **Security model:** each app is **sandboxed**, egress runs through a **controlled gateway**, and vendors' **closed-source IP is protected** from the installing customer.
-- **Deep platform integration:** apps can tap **Unity Catalog, SQL Warehouse, Lakebase, Model Serving, Genie, and Agent Bricks** — not just raw tables.
-- The deck cites a set of **production-grade partner apps at launch** and the browse-to-launch flow above — both **unverified**; treat counts and readiness as claims, not facts.
+- **Public Preview.** "Apps on Databricks Marketplace" — discover, install, and run third-party apps natively inside your workspace, governed by Unity Catalog, with **no data movement**. "Instead of moving your data to the application, the application comes to your data."
+- **Install flow:** discover in the catalog → one-click install → the app deploys within your secure workspace on **serverless compute** → use — no infrastructure to manage.
+- **Security model:** each app runs with **per-app sandboxing** on **dedicated compute isolation**, egress is consumer-controlled via **Serverless Egress Gateway policies**, and providers ship **closed-source** apps so their IP is protected.
+- **Deep platform integration:** apps can tap **Unity Catalog, SQL Warehouse, Lakebase, Model Serving, Foundation Model APIs, Genie spaces, and Agent Bricks** — not just raw tables.
+- **20 launch partners** at public preview, including **Capital One Software, The Trade Desk, Datavant, Slalom, Prometheux, and Reflex**.
 
 ## Where it fits
 
 - The **application / consumption layer** on top of the lakehouse — the place a partner ships software that runs where your data already lives.
 - Teams who want vendor capabilities (e.g. data quality, observability, vertical analytics) **without exporting data** to a SaaS or standing up their own hosting.
 - Pairs naturally with **Unity Catalog** for permission scoping and with **serverless** so there is no cluster to size or babysit.
-- Apps that need **models or agents** benefit from wiring into **Model Serving, Genie, and Agent Bricks** rather than reimplementing them.
+- Apps that need **models or agents** benefit from wiring into **Model Serving, Foundation Model APIs, Genie spaces, and Agent Bricks** rather than reimplementing them.
 - **Lakebase + SQL Warehouse** access lets apps do transactional and analytical work in-platform, closing the gap with standalone products.
 - Good fit for **regulated shops** where "the data never leaves" is a procurement requirement, not a nice-to-have.
 
 ## Where it fails
 
-- **Catalog depth is the whole game, and it is unproven.** A marketplace with a handful of apps is a demo; "production-grade at launch" is a deck claim — count real, useful apps before believing it.
+- **Catalog depth is the whole game.** 20 launch partners is a start, not a category — count real, useful apps for your workload before betting on it.
 - **Security review burden shifts to you.** Sandboxing and an egress gateway reduce risk but do not eliminate it — you still own vetting each app's permissions, data access, and vendor trust.
-- **Egress control vs functionality tension.** A tightly controlled gateway can break apps that legitimately need outbound calls; a loose one weakens the isolation story. The real setting is the unknown.
+- **Egress control vs functionality tension.** A tightly controlled gateway can break apps that legitimately need outbound calls; a loose one weakens the isolation story. Tuning that policy is on you.
 - **IP protection cuts both ways.** Closed-source apps you cannot inspect running against your governed data is exactly the auditability gap security teams dislike.
 - **Direct analog exists: Snowflake Native Apps.** This is late to a category Snowflake has shipped for years — evaluate maturity, partner overlap, and pricing head-to-head, not in isolation.
 - **Lock-in.** Apps built to Databricks' runtime, Unity Catalog, Lakebase, and Agent Bricks are not portable — adopting the ecosystem deepens platform dependence.
-- **Every deck metric is unverified** — app counts and the flow are attributed to the deck; do not quote them externally.
+- **Preview, not GA.** Monetization, bundled assets, and provider analytics are still on the roadmap — plan around a maturing surface.
 
 ## Response
 
-- **Watch (platform):** promising architecture, but marketplaces live or die on catalog depth — revisit once the real app list is public and non-trivial.
+- **Watch (platform):** promising architecture, but marketplaces live or die on catalog depth — revisit as the partner list grows past the launch 20.
 - **Pilot (one app):** if a partner app solves a concrete need and keeps data in-platform, trial it against a low-sensitivity workspace and inspect the permissions it requests.
 - **Ignore (for now) if** you have no partner app that beats your current tooling — do not adopt a marketplace for its own sake.
-- **Market context:** **Snowflake Native Apps** is the direct competitor and the maturity bar; the pitch here is Unity Catalog governance plus Genie/Agent Bricks reach — verify both actually work before crediting them.
+- **Market context:** **Snowflake Native Apps** is the direct competitor and the maturity bar; the pitch here is Unity Catalog governance plus Genie/Agent Bricks reach.
 
 ## Personal impression
 
 - Right idea, and the "run apps on governed data, no movement" framing is genuinely how enterprises want to buy software now.
-- But this is a **me-too** move against Snowflake Native Apps, and the only thing that matters — how many apps people actually want — is precisely what a launch cannot prove.
-- The security posture (sandbox + egress gateway + protected vendor IP) reads well on a slide; the hard part is whether your security team will sign off on opaque apps touching production data.
+- But this is a **me-too** move against Snowflake Native Apps, and the thing that matters most — how many apps people actually want — a preview with 20 partners cannot yet prove.
+- The security posture (per-app sandbox + egress gateway + protected vendor IP) reads well; the hard part is whether your security team will sign off on opaque apps touching production data.
 - **Hype level: Medium.** **Bottom line:** architecturally sound, strategically overdue — watch the catalog fill in, pilot a single real app, and judge it against Snowflake rather than the keynote.

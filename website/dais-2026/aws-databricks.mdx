@@ -6,49 +6,48 @@ description: "Legend Sponsor AWS pairs Bedrock, AgentCore, and Kiro with Databri
 
 # AWS & Databricks at DAIS 2026
 
-> Legend Sponsor AWS shows up with Bedrock, AgentCore, and Kiro to "operationalize AI at scale" on Databricks — heavier on partnership and co-marketing than on new joint product.
+> Legend Sponsor AWS shows up with Bedrock, AgentCore, and Kiro to operationalize AI at scale on Databricks — heavier on partnership and co-marketing than on new joint product.
 
-*Announced at DAIS 2026 (June 16–17, 2026). Source: community deck — verify officially.*
+*Announced at Data + AI Summit 2026 (June 16–17, 2026). Source: [Databricks blog](https://www.databricks.com/blog/aws-and-databricks-data-ai-summit-2026-accelerating-real-world-ai-innovation).*
 
 ## Overview
 
-- Per the deck, **AWS is a Legend Sponsor** and positions **Bedrock, Bedrock AgentCore, and Kiro** alongside Databricks to operationalize AI at scale.
-- **Amazon Bedrock** — managed foundation-model access plus **guardrails** for content and safety filtering.
-- **Bedrock AgentCore** — a managed **agent runtime** (memory, tools, session/identity) for running agents in production.
-- **Kiro** — AWS's **agentic IDE** for spec-driven, agent-assisted development.
-- Customer proof points cited: **Mastercard, Talkdesk, nCino, Addepar**; the deck also cites **30+ AWS-led sessions** at the summit.
-- Deck metric (unverified): an **AWS Marketplace credits offer** for Databricks spend — treat as promotional and confirm current terms.
+- **AWS returns as a Legend Sponsor** and positions **Bedrock, Bedrock AgentCore, and Kiro** alongside Databricks to operationalize AI at scale.
+- **Amazon Bedrock** — managed frontier models (**Anthropic Claude, Amazon Nova, Meta Llama**) with built-in **Guardrails**; paired with Databricks they reason over governed, high-quality data.
+- **Bedrock AgentCore** — the enterprise **agent runtime** (memory, identity, code-interpreter/browser tools, observability) that securely queries Unity Catalog-governed data via an agent connection to Databricks.
+- **Kiro** — AWS's **agentic IDE** for spec-driven development, turning intent into working code for apps that run on Databricks and AWS.
+- Named customers running Databricks on AWS: **Mastercard, Talkdesk, nCino, Addepar, Workday** — with a Mastercard case study on multi-engine catalog federation.
+- **AWS Marketplace offer**: try Databricks on AWS Marketplace with **$400 in usage credits via a 14-day free trial**.
 
 ## Where it fits
 
 - **Infrastructure + model layer** — most Databricks deployments already run on AWS (S3, compute, networking), so this is alignment at the layer beneath the lakehouse. See [the overview](/dais-2026).
-- **Bedrock as an external model provider** — reach Anthropic, Meta, Amazon, and other models from Databricks workloads via a managed API, with guardrails for regulated use.
-- **AgentCore for agent hosting** — an option when you want agent runtime, memory, and identity managed by AWS rather than self-hosted.
-- **Kiro for the dev workflow** — spec-driven agentic coding for teams already standardized on AWS tooling.
-- **Marketplace procurement** — buying Databricks (and drawing down committed AWS spend) through AWS Marketplace simplifies contracting for AWS-committed enterprises.
-- **Enterprise proof** — the named logos (Mastercard, Talkdesk, nCino, Addepar) signal regulated, large-scale adoption if you need reference customers.
+- **Bedrock as an external model provider** — reach Anthropic Claude, Amazon Nova, Meta Llama, and other models from Databricks workloads via a managed API, with Guardrails for regulated use.
+- **AgentCore for agent hosting** — an option when you want agent runtime, memory, and identity managed by AWS while querying Unity Catalog-governed data.
+- **Kiro for the dev workflow** — spec-driven agentic coding for teams building apps on Databricks and AWS.
+- **Marketplace procurement** — buying Databricks through AWS Marketplace simplifies contracting for AWS-committed enterprises.
+- **Enterprise proof** — the named logos (Mastercard, Talkdesk, nCino, Addepar, Workday) signal regulated, large-scale adoption if you need reference customers.
 
 ## Where it fails
 
 - **Partnership, not product** — this reads as co-marketing and ecosystem alignment more than a new joint capability; little here is a Databricks-native feature.
 - **Coopetition is real** — Bedrock and AgentCore **overlap with Databricks' own agent stack** (Agent Bricks, Mosaic AI, model serving). You're choosing whose runtime and models to bet on, not stacking complements.
 - **Two governance planes** — routing through Bedrock/AgentCore splits observability, guardrails, and lineage between AWS and Unity Catalog; unifying them is on you.
-- **Kiro maturity** — an agentic IDE competing with established players (Cursor, Copilot, Claude Code); treat as early and unproven for production teams.
+- **Kiro maturity** — an agentic IDE competing with established players (Cursor, Copilot, Claude Code); treat as early for production teams.
 - **Lock-in cuts both ways** — leaning on Bedrock models + AgentCore + Marketplace credits deepens AWS coupling and can complicate future multi-cloud or Databricks-native moves.
-- **Unverified metrics** — "30+ sessions" and the "Marketplace credits offer" are deck-attributed; verify session counts and confirm any credit/discount terms with your AWS and Databricks reps.
 - **Guardrails overlap** — Bedrock Guardrails vs. Databricks/Unity governance means duplicated policy config unless you deliberately pick one as the source of truth.
 
 ## Response
 
-- **Verdict: Watch (Pilot the pieces you already own).** The relationship matters if you're an AWS shop, but nothing here forces a new decision this quarter.
+- **Verdict: Watch (pilot the pieces you already own).** The relationship matters if you're an AWS shop, but nothing here forces a new decision this quarter.
 - **Pilot Bedrock** as an external model source **only if** Databricks' own model serving or partner models don't cover a model you specifically need (e.g., a Bedrock-exclusive).
 - **Watch AgentCore vs. Agent Bricks** — don't run two agent runtimes; pick the one aligned with where your governance and data already live (usually Databricks + Unity Catalog).
-- **Ignore Kiro for now** unless you're an AWS-tooling shop wanting to trial it in a low-stakes repo; it's early against stronger agentic IDEs.
+- **Try Kiro** only if you're an AWS-tooling shop wanting to trial it in a low-stakes repo; it's early against stronger agentic IDEs.
 - **Market context** — mirrors Databricks' multicloud posture (Azure OpenAI, Google) and its own agent push; AWS wants Databricks workloads and consumption, so weigh incentives behind the credits.
 
 ## Personal impression
 
 - This is a sponsorship narrative dressed as a product story. The substance — Databricks runs great on AWS — was already true; Bedrock/AgentCore/Kiro are AWS trying to win the agent and IDE layers on top.
 - The honest tension is coopetition: AWS's agent runtime and Databricks' agent stack want the same job, and picking both means two governance planes to reconcile.
-- **Hype level: Low–Medium.** Real partnership, real customers, but mostly ecosystem alignment plus promotional credits.
-- **Bottom line:** If you're on AWS, keep running Databricks there and use Bedrock tactically for models you can't get otherwise — but don't split your agent stack for a sponsor's slide, and verify the credits offer before it drives any decision.
+- **Hype level: Low–Medium.** Real partnership, real customers, but mostly ecosystem alignment plus a promotional Marketplace trial.
+- **Bottom line:** If you're on AWS, keep running Databricks there and use Bedrock tactically for models you can't get otherwise — but don't split your agent stack for a sponsor's slide.

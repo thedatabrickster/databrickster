@@ -1,55 +1,55 @@
 ---
 sidebar_position: 17
 title: "AI Platform — Real-Time ML"
-description: "A UC-aware coding agent for ML engineering, a serverless deep-learning platform (AI Runtime), and real-time ML serving pitched at extreme scale."
+description: "Genie Code for ML Engineering (GA), the serverless AI Runtime deep-learning platform (Public Preview), and high-QPS real-time Model Serving (GA)."
 ---
 
 # AI Platform — Real-Time ML
 
-> Agents for ML engineering, serverless GPU training, and high-QPS real-time serving — a "raw data to production" ML story, per the deck.
+> Agents for ML engineering, serverless GPU training, and high-QPS real-time serving — a "raw data to production" ML story on one Unity Catalog governance model.
 
-*Announced at DAIS 2026 (June 16–17, 2026). Source: community deck — verify officially.*
+*Announced at Data + AI Summit 2026 (June 16–17, 2026). Source: [Databricks blog](https://www.databricks.com/blog/whats-new-ai-platform-agents-ml-engineering-our-deep-learning-platform-and-new-capabilities).*
 
 ## Overview
 
-- Three pieces as presented: an **ML-engineering coding agent**, a **serverless deep-learning platform ("AI Runtime")**, and **real-time ML serving** aimed at "extreme scale."
-- The agent is pitched as **Unity Catalog-aware across the full loop** — feature engineering, training, deployment, and monitoring.
-- **Serverless A10/H100 GPUs in 2–3 clicks**, **multinode RDMA training**, and **pay-per-use** billing (as presented).
-- Serving story: **declarative + streaming features**, **high-QPS online serving**, and **Genie-driven root-cause analysis** on alerts.
-- The deck cites a **p99/p50 latency improvement** and a "raw data to production" workflow — both **unverified** and unquantified here.
-- Treat product names ("AI Runtime") and the agent's scope as **deck-coined or forward-looking** until Databricks confirms.
+- Three pieces: **Genie Code for ML Engineering** (**GA**), the **serverless AI Runtime** deep-learning platform (**Public Preview**), and enhanced **real-time Model Serving** (**GA**).
+- **Genie Code for ML Engineering** is Unity Catalog-aware and integrates natively with Feature Store, Serverless Compute, AI Runtime, Model Serving, and Inference Tables — covering feature engineering, training/tuning, and deployment to production endpoints, with MLflow across the full lifecycle.
+- **AI Runtime** attaches **serverless A10 and H100 GPUs in 2–3 clicks**, with **pay-per-use** (no idle time or upfront commitment), **multinode training**, **RDMA**, and optimized data loading; orchestrated via Lakeflow Jobs and DABs.
+- **High-QPS Model Serving** reaches **300K+ QPS at under 10ms p99 latency overhead**, handles **100K+ QPS in production**, supports CPU and GPU models, and delivers **up to 2x** better p99 and p50 latency with infrastructure costs reduced **up to 90%+** versus self-managed alternatives.
+- **Feature Store** adds declarative feature engineering (define once, materialize for training and serving), **Streaming Features**, and online serving on **Lakebase**.
+- **Genie ZeroOps for ML** brings agentic observability — inference-table querying, endpoint debugging, and alert root-cause analysis.
 
 ## Where it fits
 
 - **Classic ML teams on Databricks** who want feature store, training, and serving under one Unity Catalog governance boundary.
-- The coding agent targets the **glue work** — feature pipelines, training scaffolds, deployment configs, monitoring hooks — where MLOps teams lose the most time.
-- Serverless GPUs suit **bursty training and fine-tuning** without standing up and babysitting a cluster.
+- Genie Code targets the **glue work** — feature pipelines, training scaffolds, deployment configs, monitoring hooks — where MLOps teams lose the most time.
+- Serverless A10/H100 GPUs suit **bursty training and fine-tuning** without standing up and babysitting a cluster.
 - **Real-time serving** fits fraud, recommendations, pricing, and personalization where features must be fresh and latency is user-facing.
-- Pairs with **Lakeflow** (ingestion), **Lakehouse//RT** (real-time features), and **Genie** (the alert root-cause layer).
+- Pairs with **Lakeflow** (ingestion/orchestration), **Lakebase** (online features), and **Genie ZeroOps** (the alert root-cause layer).
 - Attractive if you already run MLflow + feature engineering on Databricks and want to avoid a separate serving stack.
 
 ## Where it fails
 
-- **GPU availability and cost are the real constraint.** "2–3 clicks to an H100" means nothing if capacity is queued or spot-priced away — verify actual availability and pay-per-use rates.
-- **"Extreme scale" is undefined.** No QPS ceiling, no concurrency numbers, no cost-at-scale — the one metric that matters for real-time serving isn't shown.
-- The **p99/p50 improvement is unverified and unbaselined** — improvement over what, on which model and payload size, isn't stated.
-- **Classic ML vs GenAI focus is muddy.** Feature stores and real-time serving are classic-ML concerns; make sure this isn't a GenAI platform with an ML label bolted on.
+- **GPU availability and cost are the real constraint.** "2–3 clicks to an H100" means nothing if capacity is queued — validate actual availability and pay-per-use rates for your region.
+- **Headline QPS is overhead, not a promise.** 300K+ QPS at under 10ms p99 *latency overhead* is the platform's number; your end-to-end p99 depends on model, payload size, and feature-fetch cost.
+- The **up to 2x** latency and **up to 90%+** cost figures are best-case ceilings — "up to" leaves the typical case unstated.
+- **Classic ML vs GenAI focus is muddy.** Feature stores and real-time serving are classic-ML concerns; confirm the pieces you need aren't GenAI-first.
 - **Mature competitors already do this**: SageMaker (feature store, real-time endpoints, multinode training) and Vertex AI (feature store, online serving) are GA and battle-tested.
-- **Preview maturity risk** — a coding agent spanning feature-eng through monitoring is a wide surface; expect rough edges and narrow initial coverage.
+- **Preview maturity risk on AI Runtime** — it is Public Preview; expect rough edges before GA.
 - **Lock-in**: UC-aware convenience only pays off if your features, models, and serving all live in Databricks; it doesn't transfer.
 
 ## Response
 
 - **Verdict: Pilot** — if you're already on Databricks for ML and feel the feature-store-to-serving pain, a scoped real-time use case is worth testing.
-- **Watch** the coding agent — promising for MLOps toil, but wide-scope agents underdeliver early; wait for GA and real coverage before betting workflows on it.
-- **Ignore** if you're happy on SageMaker/Vertex with a working feature store and endpoints — there's no case here to migrate on deck claims.
-- Benchmark **your** real-time serving: p99 under production QPS, feature freshness, and cost per million predictions — not demo numbers.
-- Market context: this is Databricks answering **SageMaker and Vertex** on real-time + feature stores; the wedge is **one Unity Catalog governance model**, not proven raw performance.
+- **Adopt Genie Code** cautiously — it's GA, but a coding agent spanning feature-eng through monitoring is a wide surface; start on low-risk workflows and expand.
+- **Ignore** if you're happy on SageMaker/Vertex with a working feature store and endpoints — there's no forced-migration case here.
+- Benchmark **your** real-time serving: end-to-end p99 under production QPS, feature freshness, and cost per million predictions — not the platform's overhead number.
+- Market context: this is Databricks answering **SageMaker and Vertex** on real-time + feature stores; the wedge is **one Unity Catalog governance model**.
 
 ## Personal impression
 
 - Strategically sound — unifying feature engineering, training, serving, and monitoring under Unity Catalog with an agent doing the glue is exactly where MLOps teams bleed time.
-- But this is the most crowded, most mature category Databricks is competing in, and the deck leans on undefined "extreme scale" and one unverified latency stat.
-- The GPU-in-a-few-clicks pitch lives or dies on **actual capacity and price**, which no deck can promise.
+- This is the most crowded, most mature category Databricks competes in, but the serving numbers (300K+ QPS, under 10ms p99 overhead, up to 2x latency) are now concrete rather than hand-wavy.
+- The GPU-in-a-few-clicks pitch still lives or dies on **actual capacity and price**, and AI Runtime is only Public Preview.
 - **Hype level: Medium.**
-- **Bottom line:** credible direction for Databricks-committed ML shops; pilot one real-time workload against your own p99 and cost, and don't migrate off a working SageMaker/Vertex stack on these claims.
+- **Bottom line:** credible, now-GA serving and agent story for Databricks-committed ML shops; pilot one real-time workload against your own p99 and cost, and don't migrate off a working SageMaker/Vertex stack reflexively.

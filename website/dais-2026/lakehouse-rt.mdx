@@ -6,18 +6,19 @@ description: "A real-time data warehouse on the new 'Reyden' engine — millisec
 
 # Lakehouse//RT
 
-> A real-time data warehouse that queries the lakehouse in milliseconds — no separate serving store, no data duplication, per the deck.
+> A real-time data warehouse that queries the lakehouse in milliseconds — no separate serving store, no data duplication.
 
-*Announced at DAIS 2026 (June 16–17, 2026). Source: community deck — verify officially.*
+*Announced at Data + AI Summit 2026 (June 16–17, 2026). Source: [Databricks blog](https://www.databricks.com/blog/introducing-lakehousert-real-time-performance-unified-lakehouse).*
 
 ## Overview
 
-- Positioned as a **real-time data warehouse** powered by a new **"Reyden" engine** — treat the name as likely deck-coined or forward-looking until Databricks confirms it.
-- Serves **Delta and Iceberg directly under Unity Catalog** — no duplicate pipelines, no separate serving layer, no copied policies (as presented).
-- The deck cites **up to 16x faster** than traditional real-time serving; **~10ms on small data**, **sub-100ms at scale**; **12,000+ queries/second** — all unverified.
-- **AUTO sizing** replaces t-shirt sizing; **incremental autoscaling** adds single nodes rather than whole warehouse copies.
-- Claims to handle **joins, window functions, and subqueries** that specialized real-time engines often struggle with.
-- Customer claims (unverified): **Meta** tens-of-ms, **Enverus** up to 100x, **Magnite** sub-200ms dashboards, **Bally's** 7x sub-second. Intro discount reportedly through **Jan 2027**.
+- A **real-time data warehouse** powered by a new **"Reyden" engine**, built for high-concurrency, low-latency serving.
+- Serves **Delta and Iceberg directly under Unity Catalog** — no duplicate pipelines, no separate serving layer, no copied policies.
+- **Up to 16x better performance** than real-time serving layers; **10ms on smaller datasets**, **sub-100ms on larger ones**; **sub-100ms latency at 12,000 queries/second**, with flat latency across thousands of concurrent queries.
+- **AUTO sizing** replaces manual t-shirt sizing; **incremental autoscaling** adds/removes single nodes rather than whole warehouse copies.
+- **Status: Beta**, available for select read-only workloads, with more capabilities coming.
+- **30% introductory discount through January 2027**; usage-based billing.
+- Preview customers include **Meta, SES, Enverus, Magnite, Cisco, Halcyon AI, PointClickCare, Bally's, and Equilibrium Energy**.
 
 ## Where it fits
 
@@ -30,24 +31,24 @@ description: "A real-time data warehouse on the new 'Reyden' engine — millisec
 
 ## Where it fails
 
-- **"Reyden" is likely a deck/forward-looking name.** Verify it exists as a shipping product and check its preview/GA status before planning around it.
-- **Every benchmark is unverified and vendor-framed.** "Up to 16x", "12,000+ QPS", and the customer multipliers need independent, workload-matched validation.
-- Headline latencies (~10ms small data, sub-100ms at scale) are **best-case**; real-world tail latency under concurrency and complex joins is what matters and isn't shown.
+- **Beta, read-only.** It's limited to select read-only workloads today; write paths and broader capabilities are still coming.
+- **Benchmarks are vendor-framed.** "Up to 16x" and "12,000 QPS at sub-100ms" need independent, workload-matched validation against your own queries.
+- Headline latencies (10ms small data, sub-100ms at scale) are **best-case**; real-world tail latency under concurrency and complex joins is what matters and isn't shown.
 - Purpose-built engines — **ClickHouse, Druid, Pinot, Rockset** — remain extremely strong on high-QPS point/aggregation workloads and may still win on raw latency and cost.
 - **Lock-in risk**: the value depends on Unity Catalog + Databricks; the "no duplication" benefit doesn't transfer if your serving lives elsewhere.
-- Customer logos with big multipliers are **marketing signals, not benchmarks** — different data, queries, and baselines.
-- Intro discount through Jan 2027 hints at **early-stage pricing**; watch for cost cliffs after the promo.
+- Named preview customers are **marketing signals, not benchmarks** — different data, queries, and baselines.
+- The 30% intro discount through Jan 2027 reflects **early-stage pricing**; watch for cost changes after the promo.
 
 ## Response
 
-- **Verdict: Pilot** — if you already run Delta/Iceberg on Unity Catalog and have a concrete real-time serving pain, the "no separate layer" pitch is worth a scoped test.
-- **Watch** if you're happy with an existing OLAP engine — don't rip out a working ClickHouse/Druid/Pinot deployment on deck claims.
+- **Verdict: Pilot** — if you already run Delta/Iceberg on Unity Catalog and have a concrete real-time serving pain, the "no separate layer" pitch is worth a scoped test while it's in Beta.
+- **Watch** if you're happy with an existing OLAP engine — don't rip out a working ClickHouse/Druid/Pinot deployment on a Beta.
 - Benchmark against your **actual** queries and QPS, including complex joins and p99 latency under concurrency — not the demo numbers.
 - Market context: this competes with real-time OLAP (**ClickHouse, Druid, Pinot, Rockset**) and warehouse serving (Snowflake, BigQuery); the wedge is **governance unification and no data movement**, not necessarily raw speed.
 
 ## Personal impression
 
 - The strategic idea is right: killing the copy-to-serving-layer step and keeping one Unity Catalog governance boundary is genuinely valuable if the latency holds under real load.
-- But the numbers are a highlight reel, and complex-join performance at high QPS is exactly where these claims usually soften.
+- The numbers are strong on paper, but complex-join performance at high QPS is exactly where these claims usually soften — and it's still Beta and read-only.
 - **Hype level: High.**
-- **Bottom line:** compelling direction for lakehouse-committed shops; pilot it against your own workload before believing a single benchmark, and confirm "Reyden" is real before you architect around it.
+- **Bottom line:** compelling direction for lakehouse-committed shops; pilot it against your own workload before believing a single benchmark, and account for its Beta, read-only scope.

@@ -1,55 +1,56 @@
 ---
 sidebar_position: 4
 title: "Lakeflow"
-description: "Databricks' unified, agentic data-engineering platform — Connect, Designer, Zerobus — for ingestion, transformation, and orchestration under Unity Catalog."
+description: "Databricks' unified, agentic data-engineering platform — Connect, Designer, Zerobus, Genie ZeroOps — for ingestion, transformation, and orchestration under Unity Catalog."
 ---
 
 # Lakeflow
 
 > Databricks folds ingestion, ETL, and orchestration into one agentic, Unity-Catalog-governed platform — with a no-code designer and near-real-time ingest.
 
-*Announced at DAIS 2026 (June 16–17, 2026). Source: community deck — verify officially.*
+*Announced at Data + AI Summit 2026 (June 16–17, 2026). Source: [Databricks blog](https://www.databricks.com/blog/lakeflow-new-era-agentic-data-engineering).*
 
 ## Overview
 
-- Positioned as a **unified, agentic data-engineering platform**: ingestion, transformation, and orchestration in one place, governed end-to-end by Unity Catalog.
-- **Lakeflow Connect** — managed connectors across SaaS apps, databases, and knowledge-management tools (per the deck: Jira, GitHub, Confluence, SharePoint).
-- **Lakeflow Designer (GA) + Genie Code** — drag-and-drop, no-code ETL compiling to Spark Declarative Pipelines, reportedly with **"zero translation loss"**.
-- A **background agent** detects pipeline failures, root-causes them, and proposes fixes it validates in a sandbox before you apply.
-- **Zerobus** — sub-5s near-real-time writes (the deck cites *up to 10 GB/s per table*, unverified); a real-time mode (RTM) is claimed down to *~5 ms end-to-end* (unverified).
-- Naming churn baked in: DLT is now **Spark Declarative Pipelines**, Jobs is now **Lakeflow Jobs**.
+- A **unified, agentic data-engineering platform**: ingestion, transformation, and orchestration in one place, governed end-to-end by Unity Catalog.
+- **Lakeflow Connect** — 100+ managed connectors across SaaS, databases, and knowledge sources: Confluence and HubSpot (GA); Jira, GitHub, SharePoint, Google Drive, Outlook, Meta Ads, TikTok Ads, Google Ads (Beta). Query-based capture for all database connectors (GA); Community Connectors (Beta) for custom systems.
+- **Lakeflow Designer (GA)** — AI-powered, no-code drag-and-drop ETL with natural-language prompts; every visual Flow natively runs on a Spark Declarative Pipeline with **"zero translation loss."**
+- **Genie Code** — integrated throughout Lakeflow to author ingestion connectors, build pipelines in Python/SQL, and develop jobs.
+- **Genie ZeroOps** — a background AI agent that monitors assets, root-causes issues from quality metrics, error logs, and lineage, proposes fixes, and validates them in a sandbox with human-in-the-loop approval.
+- **Zerobus** (GA) — near-real-time writes in under 5 seconds; high throughput up to 100MB/s (over 10GB/s per table). gRPC/REST APIs and SDKs (Python, Java, Rust, Go, TypeScript) are GA; Kafka-compatible APIs are Beta (coming soon); OpenTelemetry is Public Preview.
+- **Spark Declarative Pipelines Real-Time Mode** (Public Preview) — end-to-end latencies as low as 5 milliseconds.
 
 ## Where it fits
 
 - The **ingest + transform + orchestrate** layer of the lakehouse — the plumbing under everything in the Modern Databricks Stack.
 - Teams standardizing on Databricks who want to retire a **Fivetran + dbt + Airflow** stitch-up and consolidate under one bill and one governance model.
-- **Lakeflow Connect** suits shops with common SaaS/DB sources and no appetite to maintain custom connectors.
-- **Designer** targets analysts and less-code-heavy data teams building straightforward pipelines without owning PySpark.
-- **Zerobus / RTM** fits event-driven and near-real-time use cases (clickstream, telemetry, operational sync) that previously needed Kafka-style infrastructure.
-- Pairs naturally with Unity Catalog (governance/lineage), Lakehouse//RT, and Genie Code for authoring.
-- The deck cites a **Panasonic BI-refresh reduction** (unverified) as an anchor customer proof point.
+- **Lakeflow Connect** suits shops with common SaaS/DB/knowledge sources and no appetite to maintain custom connectors.
+- **Designer** targets analysts and less-code-heavy data teams building pipelines without owning PySpark.
+- **Zerobus / Real-Time Mode** fits event-driven and near-real-time use cases (clickstream, telemetry, operational sync) that previously needed Kafka-style infrastructure.
+- Pairs naturally with Unity Catalog (governance/lineage) and Genie Code for authoring.
+- **Proof points:** Panasonic unified SAP, Workday, and SharePoint and cut Power BI refresh times by 50%; Meta drove end-to-end pipeline latency to under a minute with Zerobus and Spark Declarative Pipelines.
 
 ## Where it fails
 
-- **"Zero translation loss"** is the load-bearing claim and the least believable — visual-to-code compilers historically leak on edge cases, custom logic, and performance tuning. Treat as marketing until proven.
+- **"Zero translation loss"** is the load-bearing claim — visual-to-code compilers historically leak on edge cases, custom logic, and performance tuning. Benchmark it on your own pipelines.
 - **No-code ETL ceilings**: fine for the 80% simple path; complex joins, incremental CDC, testing, and CI/CD usually push teams back to code.
-- **Agentic auto-fix trust**: a bot that root-causes and patches production pipelines is high-reward, high-blast-radius. Sandbox validation helps, but approval gates and audit are non-negotiable.
-- **Rename churn** (DLT → Declarative Pipelines, Jobs → Lakeflow Jobs) breaks docs, muscle memory, and search — real friction with little user benefit.
-- **All the deck metrics are unverified** — 10 GB/s per table, ~5 ms RTM, connector count, Panasonic numbers. Do not size architecture off them.
+- **Agentic auto-fix trust**: a bot that root-causes and patches production pipelines is high-reward, high-blast-radius. Sandbox validation and human-in-the-loop help, but approval gates and audit are non-negotiable.
+- **Preview/Beta surface**: Kafka-compatible APIs, most knowledge/MarTech connectors, and Real-Time Mode are still Beta or Preview — production readiness varies by component.
 - **Lock-in**: consolidating Fivetran/dbt/Airflow into Lakeflow deepens Databricks dependence and removes portability.
-- Connector **breadth vs. depth** — a managed catalog rarely matches Fivetran's long tail or a mature dbt/Airflow ecosystem on day one.
+- Connector **breadth vs. depth** — a 100+ managed catalog rarely matches Fivetran's long tail or a mature dbt/Airflow ecosystem on every source.
 
 ## Response
 
-- **Verdict: Pilot.** Strong strategic direction, but the headline claims need your own benchmarks before you bet a platform on them.
-- **Lakeflow Connect / Designer** — pilot on a non-critical pipeline; measure whether "zero translation loss" and connector coverage hold for *your* sources.
-- **Zerobus / RTM** — watch/pilot only if you have a genuine near-real-time need; validate latency and throughput yourself.
-- **Agentic auto-fix** — enable in suggest-only mode first; never auto-apply to prod without human approval.
+- **Verdict: Adopt where GA, pilot the Preview surface.** The direction is strong and much of it ships GA today.
+- **Lakeflow Connect / Designer** — pilot on a non-critical pipeline; confirm "zero translation loss" and connector coverage hold for *your* sources, noting which connectors are still Beta.
+- **Zerobus** — GA and credible for near-real-time writes; validate the under-5s / 100MB/s numbers against your workload.
+- **Real-Time Mode** — Public Preview; trial only if you have a genuine sub-second need.
+- **Genie ZeroOps** — enable in suggest-only mode first; never auto-apply to prod without human approval.
 - **Market context**: this is a direct shot at **Fivetran (ingest)**, **dbt (transform)**, and **Airflow (orchestration)**. Consolidation economics are real, but incumbents are deeper and portable — keep an exit path.
 
 ## Personal impression
 
 - The most strategically coherent piece of the stack: owning ingest-to-orchestration under one governance model is exactly where Databricks should push.
-- But it's stacked with unverified numbers and a "zero translation loss" claim that pattern-matches to every visual-ETL tool that later disappointed.
-- The background fix-it agent is genuinely interesting and genuinely scary — the trust curve, not the tech, decides whether teams turn it on.
-- **Hype level: Medium-High.** **Bottom line:** great consolidation story and a credible Fivetran/dbt/Airflow threat — pilot it, benchmark the claims yourself, and don't let a bot patch prod unattended.
+- With Zerobus GA and Designer GA, this is further along than a roadmap pitch — the numbers (5s writes, over 10GB/s per table, 5ms Real-Time Mode) are now Databricks' own, so hold them to it.
+- Genie ZeroOps is genuinely interesting and genuinely consequential — the trust curve, not the tech, decides whether teams turn it on.
+- **Hype level: Medium-High.** **Bottom line:** a strong consolidation story and a credible Fivetran/dbt/Airflow threat — adopt the GA pieces, pilot the Previews, and don't let a bot patch prod unattended.

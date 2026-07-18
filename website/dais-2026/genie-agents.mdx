@@ -1,53 +1,50 @@
 ---
 sidebar_position: 13
 title: "Genie Agents"
-description: "Conversational analytics agents that turn plain-language data questions into trusted, governed answers over the lakehouse — no SQL or BI tool required."
+description: "Curated, domain-specific AI agents that take autonomous action and reason over structured and unstructured data across business tools."
 ---
 
 # Genie Agents
 
-> Ask data questions in plain language; get governed, visualized answers over the lakehouse — no SQL, no BI tool.
+> Turn a prompt into a shareable, autonomous agent that reasons over your data and acts across business tools.
 
-*Announced at DAIS 2026 (June 16–17, 2026). Source: community deck — verify officially.*
+*Announced at Data + AI Summit 2026 (June 16–17, 2026). Source: [Databricks blog](https://www.databricks.com/blog/introducing-genie-one-genie-ontology-and-genie-agents).*
 
 ## Overview
 
-- **Conversational analytics agents** — ask data questions in natural language and get trusted, governed answers with no SQL or BI tool needed, per the deck.
-- **Agentic reasoning** turns a question into SQL over the lakehouse, returns visualized results, and suggests follow-up questions.
-- **Expert instructions** plus predefined **trusted answers** (verified SQL) keep domain-specific answers accurate.
-- **Adapts to org change** and learns from thumbs up/down feedback; **activity monitoring** and **accuracy benchmarking** are built in (deck-attributed, unverified).
-- **Delivery options** — standalone Genie spaces, embedded in dashboards, or via API into Teams, Slack, and Glean.
+- **Genie Spaces is evolving into Genie Agents** — curated, domain-specific AI agents built on the more than one million Genie Spaces customers have already created.
+- **Take autonomous action** — Genie Agents use the same tools as Genie One: MCP connections, scheduled tasks, document and artifact generation, and writes to external systems, to complete multi-step workflows without oversight.
+- **Reason over unstructured data, not just tables and views** — agents can be grounded in documents, files, and knowledge sources alongside structured data.
+- **Spin up from a single prompt** in Genie One or Genie Code, then scope it, benchmark it, and share it for teammates to use or customize.
+- **Built on Genie lineage** — Genie Spaces are curated, governed chat experiences scoped to specific topics, with verified logic and benchmarks; Genie Agents carry that curation forward.
 
 ## Where it fits
 
-- **Semantic / consumption layer** of the Modern Databricks Stack — self-serve analytics on top of Unity Catalog-governed data. See [the overview](/dais-2026).
-- Best for **business users and analysts** who need ad-hoc answers without waiting on a BI backlog or writing SQL.
-- Pairs with **Unity Catalog** (governed tables, lineage, permissions) so generated SQL inherits row/column access controls.
-- Fits orgs that already curate **certified metrics and semantic definitions** — trusted answers turn those into reusable, verified responses.
-- **Embeddable** — surface the same agent inside existing dashboards or chat tools (Teams, Slack, Glean) rather than forcing a new destination.
-- Complements, not replaces, dashboards: good for the long tail of one-off questions that would otherwise become ad-hoc tickets.
+- **Semantic / consumption layer** of the Modern Databricks Stack — self-serve analytics and action on top of Unity Catalog-governed data. See [the overview](/dais-2026).
+- Lets **domain experts scale their expertise** by turning trusted rules, data, and workflows into agents the whole team can rely on.
+- Pairs with **Unity Catalog** (governed tables, lineage, permissions) so agent actions inherit access controls.
+- Sits alongside **Genie One** (the data-smart AI coworker delivered across Slack, Teams, and mobile) and **Genie Ontology** (the automatic context graph over tables, queries, dashboards, and pipelines).
+- Extends beyond Q&A into **action** — MCP tool use, scheduled tasks, and writes to external systems turn answers into completed workflows.
 
 ## Where it fails
 
-- **Text-to-SQL accuracy degrades on messy schemas** — cryptic column names, undocumented joins, and duplicated tables produce confidently wrong SQL. The accuracy floor is your metadata quality, not the model.
-- **Reliability depends on curation** — without expert instructions and trusted answers, results are inconsistent; the "no SQL needed" promise quietly assumes someone did heavy semantic modeling first.
-- **Governance of generated SQL** — a plausible-looking query can silently misaggregate or double-count. Answers need a verification path, and non-technical users can't spot the error.
-- **Metrics unverified** — "activity monitoring" and "accuracy benchmarking" are deck-attributed with no published numbers; treat benchmark claims as marketing until Databricks publishes methodology.
-- **Naming overlap** — "Genie Agents" collides with **Genie One** and the broader Genie brand; expect confusion about what is a space, an agent, and an assistant.
-- **Preview maturity** — feedback learning and org-change adaptation are hard to verify; assume preview-grade behavior and drift over time.
-- **Lock-in** — trusted answers and expert instructions are Databricks-specific curation that doesn't port to another BI stack.
+- **Autonomy raises the stakes** — agents that write to external systems and act "without need for oversight" can propagate a wrong assumption into real changes, not just a wrong chart.
+- **Reliability depends on curation** — benchmarks and scoping are only as good as the trusted rules and data behind them; a thinly scoped agent inherits the messiness of the underlying schema.
+- **Unstructured grounding is hard to verify** — reasoning over documents and files broadens the surface for confidently wrong answers, and non-technical users can't easily spot the error.
+- **Naming overlap** — Genie Agents, Genie Spaces, Genie One, Genie Code, and Genie Ontology are a crowded brand; expect confusion about what is a space, an agent, and a coworker.
+- **Lock-in** — trusted rules, benchmarks, and MCP wiring are Databricks-specific curation that doesn't port to another stack.
 
 ## Response
 
-- **Verdict: Pilot.** The self-serve value is real, but only after you invest in semantic curation — pilot on one well-modeled domain, not the whole warehouse.
-- **Adopt now only if** you already have certified metrics and clean, documented tables in Unity Catalog; then trusted answers pay off quickly.
-- **Watch** the accuracy-benchmarking and feedback-learning claims until official docs confirm methodology and numbers.
-- **Don't** point it at raw, undocumented schemas and expect trustworthy answers — you will get confident nonsense.
-- **Market context** — competes with **Snowflake Cortex Analyst**, **ThoughtSpot**, and **Power BI Q&A**. Databricks' edge is native Unity Catalog governance and lineage on the generated SQL, not the text-to-SQL itself.
+- **Verdict: Pilot.** The action-taking value is real, but only after you invest in scoping and benchmarking — pilot on one well-modeled domain, not the whole warehouse.
+- **Adopt now only if** you already have curated, benchmarked Genie Spaces and clean, governed tables in Unity Catalog; the migration path is then natural.
+- **Constrain autonomy early** — gate external-system writes and scheduled actions behind review until an agent's benchmarks earn trust.
+- **Don't** point an agent at raw, undocumented data or knowledge sources and expect trustworthy action.
+- **Market context** — competes with **Snowflake Cortex**, **ThoughtSpot**, and **Power BI Q&A**. Databricks' edge is native Unity Catalog governance plus action across tools, not text-to-SQL alone.
 
 ## Personal impression
 
-- The honest version of this product is "a natural-language front end for a well-curated semantic layer" — the agent is only as good as the trusted answers and metadata behind it.
-- Text-to-SQL demos beautifully and disappoints on real enterprise schemas; the gap between the two is exactly the curation work the pitch downplays.
-- **Hype level: Medium-High.** Conversational analytics is the most over-promised category in the deck, and every major vendor ships a near-identical feature.
-- **Bottom line:** Pilot on one curated domain, lean hard on trusted answers, and keep a human who can read SQL in the loop before anyone makes decisions off Genie's output.
+- The real story here is the shift from "answer questions" to "take action" — Genie Agents are Genie Spaces with hands, and that is both the value and the risk.
+- The single-prompt creation flow will demo beautifully; the durable question is whether scoping and benchmarking hold up on real enterprise data and documents.
+- **Hype level: Medium-High.** Autonomous business-tool agents are the most over-promised category of the summit, and every major vendor is racing here.
+- **Bottom line:** Pilot on one curated, benchmarked domain, keep external writes on a short leash, and keep a human who understands the data in the loop before agents act on decisions.

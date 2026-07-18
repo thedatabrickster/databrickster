@@ -8,16 +8,17 @@ description: "An autonomous background agent that watches production data and AI
 
 > An autonomous background agent that watches production data & AI workloads, finds issues, and proposes verified fixes for your approval.
 
-*Announced at DAIS 2026 (June 16–17, 2026). Source: community deck — verify officially.*
+*Announced at Data + AI Summit 2026 (June 16–17, 2026). Source: [Databricks blog](https://www.databricks.com/blog/introducing-genie-zeroops).*
 
 ## Overview
 
-- **Autonomous background agent** that continuously watches production data and AI workloads, per the deck.
-- **Continuous monitoring** catches failures — including silent ones that surface only in data-quality metrics, not in job errors.
-- **Root-cause tracing** through Unity Catalog lineage to the real cause: code bugs, schema changes, late data, or drift.
-- **Fix generation** with agentic coding tools, using your GitHub PRs and Jira context as grounding.
-- **Zero-copy sandbox** — runs the proposed fix against a sandbox clone of production data before anything ships; **human approval required**.
-- Advertised flow: **detect, assess, remediate, verify.**
+- **Autonomous background agent** built into the platform that monitors data and AI assets and takes action when issues occur.
+- **Continuous monitoring** of pipelines, jobs, tables, and ML models — catches silent failures that surface in data-quality metrics before they throw errors.
+- **Root-cause tracing** through Unity Catalog lineage across the full dependency graph.
+- **Fix generation** via agentic code generation, using your development workflow — GitHub PRs and Jira tickets — as context.
+- **Secure sandbox validation** — runs the proposed fix against zero-copy clones of your data with scoped permissions and network isolation; **all fixes require user approval** before production.
+- Four-step flow: **detect, assess, remediate, verify.**
+- **Status: entering private preview in the coming weeks**, starting with jobs, pipelines, tables, and ML workloads; Apps and Lakebase databases are on the roadmap.
 
 ## Where it fits
 
@@ -31,16 +32,15 @@ description: "An autonomous background agent that watches production data and AI
 ## Where it fails
 
 - **Trusting auto-generated fixes on prod pipelines** is the core risk — a plausible-looking fix can silently corrupt data that's expensive to unwind. Human approval only helps if the reviewer actually understands the diff.
-- **False positives / alert fatigue** — a background watcher that cries wolf gets muted; the deck cites no precision/recall figures (unverified).
+- **False positives / alert fatigue** — a background watcher that cries wolf gets muted; no precision/recall figures are published.
 - **Sandbox fidelity** — a zero-copy clone replicates data, not upstream systems, streaming timing, concurrency, or external APIs. "Verified in sandbox" is not "verified in prod."
 - **Accountability gap** — when an approved fix is wrong, who owns it? The agent proposed, a human clicked approve; that's a thin audit story for regulated data.
-- **Root-cause accuracy unverified** — lineage narrows the search, but "found the real root cause" is a strong claim with no accuracy metric behind it.
-- **Preview-grade maturity** — autonomous remediation of AI workloads (drift, model behavior) is far less mature than fixing a broken SQL join.
-- **Metrics unverified** — all capabilities here are deck-attributed and not confirmed against official docs.
+- **Root-cause accuracy** — lineage narrows the search, but "found the real root cause" is a strong claim with no accuracy metric behind it.
+- **Preview-grade maturity** — private preview at launch, and autonomous remediation of AI workloads (drift, model behavior) is far less mature than fixing a broken SQL join.
 
 ## Response
 
-- **Verdict: Watch (Pilot the monitoring half).** The detect/assess story is credible now; auto-remediation on prod needs a track record first.
+- **Verdict: Watch (pilot the monitoring half).** The detect/assess story is credible now; auto-remediation on prod needs a track record first.
 - **Pilot only** the monitor-and-diagnose mode with fixes gated behind mandatory human review — treat generated PRs as suggestions, never auto-merge.
 - **Ignore** claims of hands-off autonomy on production data until precision, root-cause accuracy, and sandbox fidelity are published.
 - **Market context** — competes with **Monte Carlo**, **Anomalo**, and **Bigeye** on observability/detection; those tools stop at alerting, and human on-call still writes the fix. ZeroOps' bet is closing that last mile — which is also where the risk lives.
@@ -50,4 +50,4 @@ description: "An autonomous background agent that watches production data and AI
 - The detection and lineage-based diagnosis is the genuinely valuable part, and it's the part observability vendors already do well — so the differentiator is really the auto-fix, which is the scariest piece.
 - Zero-copy sandbox verification is a smart touch, but sandbox-green never equals prod-safe, and "human approval" quietly becomes rubber-stamping once the agent is usually right.
 - **Hype level: High.** "Autonomous fixes for prod pipelines" is the kind of promise that demos beautifully and terrifies anyone who's cleaned up a bad backfill.
-- **Bottom line:** Adopt the watching, distrust the fixing — let it find and explain problems, keep a human firmly on the trigger until the numbers are public.
+- **Bottom line:** Adopt the watching, distrust the fixing — let it find and explain problems, keep a human firmly on the trigger. It's private preview, so there's time to watch the numbers before trusting the last mile.

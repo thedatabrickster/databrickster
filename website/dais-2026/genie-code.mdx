@@ -1,52 +1,52 @@
 ---
 sidebar_position: 11
 title: "Genie Code"
-description: "A full-page agentic command center that writes, runs, and refines data and ML code — now MLflow-aware, GPU-aware, and able to run scheduled autonomous tasks overnight."
+description: "A full-page agentic command center that writes, runs, and refines data and ML code — now MLflow-aware, GPU-aware, and able to run scheduled autonomous tasks."
 ---
 
 # Genie Code
 
-> A full-page command center for agentic data and ML work — it writes, executes, and refines code, is now ML-aware, and can run scheduled tasks autonomously.
+> A full-page command center for agentic data and ML work — it writes, executes, and refines code, is ML-aware, and can run scheduled tasks autonomously.
 
-*Announced at DAIS 2026 (June 16–17, 2026). Source: community deck — verify officially.*
+*Announced at Data + AI Summit 2026 (June 16–17, 2026). Source: [Databricks blog](https://www.databricks.com/blog/whats-new-genie-code-data-ai-summit-2026).*
 
 ## Overview
 
-- Per the deck: a **full-page workspace** (not a side chat) for agentic data and ML work — the agent writes, executes, and iteratively refines code.
-- Manages **many concurrent threads** at once, with per-thread **status, search, and history** — a project view rather than a single conversation.
-- Now **ML-aware**: reportedly reads **MLflow** lineage and metrics, inspects **serving endpoints**, and **auto-switches to a GPU AI Runtime** when a workload needs it.
-- Can run work **autonomously overnight** on a schedule and return **reviewable threads** — human-in-the-loop by design, you approve before merge.
-- Deck metrics (all **unverified**): a "% of Databricks customers use Genie" figure; one customer taken "raw data to production ML"; and a claim it blends Databricks expertise with your team's own patterns.
+- **Full-page command center (GA):** a dedicated workspace (not a side chat) for complex data and ML work — the agent writes, executes, and iteratively refines code. Open it from the maximize button in the side panel.
+- **Manages multiple concurrent threads:** see when a thread is executing or waiting for input, rename threads, search conversations, and view instructions, skills, and connectors.
+- **ML workflow specialization (GA):** reads MLflow runs, artifacts, model lineage, quality metrics, and system metrics; inspects serving endpoint health and performance to diagnose and optimize; and moves to **AI Runtime** when a job needs a GPU for training. Learns team patterns via Genie Ontology.
+- **Scheduled tasks (coming soon):** runs autonomous work outside active sessions — e.g. checking job results, summarizing pipelines, analyzing dashboard metrics — and returns results as threads for human review.
+- **Human-in-the-loop by design:** "You stay in the loop and decide what to keep."
+- Databricks states Genie products have **grown over 10x** in the past year and are **used by 90% of Databricks customers**.
 
 ## Where it fits
 
-- **ML engineering loop**: an agent that already knows your MLflow runs and endpoints removes the copy-paste between experiment tracking and code.
-- **Long-running, parallel work**: the multi-thread command center suits teams juggling several models, backfills, or investigations at once.
-- **Overnight toil**: scheduled autonomous tasks fit low-stakes, repeatable jobs — retraining sweeps, data profiling, batch feature refreshes.
+- **ML engineering loop:** an agent that already reads your MLflow runs, lineage, and serving endpoints removes the copy-paste between experiment tracking and code.
+- **Long-running, parallel work:** the multi-thread command center suits teams juggling several models, backfills, or investigations at once.
+- **Overnight toil:** scheduled autonomous tasks fit low-stakes, repeatable jobs — job-result checks, pipeline summaries, dashboard-metric analysis.
 - Sits at the **notebook/IDE layer** inside the platform; pairs with Unity Catalog for governance and Lakeflow for orchestration.
 - Benefits **in-platform teams** who live in Databricks all day and want context (lineage, metrics, compute) the agent can see natively.
-- The **GPU auto-switch** helps when workloads span cheap CPU exploration and occasional heavy training without manual cluster fiddling.
+- The **GPU move to AI Runtime** helps when workloads span cheap CPU exploration and occasional heavy training without manual cluster fiddling.
 
 ## Where it fails
 
-- **Autonomous overnight runs are the core risk** — trust, cost, and blast radius. An agent left running unattended can rack up compute or touch the wrong data before anyone reviews.
-- **Review burden shifts, it doesn't vanish.** "Reviewable threads" means humans still read every autonomous change; at scale that queue can become the bottleneck.
-- **GPU auto-switch is a cost trap** if triggering is loose — silent escalation to expensive AI Runtime is exactly the kind of surprise finance hates.
+- **Autonomous scheduled runs are the core risk** — trust, cost, and blast radius. An agent left running unattended can rack up compute or touch the wrong data before anyone reviews.
+- **Review burden shifts, it doesn't vanish.** Returning results as reviewable threads means humans still read every autonomous change; at scale that queue can become the bottleneck.
+- **Auto-moving to AI Runtime is a cost trap** if triggering is loose — silent escalation to GPU compute is exactly the kind of surprise finance hates.
 - **Competes with mature IDE agents** — Claude Code, Cursor, and the Databricks AI Dev Kit already do agentic coding, often with tighter local control and model choice.
-- **In-platform lock-in**: an agent wired to MLflow, serving endpoints, and Databricks compute is far harder to port than a repo-based coding agent.
-- **The metrics are unverified and vaguely framed** — "% of customers use Genie" and "raw data to prod ML" are marketing shapes, not benchmarks; treat as directional only.
-- **Maturity unknown**: ML-awareness and scheduled autonomy are the newest, least-proven claims — likely preview-grade at best.
+- **In-platform lock-in:** an agent wired to MLflow, serving endpoints, and Databricks compute is far harder to port than a repo-based coding agent.
+- **Scheduled tasks are still "coming soon"** — the most autonomous capability is the least available and least battle-tested.
 
 ## Response
 
-- **Verdict: Pilot (interactive) / Watch (autonomous).** The full-page ML-aware workspace is worth trying; the overnight autonomy needs guardrails before you trust it.
+- **Verdict: Pilot (interactive) / Watch (autonomous).** The full-page ML-aware workspace is GA and worth trying; the scheduled autonomy needs guardrails before you trust it.
 - Pilot the **interactive, human-in-the-loop mode** on real ML work first — that's where the MLflow/endpoint context pays off with low downside.
-- **Watch** the scheduled autonomous feature until you can bound cost (hard GPU/compute caps) and blast radius (read-only or sandboxed data scopes).
+- **Watch** the scheduled-task feature until it ships and you can bound cost (hard GPU/compute caps) and blast radius (read-only or sandboxed data scopes).
 - Market context: agentic coding is crowded — **Claude Code and Cursor** lead on IDE ergonomics and model flexibility; Genie Code's edge is **native platform context**, not the agent itself. Weigh lock-in against that convenience.
 
 ## Personal impression
 
 - The genuinely interesting move is **ML-awareness** — an agent that reads your MLflow lineage and serving endpoints is more useful than one more generic code chatbot, because that context is the hard part.
-- But "autonomous overnight" is a pitch that sounds great in a keynote and terrifying in a cost review; I'd keep it on a very short leash until the caps and audit trails are proven.
-- **Hype level: Medium.** Real utility in the interactive path, unproven and risky in the autonomous one, and unverified metrics throughout.
-- **Bottom line:** Use it as a smarter in-platform pair for ML work; do not let it run unsupervised until you've seen the guardrails with your own eyes.
+- "Scheduled autonomous tasks" sounds great in a keynote and demands care in a cost review; keep it on a short leash until caps and audit trails are proven.
+- **Hype level: Medium.** Real, GA utility in the interactive path; the autonomous path is promising but still coming soon.
+- **Bottom line:** Use it as a smarter in-platform pair for ML work; hold the scheduled autonomy until you've seen the guardrails with your own eyes.

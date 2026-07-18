@@ -6,17 +6,17 @@ description: "Natural-language app building with enterprise guardrails — App S
 
 # Governed Vibe Coding
 
-> Fast, natural-language app building with enterprise guardrails — App Spaces, Genie App Builder, and Serverless Micro Apps aim to make "vibe coding" safe for line-of-business teams.
+> Fast, natural-language app building with enterprise guardrails — App Spaces, Genie App Builder, and Serverless Micro Apps make "vibe coding" safe for line-of-business teams.
 
-*Announced at DAIS 2026 (June 16–17, 2026). Source: community deck — verify officially.*
+*Announced at Data + AI Summit 2026 (June 16–17, 2026). Source: [Databricks blog](https://www.databricks.com/blog/enabling-governed-vibe-coding-enterprise-apps-databricks).*
 
 ## Overview
 
-- Per the deck: build apps in natural language with **enterprise guardrails baked in** — three pieces stitched together for governed, low-effort app creation.
-- **App Spaces**: configure **data access, security, and cost once** per space; every app inside inherits it — governance lives at the space, not the app.
-- **Genie App Builder**: **describe it (or paste a screenshot)**, get a **live preview**; reportedly built on the **AppKit TypeScript SDK** underneath.
-- **Serverless Micro Apps**: **micro-VM isolation**, **scale-to-zero**, and **usage-based pricing** — aimed at bursty, low-traffic line-of-business tools.
-- Deck metrics (all **unverified**): the deck cites active running apps and weekly app users "in 6 months," and repeats that governance is enforced **per space, not per app**.
+- Build apps in natural language with **enterprise guardrails baked in** — three pieces stitched together for governed, low-effort app creation. All three are in **private preview (coming soon)**.
+- **App Spaces**: admins set **resource and data access, API scopes for on-behalf-of-user access, and security policies once** per space; every app in the space **inherits those settings automatically** — governance lives at the space, not the app.
+- **Genie App Builder**: **describe it in plain language (or provide a screenshot)** and get a **live preview updating in a side pane**; built on the **AppKit TypeScript SDK** (built-in caching, telemetry, retry logic) with direct awareness of your Unity Catalog tables and semantic layer.
+- **Serverless Micro Apps**: each app runs in its **own lightweight micro-VM** with per-app isolation — **starts up fast, scales to zero when idle**, and is priced on **usage, not reserved capacity**.
+- Adoption over the **last six months**: a **near doubling of active running apps** and **more than 3x the users interacting with apps every week**.
 
 ## Where it fits
 
@@ -35,7 +35,7 @@ description: "Natural-language app building with enterprise guardrails — App S
 - **Ownership is unanswered**: who maintains, patches, and deprecates an app the original author generated in five minutes and forgot?
 - **Crowded category** — this is Retool, Streamlit, and Power Apps territory; Databricks' edge is native governance and data proximity, not the builder itself.
 - **Lock-in**: apps wired to App Spaces, AppKit, and serverless micro-VMs are hard to port off Databricks later.
-- **The metrics are unverified and vague** — "active apps" and "weekly users in 6 months" are adoption shapes, not evidence of durable value; treat as directional only.
+- **Private preview only** — none of the three pieces is GA yet, so timelines, quotas, and pricing can still shift.
 
 ## Response
 
