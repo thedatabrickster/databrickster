@@ -229,7 +229,7 @@ resources = [
 ]
 ```
 
-Here we build a list of the exact resources the agent depends on: one model serving endpoint, two tables, one function, and one vector search index. Think of it as declaring, up front, "these are the only doors this agent will ever try to open." Being specific here is what lets the platform later hand out narrowly scoped keys instead of a master key. Vague lists lead to over-privileged agents; precise lists support least privilege.
+Here we build a list of the exact resources the agent depends on: one model serving endpoint, two tables, one function, and one vector search index. Think of it as declaring, up front, "these are the only doors this agent will ever try to open." Being specific here is what lets the platform later hand out narrowly scoped keys instead of a master key.
 
 ### Example 2: Logging the agent with that resource list
 
@@ -244,7 +244,7 @@ with mlflow.start_run():
     )
 ```
 
-Now we log (package) the agent and pass in the `resources` list. This is the moment the declaration "sticks" to the model. When you later deploy this logged model, Databricks reads that attached list and provisions credentials scoped to exactly those endpoints, tables, functions, and indexes. Nothing you forgot to declare will be silently available, and nothing extra will be handed over.
+Now we log (package) the agent and pass in the `resources` list. This is the moment the declaration "sticks" to the model, so that at deployment the scoped credentials cover exactly these resources and nothing else.
 
 ### Example 3: Choosing on-behalf-of-user authentication (conceptual)
 
@@ -265,7 +265,7 @@ Now we log (package) the agent and pass in the `resources` list. This is the mom
 # service principal identity (system authorization) for everyone.
 ```
 
-This one is intentionally conceptual, because the exact function names evolve. The idea you are expressing is a single, powerful sentence: *"For every request, run as the person who made it."* Choose this when users must be isolated. If you skip it, you get the default — the agent uses its own service principal, and everyone shares that identity's access. Either way, be deliberate: the choice is a security decision, not a default to accept blindly.
+This one is intentionally conceptual, because the exact function names evolve. The idea you are expressing is a single, powerful sentence: *"For every request, run as the person who made it."* Choose this when users must be isolated; skip it and you fall back to the service-principal default the comment describes. Either way, be deliberate: the choice is a security decision, not a default to accept blindly.
 
 ## Code Examples
 
@@ -354,11 +354,8 @@ Row filters and column masks are part of Unity Catalog's **attribute-based acces
 ## Best Practices
 
 - Start every design by asking: *do different users need different data?* Let the answer pick your model.
-- Declare resources precisely and keep the list current.
 - Grant to **groups** (like `advisors`), not individuals, so access is manageable.
 - Use row filters and column masks for per-user isolation, and pair them with on-behalf-of-user.
-- Write an automated isolation test and run it in CI.
-- Review grants and service principals on a schedule.
 
 ## Interview Questions
 
@@ -398,11 +395,9 @@ So deployment can provision **scoped, least-privilege credentials** for exactly 
 
 </details>
 
-## Summary
-
-An agent is only ever as powerful as the identity it acts as. That is the heart of everything here. You met two models: the **service principal**, a robot with its own badge that is simple but shared by all users; and **on-behalf-of-user**, where the agent carries the caller's badge so each person sees only their own data. You saw how Unity Catalog grants (`USE`, `SELECT`, `EXECUTE`, endpoint and index access) plus row filters turn those models into real, enforced isolation, and how declaring resources at logging time gives you least privilege by design. For Northwind Trust, on-behalf-of-user plus a `current_user()` row filter is the clean, safe answer.
-
 ## Key Takeaways
+
+An agent is only ever as powerful as the identity it acts as — that is the heart of everything here.
 
 - The agent's **identity** decides what it can see. Ask "whose badge?" first.
 - **Service principal** = the agent's own identity; simple, but shared across all users. Safe only when the data is safe for everyone.

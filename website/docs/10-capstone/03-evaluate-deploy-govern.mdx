@@ -50,7 +50,7 @@ So the business needs four things before this agent is allowed near a real advis
 - **Guardrails.** It must not leak private data, must not go off the rails, and must not blow the budget.
 - **A way to watch it and improve it.** Because the first version is never the last version.
 
-Here is the good news. Databricks gives you a tool for every single one of these, and you have already met most of them. This lesson is where you line them up into one dependable production loop.
+Here is the good news. Databricks gives you a tool for every single one of these. This lesson is where you line them up into one dependable production loop.
 
 ## Intuition
 
@@ -430,11 +430,9 @@ It is the whole idea: production is a loop, not a finish line. Every improvement
 
 </details>
 
-## Summary
-
-You took the Advisor Assistant from "it works" to "it is trusted." You built a small evaluation dataset and scored the agent with `mlflow.genai.evaluate` and four built-in judges, then fixed a weakness. You logged and registered the agent to Unity Catalog and deployed it with `agents.deploy()`, complete with a review app and a Databricks App chat UI. You wrapped it in the AI Gateway: guardrails, PII masking, on-behalf-of-user auth, rate limits, a budget, and inference tables. And you set up monitoring and a safe way to iterate with a prompt registry and CI/CD. That is the full evaluate, register, deploy, govern, monitor, improve loop, running on a real enterprise agent.
-
 ## Key Takeaways
+
+You took the Advisor Assistant from "it works" to "it is trusted." That is the full evaluate, register, deploy, govern, monitor, improve loop, running on a real enterprise agent:
 
 - Production for an agent is a **loop**, not a finish line: evaluate, register, deploy, govern, monitor, improve, repeat.
 - **Judges** let you measure quality when there is no single right answer: correctness, groundedness, relevance, safety.

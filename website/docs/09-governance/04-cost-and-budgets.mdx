@@ -247,7 +247,6 @@ Reading this query: we group every logged request by day and by user, count the 
 
 ## Performance Considerations
 
-- **The cheap checks come first, on purpose.** Rate-limit and budget checks run before the model, so a blocked request costs almost nothing. Prevention is cheap.
 - **Rate limiting adds negligible latency** to allowed requests — it's a fast counter check, not a model call.
 - **Inference table logging is asynchronous by design** so it doesn't slow your response. Do plan for the storage the logs consume, and manage it like any growing Delta table (partitioning, retention).
 - **Batch is your friend for cost, not for rate limits.** Batching with `ai_query` lowers overhead per row, but a giant batch can still blow a budget — that's what the budget cap is for.
@@ -323,10 +322,6 @@ From the **inference table** (and/or system tables via usage tracking). Because 
 **Rate-limit check, then budget check, then the model call.** The cheap checks run before the expensive work, so a blocked request costs almost nothing. Prevention is efficient precisely because rejection happens before any tokens are spent.
 
 </details>
-
-## Summary
-
-AI cost can run away — a looping agent or an oversized batch can burn money fast and silently. The Unity AI Gateway gives you four controls that, together, make spend capped, visible, and explainable. **Rate limits** cap the flow (a speed limit). **Budgets** cap the total with alerts (a prepaid card). **Usage tracking** shows tokens and dollars by user, endpoint, and app (your itemized bill). **Inference tables** log every request and response to Delta (every receipt), so cost analysis is just SQL. Prevention (limits, budgets) keeps you safe; observation (tracking, tables) keeps you honest. And none of it replaces the Part 7 tuning levers — the cheapest request is still a shorter one.
 
 ## Key Takeaways
 

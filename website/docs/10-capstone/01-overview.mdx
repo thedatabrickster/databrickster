@@ -137,8 +137,6 @@ Running quietly alongside all of this:
 - **Evaluation** periodically scores the assistant against a set of known question-and-answer examples, so you know it is *good*, not just *running*. (Part 6)
 - **CI/CD** governs how any change — a new prompt, a new tool, a new model — gets tested and promoted before it ever reaches advisors. (Part 8)
 
-Notice something reassuring: there is nothing in that list you have not met before. The capstone is a rearrangement of ideas you already own.
-
 ## Architecture
 
 Here is the full end-to-end architecture on one page. Read the diagram once, then read the narration under it, then read the diagram again. It will click.
@@ -216,7 +214,7 @@ flowchart LR
     p9["Part 9: Governance"] --> c7["Safety, per-user permissions, cost controls"]
 ```
 
-*Diagram: Every capstone component traces back to a Part. Reading left to right, each Part of the course on the left produced a specific capability on the right that the Advisor Assistant now uses. Nothing in the capstone is new material.*
+*Diagram: Every capstone component traces back to a Part. Reading left to right, each Part of the course on the left produced a specific capability on the right that the Advisor Assistant now uses.*
 
 Here is the same mapping as a checklist you can keep next to you:
 
@@ -392,12 +390,6 @@ The **retrieval tool** (chunking, embeddings, vector search) comes from **Parts 
 **Both.** It uses the **structured tool** to get the exact account balance from the governed table, and the **retrieval tool** to find what the policy says about disclosure thresholds. Then the agent loop combines the fact and the policy to answer. This "combine both" case is exactly why we built an agent instead of a single lookup.
 
 </details>
-
-## Summary
-
-The capstone is the **Advisor Assistant**: an internal agent for Northwind Trust's financial advisors that answers two kinds of questions — fuzzy policy questions from **documents** (via a RAG retrieval tool) and precise account-fact questions from **governed tables** (via a structured tool) — and reasons over both in an **agent loop**. Around that agent sits an operational wrapper: **tracing** to observe it, **evaluation** to score it, **serving** to expose it, **CI/CD** to promote changes safely, and **governance** to enforce safety, per-user permissions, and cost.
-
-The most important thing to feel right now: **none of this is new.** Every box on the architecture maps to a Part you already studied. This lesson was the blueprint. The next lesson builds the agent, and the one after that evaluates, deploys, and governs it. You have everything you need.
 
 ## Key Takeaways
 

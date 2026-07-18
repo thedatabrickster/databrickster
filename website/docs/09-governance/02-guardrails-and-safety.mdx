@@ -99,7 +99,7 @@ This is worth saying slowly, because beginners mix them up.
 - **Governance and permissions** (Unity Catalog) decide *who is allowed to call the model at all*, and *what data and tools it can touch*. That is the lock on the door.
 - **Guardrails** decide *what content is allowed through* once someone is already inside. That is the security scanner.
 
-You want both. A guardrail will not stop an unauthorized person, and a permission will not stop an authorized person from typing something harmful. They complement each other. Guardrails **complement, they do not replace** governance.
+You want both. A guardrail will not stop an unauthorized person, and a permission will not stop an authorized person from typing something harmful. They **complement, they do not replace** each other.
 
 ### Prompt injection, in plain words
 
@@ -358,10 +358,6 @@ It is **prompt injection**, arriving through retrieved content rather than the u
 The SQL **`ai_mask`** function. You pass it the text column and the entity types to hide (like `email` and `phone`), and it returns the text with those entities replaced by placeholders, no model serving required.
 
 </details>
-
-## Summary
-
-Guardrails are automatic safety checks on the way **in** and on the way **out** of a model, configured on the Databricks **AI Gateway** in front of your serving endpoint. They **block** harmful content, **mask** PII, and **restrict** topics. The big new threat is **prompt injection**, untrusted text (from a user or a retrieved document) trying to override the model's instructions, and you defend against it in **layers**: treat retrieved content as data, write firm system prompts, run input/output guardrails, and give the agent least-privilege tools so even a hijack does little harm. For stored text, `ai_mask` redacts PII right in SQL, and **safety judges** measure how safe the agent is over time. Guardrails sit *inside* your governance and permissions; they complement them, never replace them.
 
 ## Key Takeaways
 

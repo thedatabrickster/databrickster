@@ -8,7 +8,7 @@ description: "Build Northwind Trust's Advisor Assistant end to end: a Vector Sea
 
 > You have gathered every ingredient across this course: retrieval, tools, function calling, and the `ResponsesAgent` interface. Today you cook the actual meal. By the end of this lesson you will have a real, running agent, Northwind Trust's Advisor Assistant, that answers a financial advisor's questions using only facts it can look up, and cites its sources. You have done all the hard parts already. Now you just connect them.
 
-Take a breath. This is a code-heavy build lesson, and that is exactly what you signed up for. Nothing here is new magic. Every piece is something you have already met, just assembled into one coherent whole. We will move slowly, narrate every code block, and pause to celebrate each milestone. You are building a real agent today. You are ready.
+Take a breath. This is a code-heavy build lesson, and that is exactly what you signed up for. We will move slowly, narrate every code block, and pause to celebrate each milestone. You are building a real agent today. You are ready.
 
 ## Learning Objectives
 
@@ -182,7 +182,7 @@ An advisor asks: *"Client NW-10432 wants an early withdrawal. Are they allowed, 
 7. It calls the model a third time. Now the model has both the client facts and the policy text. It writes a grounded answer and cites the policy document.
 8. `predict` returns that answer.
 
-Notice that MLflow tracing sits quietly around all of this. Because your agent follows the standard interface and uses the OpenAI-compatible client, MLflow can record every model call, every tool call, and every timing as a single trace you can open and inspect. You will turn that on with one line.
+MLflow tracing sits quietly around all of this: because your agent follows the standard interface, every model call, tool call, and timing is recorded as a single trace you can open and inspect. You will turn that on with one line.
 
 ## Step-by-Step Walkthrough
 
@@ -502,10 +502,8 @@ ask("What's the weather in Chicago today?")
 Let's read what to expect.
 
 - The `ask` helper wraps a question in a `ResponsesAgentRequest`, calls `predict`, and prints the assistant's text out of the standard response envelope.
-- Question 1 should trigger `search_policies`, and the answer should cite the policy document it read.
-- Question 2 should trigger `get_client_summary` and report the client's risk profile as an exact fact.
-- Question 3 is the exciting one: the model should call `get_client_summary` first, then `search_policies`, then combine both into a single grounded, cited answer. That is your agent reasoning across structured and unstructured data.
-- Question 4 should produce "I don't know based on Northwind's records." Neither tool applies, and the rule holds. Seeing this is just as important as seeing the others succeed: it proves your guardrail works.
+- Watch for the right behavior on each: a citation on the policy answer (Q1), an exact fact on the client answer (Q2), and on the compound question (Q3) two tool calls combined into one grounded, cited answer, your agent reasoning across structured and unstructured data.
+- Question 4 should produce "I don't know based on Northwind's records." Seeing the guardrail hold is as important as seeing the others succeed.
 
 If you run these and see the right tool fire for each, with citations on the policy answers and an honest "I don't know" on the last one, congratulations. You have built a real, grounded, multi-tool agent. Take a moment. That is a genuine milestone.
 
@@ -611,11 +609,9 @@ It lets the agent cite its source. The retrieval tool formats each passage with 
 
 </details>
 
-## Summary
-
-You built Northwind Trust's Advisor Assistant end to end. You defined two tools: `search_policies`, a Vector Search retrieval tool over unstructured policy documents that returns citable passages, and `get_client_summary`, a governed Unity Catalog SQL function that returns exact, structured client facts. You described both tools so function calling could choose between them. You implemented a `ResponsesAgent` whose `predict` runs the reason-act-observe loop, capped for safety, and composes a grounded, cited answer while enforcing the "say I don't know" rule through the system prompt. You turned on MLflow tracing with one line and tested locally on a policy question, a client-data question, a compound question that needed both tools, and an unanswerable question that correctly produced "I don't know." Everything you assembled here is a piece you had already learned; the win was wiring them into one coherent, trustworthy agent.
-
 ## Key Takeaways
+
+Everything you assembled here is a piece you had already learned; the win was wiring them into one coherent, trustworthy agent.
 
 - Two tools cover two data shapes: a Vector Search retrieval tool for unstructured policy text, and a Unity Catalog SQL function for structured client facts.
 - Function calling lets the model choose the right tool, or both, from your tool descriptions.
