@@ -662,18 +662,6 @@ For the interactive path, catch the rate-limit/timeout errors and retry with exp
 
 </details>
 
-## Summary
-
-Calling a foundation model on Databricks is not a new discipline — it is a governed function
-you apply to data. You have three clients for the same endpoints: the **AI Playground** for
-prototyping, **`ai_query`** for batch inference over Delta (a UDF parallelized by Spark), and
-the **Python OpenAI-compatible client** for apps and agents. You choose a billing mode the way
-you choose compute: **pay-per-token** (serverless, spiky, prototyping) or **provisioned
-throughput** (dedicated, steady, SLA-backed). **External models** extend the same governed
-front door to third-party providers. Every call — whatever the client, whatever the backend —
-passes through the **AI Gateway** and is authorized by **Unity Catalog**, which is why this
-whole capability slots cleanly into the platform you already operate.
-
 ## Key Takeaways
 
 - **`ai_query` = a governed UDF, per row, parallelized by Spark.** Use it for anything set-based.

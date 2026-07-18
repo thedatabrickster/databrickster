@@ -506,17 +506,9 @@ We **cast a wide net then filter carefully**. Vector search is fast but only rou
 
 ---
 
-## Summary
-
-A RAG system can fail in exactly two places: **retrieval** (it fetched the wrong chunks) or **generation** (it had the right chunks but answered poorly). The whole art of improving RAG is telling these apart *before* you change anything — because fixes for one do nothing for the other. You measure retrieval by recall (was the needed info actually retrieved?) and generation by faithfulness and relevance (is the answer true to the context and on-topic?).
-
-Your retrieval levers are chunking, `k`, metadata filters, **hybrid search** (keyword plus semantic), and **reranking** (a careful second-pass re-scoring of your top candidates). Your generation levers are a clear system prompt, explicit "I don't know" permission, and citations. And when nothing good comes back, the right move is to say so honestly rather than guess.
-
-You've now got a calm, repeatable debugging routine. That's a genuinely senior skill — most people flail at RAG quality. You won't.
-
----
-
 ## Key Takeaways
+
+Improving RAG is one calm, repeatable debugging routine — a genuinely senior skill that most people flail at.
 
 - **Two failure points:** bad retrieval vs. bad generation. Always diagnose which one first.
 - **Look at the retrieved chunks before touching the prompt.** Wrong-book problems aren't solved by coaching the librarian.

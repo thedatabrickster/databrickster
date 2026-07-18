@@ -200,10 +200,6 @@ What happens between "you press run" and "the table fills in"? Let us peek under
    not write the retry loop.
 5. **Assemble.** Results stream back and land as new columns, ready to be written to Delta.
 
-The headline for a Data Engineer: **submit the whole dataset in one query.** Do not hand-split it
-into tiny batches yourself — the function scales better when it can see the full job and manage
-parallelism for you. Fighting the engine here only slows it down.
-
 ```mermaid
 flowchart LR
     T["Delta table<br/>1,000,000 rows"] --> P{"Spark<br/>partitions"}
@@ -494,19 +490,9 @@ job slower, not faster.
 
 </details>
 
-## Summary
-
-AI Functions are built-in Databricks SQL functions that call GenAI models over your data. They come in two
-flavors: a family of **task-specific** functions (`ai_classify`, `ai_extract`, `ai_parse_document`,
-`ai_summarize`, `ai_translate`, `ai_mask`, `ai_analyze_sentiment`, `ai_similarity`, `ai_gen`, `ai_forecast`,
-`vector_search`) that are convenient and purpose-built, and the **general-purpose `ai_query`** for full
-control. You use them exactly like `UPPER()` or `SUM()` — in a `SELECT`, per row — except they read and
-reason. Enrich an entire Delta table in one `CREATE TABLE AS SELECT`; Spark parallelizes it, Unity Catalog
-governs it, and you pay per token. This is the most comfortable on-ramp to GenAI a Data Engineer will find,
-because it is not new tooling — it is SQL.
-
 ## Key Takeaways
 
+- This is the most comfortable on-ramp to GenAI a Data Engineer will find — not new tooling, just SQL.
 - AI Functions are **SQL functions that read and reason** — same shape as the functions you already use.
 - **Task-specific first, `ai_query` second.** Reach for a purpose-built function before the general one.
 - **One `CREATE TABLE AS SELECT` enriches millions of rows**, parallelized by Spark, governed by Unity Catalog.

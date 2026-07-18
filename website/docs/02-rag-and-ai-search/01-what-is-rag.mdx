@@ -188,7 +188,7 @@ A Northwind client asks: *"What do I need to hand over before my first trade?"*
 
 *A single question flows top to bottom: embed it, search for close passages, paste them into a prompt, let the model answer, return the answer with its source.*
 
-Notice how little the model itself changed. Steps 2, 3, and 4 are all *your* pipeline — embed, search, assemble. The model only shows up at step 5, and by then the hard thinking (finding the right facts) is already done. RAG is mostly good data engineering with a language model bolted on the end. You have got this.
+Notice how little the model itself changed. Steps 2, 3, and 4 are all *your* pipeline — embed, search, assemble. The model only shows up at step 5, and by then the hard thinking (finding the right facts) is already done. RAG is mostly good data engineering with a language model bolted on the end.
 
 ## Step-by-Step Walkthrough
 
@@ -208,7 +208,7 @@ Let's rebuild the same flow in words, one decision at a time, and say *why* each
 
 7. **Generate and cite.** The model answers from the pasted text, and you attach the source of each chunk. *Why:* grounded, checkable answers.
 
-Read that list again and you will notice steps 1 through 5 are pure data work — ingest, transform, index, query. That is your world. Only steps 6 and 7 touch the model.
+Read that list again and you will notice steps 1 through 5 are pure data work — ingest, transform, index, query. Only steps 6 and 7 touch the model.
 
 ## Hands-on Examples
 
@@ -377,16 +377,9 @@ A citation lets a human trace the answer back to a real source document and veri
 
 </details>
 
-## Summary
-
-A language model only knows what it learned during training. It does not know your private documents or today's facts, and when it does not know something, it tends to guess confidently — that is hallucination.
-
-RAG fixes this by turning a closed-book exam into an open-book one. Before the model answers, you **retrieve** the most relevant passages from your own data (using embeddings and similarity), **augment** the prompt by pasting them in, and let the model **generate** a grounded, citable answer.
-
-The beautiful part for you: most of RAG is a data pipeline — ingest, embed, index, search, assemble. The model only shows up at the very end. You already know how to do the hard parts.
-
 ## Key Takeaways
 
+- RAG turns a closed-book exam into an open-book one: most of it is a data pipeline — ingest, embed, index, search, assemble — and the model only shows up at the very end.
 - A plain language model does not know your data and will confidently make things up.
 - RAG = Retrieve, Augment, Generate.
 - Retrieval uses embeddings + vector similarity to find passages by meaning.

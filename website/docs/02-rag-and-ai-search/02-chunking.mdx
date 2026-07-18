@@ -166,7 +166,7 @@ Concretely, the math is simple. If your chunk size is 500 tokens and your overla
 
 See how tokens 400 to 500 live in both chunk 1 and chunk 2? That is the repeated edge doing its job.
 
-And crucially, **each chunk carries a little luggage** — its metadata. For every chunk we remember which file it came from, which page, and its position in order. This is what lets the assistant later say "according to *Travel Policy 2026*, page 4…" instead of a naked, unattributable answer.
+And crucially, **each chunk carries a little luggage** — its metadata: which file it came from, which page, and its position in order. We will see exactly what that buys us when we attach it in code below.
 
 ## Step-by-Step Walkthrough
 
@@ -401,12 +401,6 @@ If overlap equals chunk size, the step is zero — the window never moves forwar
 So the assistant can cite exactly where an answer came from (for example, "*Travel Policy 2026*, page 4"), so answers are verifiable, and so we can update or delete a specific document's chunks when the source changes. Without this metadata, retrieved text is unattributable and hard to maintain.
 
 </details>
-
-## Summary
-
-We started with a simple problem: Northwind Trust has long policy PDFs and wants an assistant that answers questions from them. You cannot embed a whole document as one vector — it will not fit the model's input limit, and its meaning smears into an unhelpful average. So we cut documents into **chunks**: small, self-contained passages, each embedded on its own.
-
-You learned the three knobs that control chunking — **size** (in tokens), **overlap** (the repeated safety margin at the edges), and **strategy** (fixed, structure-based, or recursive) — and the trade-offs of each. Too small loses context; too big gets noisy and blurry. You saw why every chunk should carry **metadata** like source file and page. And you built the real thing: a token-based chunker with overlap, a recursive splitter, and a write to a Delta table with one row per chunk — exactly the artifact the next lesson will index.
 
 ## Key Takeaways
 

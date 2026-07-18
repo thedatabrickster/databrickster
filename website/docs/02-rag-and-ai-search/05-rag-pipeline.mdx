@@ -144,8 +144,6 @@ Let's trace what happens inside each numbered step, still in plain language.
 
 **Step 5 — Return.** We hand the answer back — grounded in the chunks, with citations the model included because we asked it to.
 
-That is the entire internal loop. Five steps, one function.
-
 ## Step-by-Step Walkthrough
 
 Before we look at a full function, let's do each step in isolation so nothing feels like magic. We will build up to the complete function in the next section.
@@ -347,7 +345,6 @@ A notebook function is a great start. To make it production-worthy, keep these i
 
 - **Latency is dominated by the model call.** Retrieval is usually fast (tens of milliseconds); the chat model is the slow part (often a second or more). If you need snappier responses, look at the model, not retrieval, first.
 - **Keep `k` modest.** More chunks mean a longer prompt, which means more tokens, more cost, and more latency. Start at 3. Only raise it if answers are missing information that retrieval clearly should have found.
-- **Reuse clients.** We create them once at module load. Recreating them per request adds needless overhead.
 - **Watch the context size.** Every chunk you stuff into the prompt costs tokens. Very long chunks can crowd out room and slow generation. Tuning chunk size is covered more in the previous lessons.
 
 ## Security Considerations
@@ -428,10 +425,6 @@ Temperature controls randomness. Setting it to 0.0 makes the model as consistent
 It should reply that it does not know, rather than guessing. We make that happen two ways: the system prompt instructs the model to say "I don't know based on the provided policy documents" when the answer is not in the context, and a code guardrail returns that same message immediately if retrieval comes back empty.
 
 </details>
-
-## Summary
-
-You just built a complete RAG pipeline. A question comes in; you retrieve the top relevant chunks from Vector Search, keeping their sources; you assemble a prompt from a system instruction plus those chunks plus the question; you call the Llama 3.3 chat model on Databricks; and you return a grounded answer with citations. The whole thing lives in one small function, `answer_question(question)`. Two rules — ground only in retrieved text, and say "I don't know" when the context does not cover it — are what turn that function from a toy into something Northwind Trust could actually rely on.
 
 ## Key Takeaways
 

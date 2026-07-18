@@ -210,12 +210,7 @@ results = index.similarity_search(
 )
 ```
 
-Here's the important change. The `filters` dictionary tells the index: *only consider chunks where `client_id` is `NW-10432` **and** `status` is `current`.*
-
-Read that twice, because it is doing two jobs at once:
-
-- **Correctness:** `status = "current"` keeps retired, superseded policies out of the answer.
-- **Security:** `client_id = "NW-10432"` guarantees we never pull another client's documents into this user's session. The filter is applied *during* the search, so ineligible chunks can't be returned even if they are a great semantic match.
+Here's the important change. The `filters` dictionary tells the index: *only consider chunks where `client_id` is `NW-10432` **and** `status` is `current`.* That's the correctness-and-security pairing from the Deep Dive, now in code: `status` keeps superseded policies out, and `client_id` guarantees we never pull another client's documents into this session.
 
 This is the single most important line in the whole lesson. In production, the `client_id` value should come from the authenticated user's session — never from anything the user typed.
 
@@ -377,11 +372,9 @@ A metadata filter on the date column (for example `effective_date`), applied via
 
 </details>
 
-## Summary
-
-Retrieval is how you ask your Vector Search index for the few most relevant passages to answer a question. You embed the query with the same model that built the index, ask for the top-k nearest chunks, and — crucially — apply metadata filters so results stay both correct and secure. Each result comes back with the chunk text, its metadata, and a similarity score you can use to judge relevance. You can do all of this in Python with `similarity_search(...)` or in SQL with the `vector_search()` table function.
-
 ## Key Takeaways
+
+Retrieval is how you ask your Vector Search index for the few most relevant passages to answer a question:
 
 - Same embedding model for query and index — always.
 - **k** is a dial: too few misses answers, too many adds noise and cost. Start at 3 to 5.

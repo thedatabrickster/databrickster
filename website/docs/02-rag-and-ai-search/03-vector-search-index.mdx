@@ -395,13 +395,10 @@ The **text column to embed** (`embedding_source_column`, for example `chunk_text
 
 </details>
 
-## Summary
-
-You just built a search engine for meaning. Here's the arc: your policy chunks live in a Delta table you already know how to manage. You enabled Change Data Feed so changes are trackable. You created one Vector Search endpoint (the compute) and then a Delta Sync index (the catalog) that embeds your text column with `databricks-gte-large-en` and keeps itself fresh as the table changes. Then you queried it in plain English and got back the right chunk by meaning, not keywords.
-
-The heart of it: **endpoint is compute, index is the catalog, and the Delta Sync index is your materialized-view-for-AI that Databricks maintains for you.** Your data-engineering instincts, primary keys, freshness trade-offs, governance, and data quality transferred almost directly.
-
 ## Key Takeaways
+
+You just built a search engine for meaning, and your data-engineering instincts, primary keys, freshness trade-offs, governance, and data quality, transferred almost directly.
+
 
 - A **vector index** is a fast "find the closest by meaning" catalog over your chunk embeddings.
 - **Endpoint** = compute that serves indexes. **Index** = the searchable structure from one Delta table. One endpoint hosts many indexes.
