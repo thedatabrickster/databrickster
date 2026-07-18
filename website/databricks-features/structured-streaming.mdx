@@ -1,0 +1,236 @@
+---
+sidebar_position: 20
+title: "Structured Streaming — Architecture Guide"
+description: "Spark's fault-tolerant stream-processing engine providing exactly-once, checkpointed, stateful processing over the same DataFrame API as batch."
+---
+
+# Structured Streaming
+
+## 1. Executive Summary
+
+Structured Streaming is Apache Spark's stream-processing engine that runs continuous or triggered incremental queries over the same DataFrame/SQL API as batch, with exactly-once guarantees via checkpointing.
+
+## 2. Primary Purpose
+
+- **Why it exists:** process unbounded data (streams) using the same code and semantics as bounded data (batch).
+- **Business problem solved:** low-latency data products (fresh dashboards, alerts, features) without a separate streaming stack.
+- **Technical problem solved:** exactly-once delivery, fault recovery, and incremental state — handled by the engine, not hand-coded.
+- **Scope note:** it is the *engine* underneath Auto Loader, Lakeflow Declarative Pipelines, and streaming tables — often used indirectly.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Sources (Kafka / Delta / Auto Loader / Kinesis) → Structured Streaming (incremental query + state) → Sinks (Delta / Kafka / foreachBatch) → Silver/Gold → SQL / BI / AI
+      (unbounded input)                                 (transform + checkpoint)                          (exactly-once write)      (curation)     (consumers)
+```
+
+- Sits in the **Data Engineering** layer as the execution engine for continuous and incremental workloads.
+- Consumes streaming sources and writes to Delta (most common), Kafka, or arbitrary sinks via `foreachBatch`.
+- Powers higher-level features: Auto Loader is a source, Lakeflow Declarative Pipelines and streaming tables run on it.
+- Uses checkpoints on cloud storage to persist offsets and state for recovery.
+
+## 4. Typical Architecture Placement
+
+```
+☐ User Interface
+☐ Developer Experience
+☑ Data Engineering
+☐ Data Governance
+☐ AI
+☐ Machine Learning
+☑ Storage
+☐ Security
+☐ Administration
+☑ Monitoring
+```
+
+- Core home is **Data Engineering** — the incremental/continuous processing engine.
+- Touches **Storage** for checkpoints and RocksDB state; **Monitoring** via StreamingQueryListener metrics and progress logs.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+|---|---|---|
+| Continuous ingestion from Kafka/Kinesis/Pub-Sub | ✅ | Native connectors with offset checkpointing |
+| Incremental Bronze-to-Silver-to-Gold processing | ✅ | Reads/writes Delta streams exactly-once |
+| Near-real-time dashboards and alerting | ✅ | Low end-to-end latency, micro-batch or continuous |
+| Streaming aggregations with event-time windows | ✅ | Built-in windowing and watermarks |
+| Stream-stream and stream-static joins | ✅ | Stateful joins with watermark bounds |
+| Deduplication over a time bound | ✅ | `dropDuplicatesWithinWatermark` and state |
+| Custom stateful logic (sessions, patterns) | ✅ | `transformWithState` / `flatMapGroupsWithState` |
+| Writing to external systems idempotently | ✅ | `foreachBatch` with batchId for custom sinks |
+| Change data capture into Delta | ✅ | Reads Delta CDF / applies MERGE in foreachBatch |
+| Unified code reused for batch backfill | ✅ | Same DataFrame API; run once with `availableNow` |
+| Periodic incremental loads (no cluster idle) | ✅ | Triggered `availableNow` processes then stops |
+| Enrichment against slowly changing reference data | ✅ | Stream-static join reloads static side per batch |
+| Sub-millisecond per-event latency SLAs | ⚠️ | Micro-batch adds latency; continuous mode is limited |
+| Complex multi-hop declarative ETL | ⚠️ | Lakeflow Declarative Pipelines manages this better |
+| Simple one-time bulk file load | ⚠️ | A batch read or COPY INTO is simpler |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Hard sub-millisecond, per-event latency | ⚠️ | Micro-batch model targets seconds, not microseconds |
+| Purely static, one-time batch transform | ❌ | Use a plain batch job; streaming adds overhead |
+| Complex event-driven app orchestration | ❌ | Not a workflow/CEP engine; use Jobs or an app |
+| Team wanting fully managed declarative ETL | ⚠️ | Hand-rolled streaming shifts ops burden to you |
+| Unbounded distinct/aggregation with no watermark | ❌ | State grows without bound and destabilizes the job |
+| Transactional OLTP request/response | ❌ | It is an analytics engine, not a serving layer |
+| Many tiny independent streams on one cluster | ⚠️ | Per-query overhead; consolidate or use serverless |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 5 |
+| Analytics Engineers | 3 |
+| Platform Engineers | 4 |
+| Data Scientists | 2 |
+| BI Teams | 1 |
+| AI Engineers | 3 |
+| Executives | 1 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 4 |
+| Implementation Speed | 3 |
+| Governance | 3 |
+| Security | 3 |
+| Maintainability | 3 |
+| Scalability | 5 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 3 |
+| Business Value | 4 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Delta Lake | Most common streaming source and sink, with exactly-once writes. |
+| Auto Loader | A `cloudFiles` source built on the streaming engine. |
+| Lakeflow Declarative Pipelines | Higher-level framework that runs streaming tables on this engine. |
+| Cloud Object Storage | Holds checkpoints and RocksDB state files for recovery. |
+| Kafka / Kinesis / Pub-Sub | External message brokers as streaming sources and sinks. |
+| Lakeflow Jobs | Schedules, retries, and monitors triggered streaming queries. |
+| Unity Catalog | Governs source/sink tables and volume-based checkpoint paths. |
+| Serverless / Classic Compute | Runs the driver and executors, with autoscaling. |
+| Change Data Feed | Streaming source of row-level changes from Delta tables. |
+| RocksDB State Store | Persists keyed operator state for stateful queries. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Lakeflow Declarative Pipelines | In-Databricks | Declarative, managed orchestration/quality; less low-level control than hand-rolled streaming. |
+| Batch Spark on a schedule | In-Databricks | Simpler mental model; higher latency and no incremental state. |
+| Apache Flink | External | True per-event, lower-latency streaming; separate stack, not Lakehouse-native. |
+| Kafka Streams / ksqlDB | External | Lightweight per-service streaming on Kafka; weaker at large-scale analytics and Delta integration. |
+| Cloud-managed stream services | External | Managed (Kinesis Analytics, Dataflow); less portable, extra tooling and cost. |
+| Custom consumers / microservices | External | Full control; you own delivery guarantees, state, and scaling. |
+
+## 11. Strengths
+
+- Same DataFrame/SQL API for batch and streaming — one codebase, one skill set.
+- Exactly-once end-to-end with Delta sinks via checkpointed offsets.
+- Automatic fault recovery from checkpoints without data loss.
+- Event-time processing with watermarks bounds state and handles late data.
+- Rich stateful operators: windows, joins, dedup, custom state.
+- `foreachBatch` bridges to any sink and enables MERGE/upsert patterns.
+- Triggered `availableNow` gives batch-style cost with incremental semantics.
+- RocksDB state store scales stateful jobs beyond JVM heap limits.
+- Backbone for Auto Loader, streaming tables, and Lakeflow pipelines.
+- Broad source/sink ecosystem: Delta, Kafka, Kinesis, files, Pub-Sub.
+
+## 12. Limitations
+
+- Micro-batch latency floor of seconds; continuous mode is limited in scope.
+- Stateful queries can grow state unbounded without correct watermarks.
+- Checkpoints are tied to the query; moving or editing them risks corruption.
+- Some query changes (aggregations, joins) break checkpoint compatibility.
+- Debugging stateful/late-data behavior requires deep engine understanding.
+- Operational burden (monitoring, restarts, tuning) is on the team when hand-rolled.
+- Small-file and shuffle tuning needed for high-throughput Delta sinks.
+- Not a CEP or per-event workflow engine; complex event logic is awkward.
+- One driver per query; many small streams incur per-query overhead.
+- Schema evolution across a checkpoint can force a stream restart.
+
+## 13. Common Mistakes
+
+- Omitting or misplacing watermarks, letting state grow until the job fails.
+- Sharing or reusing one checkpoint location across different queries.
+- Editing query logic in ways that silently invalidate checkpoint state.
+- Hand-rolling streaming where Lakeflow Declarative Pipelines would fit better.
+- Ignoring `foreachBatch` idempotency, causing duplicates on retry.
+- Running always-on clusters for jobs that suit triggered `availableNow`.
+- Treating micro-batch as if it delivered per-event millisecond latency.
+- Not monitoring StreamingQueryProgress, missing backlog and state growth.
+- Producing many tiny files to Delta without downstream compaction.
+- Skipping schema hints/enforcement, then breaking on drift.
+
+## 14. Design Recommendations
+
+- ✔ Set watermarks on every event-time aggregation and stream-stream join.
+- ✔ Use a dedicated, immutable checkpoint path per query as production state.
+- ✔ Prefer triggered `availableNow` for periodic loads to cut idle compute.
+- ✔ Use `foreachBatch` with the batchId to make external writes idempotent.
+- ✔ Reach for Lakeflow Declarative Pipelines when you want managed, declarative ETL.
+- ✔ Enable RocksDB state store and changelog checkpointing for large state.
+- ✔ Monitor with StreamingQueryListener; alert on backlog and state size.
+- ✔ Keep transformations pure and re-runnable; version code with Asset Bundles.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+|---|---|
+| Continuous ingestion | ✅ Native streaming sources |
+| Exactly-once to Delta | ✅ Checkpointed writes |
+| Event-time windows / late data | ✅ Watermarks and windowing |
+| Stateful joins / dedup | ✅ Built-in stateful operators |
+| Custom sink or upsert | ✅ foreachBatch with MERGE |
+| Managed declarative ETL | ⚠️ Prefer Lakeflow pipelines |
+| Sub-millisecond per event | ❌ Consider Flink |
+| One-time static batch load | ❌ Use a batch read |
+| Unbounded aggregation, no watermark | ❌ State grows without bound |
+| Unified batch and stream code | ✅ Same DataFrame API |
+
+## 16. Quick Comparison
+
+| Criterion | Structured Streaming | Lakeflow Declarative Pipelines | Apache Flink | Kafka Streams |
+|---|---|---|---|---|
+| Abstraction level | Engine / low-level API | Declarative framework | Engine / low-level API | Library on Kafka |
+| Latency model | Micro-batch (sec) | Micro-batch (sec) | Per-event (sub-sec) | Per-event (sub-sec) |
+| Batch + stream unified | Yes (same API) | Yes | Partial | No |
+| Delta integration | Native | Native | Connector | Limited |
+| Ops burden | On the team | Managed | On the team | On the service |
+| Best for | Custom streaming logic | Managed multi-hop ETL | Ultra-low-latency | Per-service Kafka apps |
+
+## 17. Maturity
+
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | Medium |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+
+- **Licensing:** consumed as Databricks DBUs via the compute running the query — verify current pricing.
+- **Compute:** always-on streams incur continuous cost; use triggered `availableNow` for periodic loads to avoid idle time.
+- **Storage:** checkpoint and RocksDB state files on cloud storage, plus the Delta target; state can grow with cardinality.
+- **Operational Overhead:** meaningful when hand-rolled — monitoring, restarts, state and small-file tuning; lower under Lakeflow.
+- **Training:** moderate to high — teams must learn watermarks, checkpoints, state, and exactly-once semantics.
+
+## 19. Executive Takeaway
+
+- ✔ **Best for:** exactly-once, fault-tolerant continuous and incremental processing using one API for batch and streaming.
+- ✔ **Avoid when:** you need sub-millisecond per-event latency (consider Flink) or fully managed declarative ETL (use Lakeflow Declarative Pipelines).
+- ✔ **Biggest benefit:** the engine handles delivery guarantees, recovery, and state, so teams reuse batch code for streams.
+- ✔ **Biggest limitation:** hand-rolled streams carry real operational burden and a seconds-level latency floor.
+- ✔ **Overall recommendation:** the default engine for custom streaming; step up to Lakeflow Declarative Pipelines for managed multi-hop ETL. See the [feature catalog](/databricks-features) for related components.

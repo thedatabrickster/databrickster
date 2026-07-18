@@ -1,0 +1,219 @@
+---
+sidebar_position: 20
+title: "Workspace — Architecture Guide"
+description: "The Databricks environment and organizational unit — a collaboration surface and isolation boundary for notebooks, files, dashboards, users, and compute within an account."
+---
+
+# Workspace
+
+## 1. Executive Summary
+A workspace is the Databricks environment that groups a UI, an object browser, identities, and compute into one collaboration surface and isolation boundary, of which an account holds many.
+
+## 2. Primary Purpose
+- **Why it exists:** give teams a bounded environment to build, run, and share data and AI work.
+- **Business problem:** separate teams, business units, and environments (dev/test/prod) without standing up separate platforms.
+- **Technical problem:** provide a single place where notebooks, files, dashboards, jobs, and compute are organized, permissioned, and audited.
+- **Scope:** the workspace is the isolation boundary for objects, folders, and access; the account above it is the billing, identity, and governance root.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Account (identity · billing · UC metastore · audit)
+        ↓
+┌────────────────────────────────────────────────┐
+│  WORKSPACE  (environment / org unit)            │
+│  UI · object browser · users/groups · compute   │
+│  notebooks · files · dashboards · jobs · repos   │
+└────────────────────────────────────────────────┘
+        ↓
+Compute (Serverless, Clusters, SQL Warehouses)
+        ↓
+Unity Catalog  →  Delta Lake on cloud object storage
+```
+- The workspace is the **human-facing entry point** — users log in here to do work.
+- It is an **isolation boundary** for workspace-local objects (notebook files, folders, dashboards, secrets scopes).
+- It is **not** the governance root: data governance lives in the account-level UC metastore, shared across workspaces.
+- One account contains many workspaces; one region's UC metastore can back several of them.
+
+## 4. Typical Architecture Placement
+```
+☑ User Interface
+☑ Developer Experience
+☐ Data Engineering
+☐ Data Governance
+☐ AI
+☐ Machine Learning
+☐ Storage
+☑ Security
+☑ Administration
+☑ Monitoring
+```
+- Primarily a **User Interface / Developer Experience** container plus the **Administration** unit for identity and settings.
+- **Security** because it is the isolation and access boundary for workspace-local assets.
+- Governance is delegated upward to Unity Catalog, so Data Governance is not owned here.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+|---|---|---|
+| Separate dev / test / prod environments | ✅ | Clean isolation of code, jobs, and access |
+| Business-unit or team separation | ✅ | Independent admin, users, and compute per BU |
+| Regulatory / data-residency separation | ✅ | Workspace pinned per region and boundary |
+| Blast-radius containment for prod | ✅ | Misconfigured dev cannot touch prod objects |
+| Distinct cost/chargeback per unit | ✅ | Usage tags and attribution per workspace |
+| Shared data across teams via one metastore | ✅ | UC metastore spans many workspaces |
+| Onboarding a new acquired team | ✅ | Spin up a workspace, federate identity |
+| Sandbox for experimentation | ✅ | Contained space with capped compute |
+| Different compliance profiles (HIPAA) | ✅ | Enable security profile per workspace |
+| Partner / external collaboration zone | ⚠️ | Prefer Clean Rooms / Delta Sharing for sharing |
+| Per-project micro-workspaces | ⚠️ | Sprawl and admin overhead; use folders/UC instead |
+| Isolating individual analysts | ⚠️ | Use folder ACLs and UC grants, not a workspace each |
+| Strict cost cap on a single user | ⚠️ | Cluster policies/budgets fit better than a workspace |
+| One workspace for an entire enterprise | ⚠️ | Works but concentrates risk and noise |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Using a workspace as a data-governance boundary | ❌ | Governance belongs to UC metastore, not workspace |
+| A new workspace per project/team by default | ⚠️ | Sprawl: identity, network, and admin multiply |
+| Cross-workspace data copies for "isolation" | ❌ | Duplicates data; use one metastore + grants |
+| Workspace per individual user | ❌ | Unmanageable; use groups and object ACLs |
+| Relying on workspace boundary for row/column security | ❌ | Use UC row filters and column masks |
+| Sharing data externally by adding partner users | ⚠️ | Use Delta Sharing / Clean Rooms instead |
+| Splitting environments only by folders in one workspace | ⚠️ | Weak isolation; blast radius not contained |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 4 |
+| Analytics Engineers | 4 |
+| Platform Engineers | 5 |
+| Data Scientists | 4 |
+| BI Teams | 4 |
+| AI Engineers | 4 |
+| Executives | 3 |
+| Architects | 5 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 4 |
+| Implementation Speed | 4 |
+| Governance | 3 |
+| Security | 4 |
+| Maintainability | 3 |
+| Scalability | 4 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 4 |
+| Business Value | 4 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Account | Parent that owns billing, identity federation, and audit for all workspaces. |
+| Unity Catalog | Account-level metastore shared across workspaces; the real data-governance boundary. |
+| Identity (SCIM / SSO) | Users and groups sync from the account and are assigned to workspaces. |
+| Clusters / Serverless / SQL Warehouses | Compute attached to and scoped within the workspace. |
+| Lakeflow Jobs | Scheduled work that lives in and runs against a workspace. |
+| Git Folders / Repos | Source control for workspace notebooks and code. |
+| Databricks Asset Bundles | Deploy consistent workspace objects across environments as code. |
+| Secrets | Workspace-scoped secret scopes for credentials. |
+| Cluster Policies / Budgets | Guardrails and cost controls applied per workspace. |
+| Audit Logs / System Tables | Activity and usage attributed per workspace. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Single mega-workspace | In-Databricks | Simplest admin; poor isolation, large blast radius, noisy access lists. |
+| Many small workspaces | In-Databricks | Strong isolation; identity, network, and admin sprawl to manage. |
+| Separate accounts | In-Databricks | Hard billing/compliance separation; loses shared UC metastore and cross-team sharing. |
+| Folder ACLs within one workspace | In-Databricks | Lightweight; weak isolation, no compute or network separation. |
+| Cloud-native project separation (subscriptions/projects) | External | Aligns to cloud org; does not provide Databricks collaboration surface. |
+| Delta Sharing / Clean Rooms | In-Databricks | For sharing across boundaries without granting workspace access. |
+
+## 11. Strengths
+- Clear isolation boundary for workspace-local objects and access.
+- Familiar UI and object browser for notebooks, files, dashboards, and jobs.
+- Environment separation (dev/test/prod) maps naturally to workspaces.
+- Identity federated from the account; assign users/groups without re-creating them.
+- Compute and secrets scoped per workspace limit blast radius.
+- Shares one UC metastore, so isolation does not force data duplication.
+- Per-workspace usage tagging supports chargeback and cost attribution.
+- Security profiles (compliance) can differ per workspace.
+- Deployable as code via Asset Bundles and Terraform for consistency.
+- Scales from a single team to hundreds of workspaces under one account.
+
+## 12. Limitations
+- Not a governance boundary — teams misuse it as one and fragment access.
+- Too many workspaces create identity, network, and admin sprawl.
+- Some settings are per-workspace and drift without infrastructure-as-code.
+- Cross-workspace object reuse (notebooks, dashboards) is limited; code must be shared via Git/bundles.
+- Workspace-local secrets and jobs do not automatically move between workspaces.
+- Network configuration (VPC/VNet, private link) is set at workspace/account level and is not trivial to change later.
+- No native "promote object from dev to prod" without bundles or manual export.
+- Cost attribution is per workspace, not per project within a workspace, without tags.
+- User confusion between account-level and workspace-level admin roles.
+- A single mega-workspace concentrates risk; splitting later is disruptive.
+
+## 13. Common Mistakes
+- Treating the workspace as the data-security boundary instead of Unity Catalog.
+- Creating a workspace per project, then drowning in admin overhead.
+- Duplicating data across workspaces to "isolate" it, instead of using grants.
+- Managing users individually rather than through groups.
+- Configuring workspaces by hand, causing environment drift.
+- Adding external partners as workspace users instead of using Delta Sharing.
+- Skipping cost tags, making chargeback impossible.
+- Mixing dev and prod jobs in one workspace with only folder separation.
+
+## 14. Design Recommendations
+- ✔ Separate by environment (dev/test/prod) and by major business unit — not by project.
+- ✔ Keep data governance in Unity Catalog; use workspaces for collaboration and isolation.
+- ✔ Federate identity from the account and assign via groups, not individuals.
+- ✔ Provision and configure workspaces with Terraform / Asset Bundles for consistency.
+- ✔ Apply cluster policies and budgets per workspace as guardrails.
+- ✔ Tag usage for cost attribution from day one.
+- ✔ Share one regional UC metastore across workspaces to avoid data copies.
+- ✔ Reserve separate accounts only for hard billing or compliance separation.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+|---|---|
+| Dev/test/prod separation | ✅ Clean isolation boundary |
+| Business-unit separation | ✅ Independent admin/compute |
+| Data governance / fine-grained access | ❌ Use Unity Catalog |
+| Cross-team data sharing | ⚠️ Share via UC metastore |
+| External partner sharing | ❌ Use Delta Sharing/Clean Rooms |
+| Cost attribution by unit | ✅ Per-workspace tags |
+| Regulatory data residency | ✅ Region-pinned workspace |
+| Per-user isolation | ❌ Use groups + object ACLs |
+
+## 16. Quick Comparison
+| Criterion | Workspace | Single mega-workspace | Many workspaces | Separate accounts |
+|---|---|---|---|---|
+| Isolation strength | Medium–High | Low | High | Highest |
+| Admin overhead | Medium | Low | High | Highest |
+| Shared UC metastore | Yes | Yes | Yes | No |
+| Blast-radius containment | Good | Poor | Best | Best |
+| Cost/compliance separation | Per workspace | Weak | Good | Strongest |
+
+## 17. Maturity
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | Medium |
+| AI Readiness | High |
+
+## 18. Cost Considerations
+- **Licensing:** no direct charge for a workspace; you pay for compute and features used within it. Verify current pricing.
+- **Compute:** the main cost driver — clusters, serverless, and SQL warehouses run per workspace.
+- **Storage:** data lives in cloud object storage governed by UC, not billed per workspace.
+- **Operational Overhead:** grows with workspace count — identity, networking, policies, and drift management.
+- **Training:** admins must understand account vs workspace roles and UC boundaries; end users need little onboarding.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** separating environments and business units with a shared governance layer.
+- ✔ **Avoid when:** you need it to act as the data-security boundary — that is Unity Catalog's job.
+- ✔ **Biggest benefit:** clean collaboration and isolation surface without duplicating data.
+- ✔ **Biggest limitation:** too many workspaces cause identity, network, and admin sprawl.
+- ✔ **Overall recommendation:** design a small set of workspaces by environment and BU, back them with one UC metastore, and provision them as code.

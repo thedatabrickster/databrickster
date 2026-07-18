@@ -1,0 +1,222 @@
+---
+sidebar_position: 20
+title: "System Tables — Architecture Guide"
+description: "Databricks-managed, read-only Delta tables in Unity Catalog that expose operational metadata — billing, audit, lineage, compute, and usage — as queryable SQL."
+---
+
+# System Tables
+
+## 1. Executive Summary
+System Tables are Databricks-managed, read-only Delta tables in Unity Catalog that expose account operational metadata — billing, audit, lineage, compute, and query history — as data you can query with plain SQL.
+
+## 2. Primary Purpose
+- **Why it exists:** make platform operational data (who did what, what it cost, what ran where) queryable instead of locked in consoles, logs, and APIs.
+- **Business problem:** cost, usage, and security signals are scattered across billing portals and log exports, making chargeback and audit slow and manual.
+- **Technical problem:** operational telemetry historically required log delivery pipelines, API scraping, and custom ingestion before anyone could analyze it.
+- **Foundation, not a dashboard:** the raw substrate that Budgets, Lakehouse Monitoring, and BI dashboards build on — not an application itself.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Users / Jobs / Warehouses / Model Serving / Pipelines / Apps
+        ↓  (every action emits operational metadata)
+Databricks control plane  →  captures billing, audit, lineage, compute events
+        ↓  (managed ingestion, no customer pipeline)
+System Tables  (system.* schemas, Delta tables in Unity Catalog)
+        ↓  (queried with SQL like any governed table)
+BI dashboards · Budgets · Alerts · chargeback marts · audit reports
+```
+- Sits in the **administration, monitoring, and governance** plane at the account level, spanning all workspaces.
+- Populated by Databricks; you consume it read-only — no ingestion, ETL, or agent to run.
+- Governed by Unity Catalog, so the same grants and access controls apply as to any table.
+- Serves as the shared source of truth beneath FinOps, security, and observability workflows.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☐ Developer Experience
+☐ Data Engineering
+☑ Data Governance
+☐ AI
+☐ Machine Learning
+☐ Storage
+☑ Security
+☑ Administration
+☑ Monitoring
+```
+- **Administration + Monitoring:** central place to analyze consumption, compute inventory, and job/query history across workspaces.
+- **Governance + Security:** audit and lineage tables support access reviews, incident investigation, and compliance evidence.
+- Read-only by design; it observes the platform, it does not control it.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+|---|---|---|
+| Cost analysis and chargeback by team/tag | ✅ | `system.billing.usage` joins DBUs to tags |
+| FinOps trend and forecast dashboards | ✅ | Historical usage queryable in SQL and BI |
+| Security and access audit investigations | ✅ | `system.access.audit` records account/workspace actions |
+| Column- and table-level lineage reporting | ✅ | Lineage tables map data flow and consumption |
+| Compute inventory and node/SKU analysis | ✅ | Compute tables expose clusters, warehouses, node types |
+| Query performance and warehouse tuning | ✅ | Query history exposes runtime, users, patterns |
+| Detecting unused or idle assets | ✅ | Cross-join usage, compute, and access history |
+| Feeding budgets and threshold alerts | ✅ | Billing usage is the metering source for Budgets |
+| Regulatory evidence for access reviews | ✅ | Retained audit history in a governed table |
+| Predictive optimization and DLT run analysis | ✅ | Pipeline/optimization events available as tables |
+| Model Serving usage and cost attribution | ✅ | Serverless inference metered in billing usage |
+| Real-time (sub-second) operational alerting | ⚠️ | Tables have ingestion latency, not streaming |
+| Application transactional/business data | ⚠️ | Scope is platform metadata, not app data |
+| Custom app-defined metrics | ⚠️ | Schema is Databricks-defined, not extensible |
+| Data quality profiling of your tables | ⚠️ | Use Lakehouse Monitoring, not system tables |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Real-time streaming alerts (sub-minute) | ❌ | Populated with reporting latency, not live events |
+| Source of business/transactional records | ❌ | Contains platform metadata only |
+| Writable operational store | ❌ | Read-only; you cannot insert or update rows |
+| Non-Databricks cloud spend (VMs, egress) | ❌ | Covers Databricks DBU usage, not raw cloud bills |
+| Custom or extensible schema needs | ❌ | Schema is Databricks-defined and fixed |
+| Guaranteed unlimited history retention | ⚠️ | Retention windows vary by table |
+| Line-item invoice reconciliation | ⚠️ | Usage is an estimate; reconcile with provider billing |
+| Uniform availability of every table | ⚠️ | Some schemas are preview or region/tier-gated |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 4 |
+| Analytics Engineers | 4 |
+| Platform Engineers | 5 |
+| Data Scientists | 2 |
+| BI Teams | 4 |
+| AI Engineers | 2 |
+| Executives | 4 |
+| Architects | 5 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 3 |
+| Implementation Speed | 5 |
+| Governance | 5 |
+| Security | 4 |
+| Maintainability | 5 |
+| Scalability | 5 |
+| Cost Optimization | 5 |
+| Ease of Adoption | 4 |
+| Business Value | 5 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Unity Catalog | Hosts the `system` catalog and governs access to every system schema. |
+| Delta Lake | Underlying storage format for all system tables. |
+| Databricks SQL / warehouses | Primary query surface for analyzing system data. |
+| Budgets & Budget Policies | Consume `system.billing.usage` for spend tracking and attribution. |
+| AI/BI Dashboards | Turn system tables into chargeback, audit, and usage reporting. |
+| Lakeflow Jobs | Automate refresh of derived marts and scheduled reports over system data. |
+| Serverless compute | Metered into billing usage; a common cost-attribution target. |
+| Lakehouse Monitoring | Complements system tables for data-quality metrics on your own tables. |
+| Account console / admin APIs | Where system schemas are enabled and access is managed. |
+| Cost/audit dashboards (Databricks-provided) | Prebuilt starting points that query system tables. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Audit log delivery to cloud storage | In-Databricks | Full raw log stream, but you build the ingestion and parsing. |
+| REST/admin API scraping | In-Databricks | Flexible and current, but custom pollers and no historical table. |
+| Cloud billing console (AWS/Azure/GCP) | External | Covers all cloud spend, but lacks DBU-level and per-team detail. |
+| Cloud-native audit (CloudTrail, Azure Monitor) | External | Broad cloud coverage, but not Databricks-object aware. |
+| Third-party observability/FinOps platforms | External | Cross-platform analytics, but added license and integration. |
+| Manual exports / spreadsheets | Manual | No license cost, but not timely, joinable, or governed. |
+
+## 11. Strengths
+- Operational telemetry is queryable SQL, no ingestion pipeline to build or run.
+- Managed and populated by Databricks; zero customer maintenance of the data.
+- Governed by Unity Catalog with the same grants as any other table.
+- Delta storage means it joins cleanly with business and reference data.
+- Single account-level view spanning all workspaces.
+- Foundation for Budgets, chargeback, audit, and monitoring dashboards.
+- Historical retention enables trend, forecast, and period-over-period analysis.
+- Standard schema makes reporting portable and vendor-neutral within Databricks.
+- Cheap to consume; cost is only the queries you run against it.
+- Covers many domains — billing, access/audit, compute, lineage, query history.
+
+## 12. Limitations
+- Read-only with fixed, Databricks-defined schemas you cannot extend.
+- Ingestion latency; not a real-time or streaming event source.
+- Retention windows vary by table and are not unlimited.
+- Some schemas are in preview or gated by region, tier, or edition.
+- Covers Databricks platform metadata only, not raw cloud resources.
+- Billing figures are usage estimates; reconcile against provider invoices.
+- Schemas must be explicitly enabled before data accumulates.
+- Historical data before enablement is not backfilled.
+- Large audit/usage tables require query tuning and cost governance.
+- No built-in alerting; you pair with Budgets, alerts, or BI.
+
+## 13. Common Mistakes
+- Expecting real-time alerts and building cutoffs on latent data.
+- Not enabling schemas early, so history is missing when needed.
+- Granting broad access to audit tables without least-privilege review.
+- Treating billing usage as invoice-accurate rather than an estimate.
+- Querying raw tables ad hoc instead of building curated marts and views.
+- Ignoring retention limits and assuming data lives forever.
+- Rebuilding chargeback in spreadsheets instead of over system tables.
+- Overlooking cost of unbounded scans on large audit/usage tables.
+- Assuming every table exists in every region, tier, or cloud.
+- No owner for the derived dashboards, so reports drift or go stale.
+
+## 14. Design Recommendations
+- ✔ Enable relevant system schemas early so history accumulates before you need it.
+- ✔ Build curated gold marts/views over raw system tables for stable reporting.
+- ✔ Govern audit and access tables with least-privilege UC grants.
+- ✔ Standardize a cost-tag taxonomy so billing usage attributes cleanly.
+- ✔ Schedule refreshes of derived marts with Lakeflow Jobs.
+- ✔ Pair with Budgets and alerts rather than expecting native alerting.
+- ✔ Filter on partition/date columns to control scan cost on large tables.
+- ✔ Reconcile billing usage against cloud provider invoices periodically.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+|---|---|
+| Cost analysis / chargeback | ✅ Billing usage as source |
+| Security / access audit | ✅ Governed audit history |
+| Data lineage reporting | ✅ Lineage tables in SQL |
+| Compute / usage inventory | ✅ Compute and usage schemas |
+| Query performance analysis | ✅ Query history available |
+| Governance-friendly access | ✅ Unity Catalog grants |
+| Real-time operational alerts | ❌ Ingestion latency |
+| Writable operational store | ❌ Read-only tables |
+| Business/transactional data | ❌ Platform metadata only |
+| Custom/extensible schema | ❌ Databricks-defined only |
+
+## 16. Quick Comparison
+| Criterion | System Tables | Audit log delivery | Cloud billing console | Third-party observability |
+|---|---|---|---|---|
+| Databricks object detail | High | High | Low | Medium |
+| Query-ready (SQL, no ETL) | Yes | No | Partial | Yes |
+| Setup effort | Low | Medium | Low | Medium–High |
+| Historical retention | Managed | Self-managed | Provider | Vendor |
+| Cross-cloud scope | Databricks only | Databricks only | Full cloud | Multi-platform |
+| Governance (UC-native) | Yes | Build yourself | No | Partial |
+
+## 17. Maturity
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+- **Licensing:** system tables are included with Unity Catalog; no separate license. Verify current pricing.
+- **Compute:** the data is free to hold; cost comes from the warehouses/clusters that query it and refresh derived marts.
+- **Storage:** managed by Databricks and typically minimal; curated marts you build add incremental storage.
+- **Operational Overhead:** low — no ingestion to maintain; effort is in modeling marts, dashboards, and access policy.
+- **Training:** upskill platform, FinOps, and security teams on the `system` schemas and query/cost governance.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** organizations that want cost, audit, lineage, and usage data as governed, queryable SQL to power chargeback, security, and observability.
+- ✔ **Avoid when:** you need real-time alerting, a writable store, or business/transactional data — this is latent, read-only platform metadata.
+- ✔ **Biggest benefit:** operational telemetry becomes ordinary Delta tables with no pipeline to build, joinable and governed like any other data.
+- ✔ **Biggest limitation:** read-only, fixed schema, with ingestion latency and per-table retention limits.
+- ✔ **Overall recommendation:** enable the schemas early, build curated marts and dashboards over them, govern audit access tightly, and pair with Budgets and alerts for the FinOps and monitoring layers.

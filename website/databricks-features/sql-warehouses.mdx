@@ -1,0 +1,235 @@
+---
+sidebar_position: 20
+title: "SQL Warehouses — Architecture Guide"
+description: "Elastic SQL compute that powers Databricks SQL, BI dashboards, ad-hoc queries, and AI Functions — with serverless, pro, and classic types, autoscaling, and Photon."
+---
+
+# SQL Warehouses
+
+## 1. Executive Summary
+SQL warehouses are elastic, Photon-accelerated SQL compute clusters — available as serverless, pro, or classic types — that execute the queries behind Databricks SQL, BI tools, dashboards, and AI Functions.
+
+## 2. Primary Purpose
+- **Why it exists:** BI and SQL workloads need low-latency, autoscaling compute tuned for concurrent queries, not general-purpose Spark clusters.
+- **Business problem solved:** delivers interactive dashboard and reporting performance while controlling cost through autoscaling and auto-stop.
+- **Technical problem solved:** provides a Photon SQL engine with concurrency scaling, result caching, and a stable JDBC/ODBC endpoint for external tools.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+BI Tools / Dashboards / SQL Editor / AI Functions / Apps
+        ↓
+SQL Warehouse   →→→ (serverless | pro | classic; autoscaling + auto-stop)
+        ↓
+Engine          (Photon vectorized SQL engine)
+        ↓
+Governance      (Unity Catalog: permissions, lineage, row/column security)
+        ↓
+Table Format    (Delta Lake: transaction log + Parquet)
+        ↓
+Object Storage  (S3 / ADLS / GCS)
+```
+
+- The SQL warehouse is the **compute engine** for Databricks SQL — Databricks SQL is the product surface, the warehouse is what runs the queries.
+- It is the endpoint that **external BI tools** (Power BI, Tableau, Looker) connect to over JDBC/ODBC.
+- It executes **AI Functions** (`ai_query`, `ai_classify`, etc.) invoked from SQL.
+- Sizing (t-shirt size) sets per-query power; the **cluster count range** sets concurrency scaling.
+
+## 4. Typical Architecture Placement
+```
+☑ User Interface
+☐ Developer Experience
+☑ Data Engineering
+☐ Data Governance
+☑ AI
+☐ Machine Learning
+☐ Storage
+☐ Security
+☑ Administration
+☐ Monitoring
+```
+- Core placement is **User Interface** and **Data Engineering** — it serves BI/analytics queries and SQL-based ELT.
+- **AI:** runs SQL-invoked AI Functions and batch inference against foundation models.
+- **Administration:** sized, auto-stopped, and cost-governed centrally by platform/admin teams.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+|---|---|---|
+| BI dashboards (Power BI, Tableau, Looker) | ✅ | Stable JDBC/ODBC endpoint with concurrency scaling |
+| AI/BI Dashboards and AI/BI Genie | ✅ | Native DBSQL compute for the built-in BI layer |
+| Ad-hoc SQL exploration in the SQL editor | ✅ | Serverless start in seconds; result caching |
+| High-concurrency reporting for many users | ✅ | Multi-cluster autoscaling absorbs concurrent load |
+| SQL-based ELT / transformations | ✅ | Photon accelerates large aggregations and joins |
+| AI Functions and batch LLM inference from SQL | ✅ | `ai_query` and built-in AI functions run in-warehouse |
+| Scheduled dashboard refreshes / alerts | ✅ | Warehouse spins up, runs, and auto-stops |
+| Intermittent analyst usage | ✅ | Auto-stop eliminates idle cost between sessions |
+| Serving metric views / semantic layer | ✅ | Consistent SQL compute for governed metrics |
+| Bursty query spikes (morning dashboard load) | ✅ | Autoscaling adds clusters, then scales back down |
+| Federated queries via Lakehouse Federation | ✅ | Warehouse executes cross-source SQL |
+| Databricks Apps needing a SQL backend | ✅ | Apps query data through a warehouse endpoint |
+| Long-running Spark/ML jobs | ⚠️ | Use all-purpose or job compute, not a SQL warehouse |
+| Python/Scala notebook workloads | ⚠️ | Warehouses run SQL only; use general compute |
+| Streaming ingestion | ⚠️ | Use Lakeflow pipelines/jobs, not a warehouse |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Python / Scala / R execution | ❌ | Warehouses execute SQL only |
+| Structured Streaming pipelines | ❌ | Continuous compute belongs in jobs/pipelines |
+| Custom Spark tuning or init scripts | ❌ | Managed SQL environment, not configurable like clusters |
+| ML training / model fitting | ❌ | Use ML runtime clusters or Mosaic AI training |
+| Single massive nightly batch job | ⚠️ | Job compute is usually cheaper for one-off batch |
+| Steady 24/7 low-concurrency query trickle | ⚠️ | Benchmark auto-stop vs a small always-on classic warehouse |
+| Non-Delta / non-UC external engines | ⚠️ | Federation works, but native performance favors Delta |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 4 |
+| Analytics Engineers | 5 |
+| Platform Engineers | 4 |
+| Data Scientists | 3 |
+| BI Teams | 5 |
+| AI Engineers | 3 |
+| Executives | 4 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 4 |
+| Implementation Speed | 5 |
+| Governance | 5 |
+| Security | 5 |
+| Maintainability | 5 |
+| Scalability | 5 |
+| Cost Optimization | 4 |
+| Ease of Adoption | 5 |
+| Business Value | 5 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Databricks SQL | The product surface; the warehouse is its execution engine |
+| Photon | Vectorized engine that runs all warehouse queries |
+| Unity Catalog | Governs permissions, lineage, and fine-grained access on queried data |
+| Delta Lake | Primary table format read and written by warehouses |
+| Serverless Compute | Powers serverless warehouse type with second-scale start |
+| AI/BI Dashboards | Renders visualizations backed by warehouse queries |
+| AI Functions / Foundation Model APIs | Invoked via SQL and executed on the warehouse |
+| Row/column security & dynamic views | Enforced on warehouse query results |
+| Lakehouse Federation | Warehouse runs queries across external sources |
+| BI tools (Power BI, Tableau, Looker) | Connect via the warehouse JDBC/ODBC endpoint |
+| Metric views | Serve governed semantic-layer metrics through the warehouse |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| All-purpose clusters running SQL | In-Databricks | Works, but slower start, no SQL-tuned autoscaling, higher idle cost |
+| Job compute for SQL batch | In-Databricks | Cheaper for single batch runs, but no interactive endpoint or concurrency scaling |
+| Serverless vs pro vs classic warehouse | In-Databricks | Trade managed instant-start (serverless) vs in-VPC control (pro/classic) |
+| Snowflake virtual warehouses | External | Similar elastic SQL model, but separate governance and outside the lakehouse |
+| BigQuery / Redshift Serverless | External | Managed cloud SQL, but no Unity Catalog or Delta-native integration |
+| Trino / Presto on external cluster | External | Open query engine, but self-operated and no native UC governance |
+
+## 11. Strengths
+- Photon-accelerated SQL engine tuned for BI and analytics workloads.
+- Serverless type starts in seconds; auto-stop eliminates idle cost.
+- Multi-cluster autoscaling handles concurrency spikes automatically.
+- Single stable JDBC/ODBC endpoint for all external BI tools.
+- Result and disk caching cut latency and cost on repeated queries.
+- Full Unity Catalog governance, lineage, and fine-grained security.
+- Runs SQL-invoked AI Functions without separate infrastructure.
+- Three types (serverless/pro/classic) fit different control and cost needs.
+- T-shirt sizing simplifies capacity planning versus node-level tuning.
+- Integrated with AI/BI Dashboards, Genie, alerts, and metric views.
+
+## 12. Limitations
+- Executes SQL only — no Python, Scala, R, or streaming.
+- Serverless availability and features vary by region and cloud.
+- Serverless compute runs in the Databricks account, not the customer VPC.
+- Autoscaling reacts to load, so brief queueing can occur on sudden spikes.
+- Per-DBU serverless rates can exceed classic for steady, predictable loads.
+- Limited low-level tuning versus a hand-configured cluster.
+- Cross-warehouse result cache is not shared between warehouses.
+- Cost can surprise teams that leave sizes large or auto-stop disabled.
+- Pro/classic warehouses still incur startup wait and some idle billing.
+- Very large single-query scans may favor dedicated cluster tuning.
+
+## 13. Common Mistakes
+- Running BI on all-purpose clusters instead of SQL warehouses.
+- Oversizing the t-shirt size when concurrency scaling was the real need.
+- Disabling auto-stop and paying for idle warehouses overnight.
+- Setting min clusters equal to max, defeating autoscaling economics.
+- Using one shared warehouse for both dashboards and heavy ELT.
+- Ignoring result-cache behavior when benchmarking query latency.
+- Choosing classic when serverless would cut both cost and startup time.
+- Not separating environments (dev/prod) or teams onto distinct warehouses.
+
+## 14. Design Recommendations
+- ✔ Default to serverless warehouses for interactive BI and ad-hoc SQL.
+- ✔ Use cluster-count range (not larger size) to handle concurrency.
+- ✔ Keep auto-stop short (e.g., 10 minutes) for intermittent workloads.
+- ✔ Separate warehouses by workload: dashboards, ad-hoc, ELT, embedded apps.
+- ✔ Right-size with query-history and monitoring data, then iterate.
+- ✔ Reserve all-purpose/job compute for non-SQL and heavy batch work.
+- ✔ Use pro/classic only when in-VPC compute or specific control is required.
+- ✔ Attribute cost per warehouse with tags and budget policies.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+|---|---|
+| BI dashboards and reporting | ✅ Purpose-built SQL compute |
+| Ad-hoc SQL exploration | ✅ Fast serverless start |
+| High-concurrency query load | ✅ Multi-cluster autoscaling |
+| Minimize idle SQL compute cost | ✅ Auto-stop between sessions |
+| SQL-based ELT | ✅ Photon-accelerated |
+| AI Functions from SQL | ✅ Runs in-warehouse |
+| Python / Scala / ML work | ❌ Use general compute |
+| Streaming ingestion | ❌ Use jobs/pipelines |
+| In-VPC compute mandate | ⚠️ Use pro/classic, not serverless |
+| Single nightly batch job | ⚠️ Job compute often cheaper |
+
+## 16. Quick Comparison
+
+| Criterion | Serverless Warehouse | Pro Warehouse | Classic Warehouse | All-Purpose Cluster (SQL) |
+|---|---|---|---|---|
+| Startup time | Seconds | Minutes | Minutes | Minutes |
+| Data-plane location | Databricks account | Customer VPC | Customer VPC | Customer VPC |
+| Autoscaling (concurrency) | Yes | Yes | Yes | Limited |
+| Photon | Yes | Yes | Yes | Optional |
+| Idle cost | None (auto-stop) | Until stopped | Until stopped | Until terminated |
+| Best for | BI / ad-hoc SQL | In-VPC SQL workloads | Legacy / basic SQL | Mixed non-SQL work |
+
+## 17. Maturity
+
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | Medium–High |
+
+## 18. Cost Considerations
+- **Licensing:** billed in DBUs at SQL warehouse rates (serverless rates differ from pro/classic); verify current pricing.
+- **Compute:** serverless bundles infrastructure into the DBU rate; pro/classic add a separate cloud-VM bill in your account.
+- **Storage:** unchanged — Delta data sits in your object storage, billed by the cloud provider.
+- **Operational Overhead:** low — sizing, auto-stop, and scaling ranges replace node management.
+- **Training:** minimal — analysts use standard SQL; admins should learn sizing, scaling, and auto-stop tuning.
+- Note: cost is driven by size × cluster count × runtime — tune auto-stop and scaling before adding capacity; verify current pricing.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** interactive BI, dashboards, ad-hoc SQL, and AI Functions needing elastic, governed SQL compute.
+- ✔ **Avoid when:** you need Python/Scala, streaming, ML training, or deep cluster-level tuning.
+- ✔ **Biggest benefit:** Photon-accelerated, autoscaling SQL compute with serverless instant-start and auto-stop cost control.
+- ✔ **Biggest limitation:** SQL-only execution, with serverless running in the Databricks account and varying by region.
+- ✔ **Overall recommendation:** make serverless SQL warehouses the default engine for Databricks SQL and BI, reserving pro/classic for in-VPC needs and general compute for non-SQL work.

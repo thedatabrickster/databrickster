@@ -1,0 +1,227 @@
+---
+sidebar_position: 20
+title: "Unity Catalog Lineage — Architecture Guide"
+description: "Automatic table- and column-level data lineage captured across queries, notebooks, jobs, pipelines, models, and dashboards, viewable in Catalog Explorer and via API and system tables."
+---
+
+# Unity Catalog Lineage
+
+## 1. Executive Summary
+Unity Catalog Lineage automatically captures table- and column-level data flow across the platform — tables, views, notebooks, jobs, pipelines, models, and dashboards — with no instrumentation, and exposes it in Catalog Explorer, the REST API, and system tables.
+
+## 2. Primary Purpose
+- **Why it exists:** answer "where did this data come from and what breaks if I change it?" without manual documentation.
+- **Business problem:** compliance, audit, and impact analysis stall when data provenance is unknown or stale.
+- **Technical problem:** hand-maintained lineage diagrams drift the moment pipelines change.
+- **Scope:** upstream/downstream relationships at table and column granularity, plus links to the notebooks, jobs, and dashboards that produced them.
+- **Not:** a data-quality engine, a business glossary, or a cross-platform catalog — it records flow within governed assets.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Users / Stewards / Auditors / Engineers
+        ↓
+Catalog Explorer UI · Lineage REST API · system.access.* tables
+        ↓
+┌──────────────────────────────────────────────────────┐
+│  UNITY CATALOG  (account-level governance)             │
+│  namespace · grants · LINEAGE CAPTURE · audit · tags   │
+└──────────────────────────────────────────────────────┘
+        ↑ (runtime capture on every read/write)
+Queries · Notebooks · Lakeflow Jobs · Pipelines · Models · Dashboards
+        ↓
+Delta Lake / Views / Volumes on cloud object storage
+```
+- Lineage is a **capture layer inside Unity Catalog**, populated as governed compute reads and writes assets.
+- Emitted automatically by SQL, Python, Scala, and R on UC-enabled compute — no code changes or agents.
+- Column-level edges are derived from query plans, not from user annotations.
+- Read back through the UI, API, or `system.access` tables — the same data, three surfaces.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☐ Developer Experience
+☐ Data Engineering
+☑ Data Governance
+☐ AI
+☐ Machine Learning
+☐ Storage
+☐ Security
+☑ Administration
+☑ Monitoring
+```
+- Primarily **Data Governance** — provenance, impact analysis, and compliance evidence.
+- **Monitoring/Administration** because system tables make lineage queryable for programmatic audit and change management.
+- Not a UI or engineering feature of its own; it is metadata captured beneath everything else.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+|---|---|---|
+| Impact analysis before a schema change | ✅ | Downstream tables/columns/dashboards listed instantly |
+| Regulatory audit of data provenance | ✅ | Automatic, timestamped, tamper-resistant record |
+| Debugging a wrong number in a report | ✅ | Trace a column back to its source |
+| PII/GDPR data-flow mapping | ✅ | Follow sensitive columns across the estate |
+| Onboarding engineers to an unfamiliar pipeline | ✅ | Visual upstream/downstream graph |
+| Deprecating a table safely | ✅ | Confirm no live consumers before dropping |
+| Certifying "gold" tables | ✅ | Show the lineage feeding a trusted asset |
+| Tracing a feature into an ML model | ✅ | Model inputs captured as lineage nodes |
+| Linking a dashboard to its source tables | ✅ | Dashboard lineage identifies upstream data |
+| Root-cause of a data-quality incident | ✅ | Follow the chain to the failing upstream job |
+| Programmatic governance dashboards | ✅ | Query `system.access` lineage tables |
+| Cross-workspace lineage in one metastore | ✅ | Lineage is metastore-scoped, not per-workspace |
+| Lineage for files never registered in UC | ⚠️ | Only governed assets are captured |
+| Business glossary / stewardship workflow | ⚠️ | Lineage alone is not a curation tool |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Lineage across non-Databricks tools end to end | ❌ | Captures UC-governed operations only |
+| Real-time streaming edge-by-edge tracing | ⚠️ | Lineage reflects operations, not per-record flow |
+| Transformation logic documentation | ❌ | Shows what connects, not the business rules why |
+| Row-level or value-level provenance | ❌ | Granularity is table and column, not row/value |
+| Lineage on hive_metastore (legacy) assets | ❌ | Requires Unity Catalog governance |
+| Assets accessed via non-UC compute | ❌ | Capture needs UC-enabled clusters/warehouses |
+| Long-term forensic history beyond retention | ⚠️ | Persist system-table snapshots yourself |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 5 |
+| Analytics Engineers | 5 |
+| Platform Engineers | 4 |
+| Data Scientists | 3 |
+| BI Teams | 4 |
+| AI Engineers | 3 |
+| Executives | 3 |
+| Architects | 5 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 4 |
+| Implementation Speed | 5 |
+| Governance | 5 |
+| Security | 4 |
+| Maintainability | 5 |
+| Scalability | 4 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 5 |
+| Business Value | 4 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Unity Catalog | The metastore that captures and stores lineage. |
+| Delta Lake / Views | Governed assets whose reads/writes generate edges. |
+| Catalog Explorer | Renders the interactive lineage graph. |
+| System Tables (`system.access`) | Expose lineage for SQL-based querying and audit. |
+| Lakeflow Jobs | Job runs appear as lineage-producing entities. |
+| Lakeflow Declarative Pipelines | Pipeline steps captured as upstream/downstream nodes. |
+| Notebooks & Queries | Source operations that emit lineage on execution. |
+| MLflow / Model Registry | Models linked to their input tables/features. |
+| AI/BI Dashboards | Dashboards linked to upstream source tables. |
+| Governed Tags | Combine with lineage to trace tagged (e.g. PII) data. |
+| Audit Logs | Complement lineage with who-did-what evidence. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Manual lineage docs / spreadsheets | Manual | Zero cost to start, but stale and unverifiable. |
+| `information_schema` / query parsing | In-Databricks | Scriptable, but no column edges or graph. |
+| OpenLineage + Marquez | External (open source) | Cross-tool reach; needs agents, hosting, and tuning. |
+| Collibra | External catalog | Rich stewardship/glossary; ingests lineage, adds license and sync. |
+| Alation | External catalog | Strong discovery + lineage curation; separate platform to run. |
+| Atlan / Purview | External catalog | Broad multi-source lineage; weaker UC-native column depth. |
+| dbt lineage (DAG) | External (transform tool) | Models declared transforms only, not runtime cross-tool flow. |
+
+## 11. Strengths
+- Automatic capture — no instrumentation, agents, or code changes.
+- Column-level granularity derived from actual query plans.
+- Spans tables, views, notebooks, jobs, pipelines, models, and dashboards.
+- Three access surfaces: UI graph, REST API, and system tables.
+- Metastore-scoped, so lineage crosses workspaces in one account.
+- Always current — it reflects the last operation, not a stale doc.
+- Included with Unity Catalog; no separate product to license.
+- Queryable in SQL for programmatic governance and impact analysis.
+- Ties directly to tags and grants for PII and access reasoning.
+- Language-agnostic across SQL, Python, Scala, and R.
+
+## 12. Limitations
+- Captures only Unity Catalog-governed assets on UC-enabled compute.
+- Granularity is table/column — no row-level or value-level provenance.
+- Shows connections, not the transformation logic or business rules.
+- Non-Databricks tools in the chain are not captured natively.
+- Retention is bounded; long-term history must be persisted by you.
+- External sources appear only when reached via Lakehouse Federation.
+- Some operations and dynamic SQL may not resolve column edges.
+- Legacy hive_metastore assets are excluded.
+- Lineage lags until the producing operation actually runs.
+- Not a stewardship, glossary, or certification workflow by itself.
+
+## 13. Common Mistakes
+- Assuming lineage covers pipelines that run outside Databricks.
+- Expecting row-level provenance from a table/column feature.
+- Reading lineage as documentation of *why* a transform exists.
+- Running production ETL on non-UC compute, so nothing is captured.
+- Never persisting system-table lineage, then losing history to retention.
+- Treating an empty graph as "no dependencies" before it has run.
+- Ignoring column-level edges and doing coarse table-only impact analysis.
+- Overlapping with an external catalog without deciding the system of record.
+
+## 14. Design Recommendations
+- ✔ Standardize production workloads on **UC-enabled compute** so capture is complete.
+- ✔ Use **column-level** lineage for precise impact analysis, not just table edges.
+- ✔ Snapshot `system.access` lineage tables on a schedule for long-term audit.
+- ✔ Combine lineage with **governed tags** to trace PII and sensitive flows.
+- ✔ Wire impact checks into CI/CD before schema changes and drops.
+- ✔ Query lineage via **API/system tables** for repeatable governance reports.
+- ✔ If using an external catalog, define which tool is the system of record.
+- ✔ Educate teams that lineage shows connections, not business logic.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+|---|---|
+| Impact analysis on schema change | ✅ Native downstream view |
+| Column-level provenance | ✅ Captured from query plans |
+| Regulatory / compliance audit | ✅ Automatic, timestamped |
+| PII data-flow mapping | ✅ Pair with tags |
+| Programmatic governance reports | ✅ Query system tables |
+| Debugging report values | ✅ Trace column to source |
+| Row-level provenance | ❌ Not supported |
+| Transformation logic docs | ❌ Shows flow, not rules |
+| Cross-tool (non-Databricks) lineage | ⚠️ Use external/OpenLineage |
+| Business glossary / stewardship | ⚠️ Use external catalog |
+| Legacy hive_metastore assets | ❌ Requires Unity Catalog |
+
+## 16. Quick Comparison
+| Criterion | UC Lineage | OpenLineage + Marquez | External catalog (Collibra/Alation) | Manual docs |
+|---|---|---|---|---|
+| Capture | Automatic, built-in | Emitters/agents required | Ingested/synced | Hand-maintained |
+| Column-level | Yes | Partial | Varies | Rare |
+| Cross-tool reach | Databricks-governed | Broad | Broad | Any (if updated) |
+| Freshness | Current | Depends on emitters | Sync lag | Often stale |
+| Setup / cost | Included | Host + operate | License + sync | Low tooling, high labor |
+| Stewardship workflow | No | No | Yes | No |
+
+## 17. Maturity
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+- **Licensing:** included with Unity Catalog; no separate lineage license. Verify current pricing.
+- **Compute:** capture is a byproduct of workloads you already run; querying system tables uses a warehouse/serverless (billed).
+- **Storage:** lineage metadata is managed by UC; extra storage applies only if you snapshot history yourself.
+- **Operational Overhead:** low — main effort is standardizing on UC compute and building governance queries/reports.
+- **Training:** minimal for reading the graph; budget for teaching impact-analysis and system-table querying practices.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** automatic, always-current table- and column-level provenance for impact analysis, compliance, and debugging.
+- ✔ **Avoid when:** you need row-level provenance, transformation-logic docs, or end-to-end lineage across non-Databricks tools.
+- ✔ **Biggest benefit:** trustworthy lineage captured with no extra work, viewable in the UI, API, and system tables.
+- ✔ **Biggest limitation:** coverage stops at Unity Catalog-governed assets on UC-enabled compute.
+- ✔ **Overall recommendation:** adopt as the default provenance layer for the lakehouse, standardize workloads on UC compute, and add an external catalog only for glossary/stewardship needs.
