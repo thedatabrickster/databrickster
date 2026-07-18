@@ -1,0 +1,218 @@
+---
+sidebar_position: 20
+title: "AutoML — Architecture Guide"
+description: "Glass-box automated ML on Databricks that trains baseline classification, regression, and forecasting models and emits editable, MLflow-tracked notebooks."
+---
+
+# AutoML
+
+## 1. Executive Summary
+Databricks AutoML is a glass-box automated ML service that runs many trials over a labeled table, then returns the best baseline model plus fully editable, MLflow-tracked notebooks for each trial.
+
+## 2. Primary Purpose
+- **Why it exists:** to remove the boilerplate of feature prep, algorithm selection, and hyperparameter search so a first credible model exists in hours, not weeks.
+- **Business problem solved:** lets citizen data scientists and analysts produce defensible baselines without deep ML engineering, accelerating time-to-first-model.
+- **Technical problem solved:** automates train/validation splits, encoding, imputation, model search, and evaluation while keeping every step as inspectable, reproducible code.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Users / Citizen DS / Analysts
+        ↓
+Delta / Unity Catalog table  (labeled training data)
+        ↓
+AutoML  →  trials (feature prep + algorithm + hyperparameters)
+        ↓
+MLflow experiment  (runs, metrics, artifacts)  +  generated notebooks
+        ↓
+Model Registry in Unity Catalog  →  Mosaic AI Model Serving
+```
+- Sits at the **ML authoring** entry point, upstream of MLflow tracking and the registry.
+- Reads governed Delta tables directly; writes runs and models back through MLflow.
+- Output is a starting point for refinement, not a locked black-box endpoint.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☑ Developer Experience
+☐ Data Engineering
+☐ Data Governance
+☐ AI
+☑ Machine Learning
+☐ Storage
+☐ Security
+☐ Administration
+☐ Monitoring
+```
+- Core to **Machine Learning**: supervised model generation across classification, regression, forecasting.
+- Sits in **Developer Experience** because its deliverable is editable notebooks, not just a model.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+| --- | --- | --- |
+| First baseline for a new prediction problem | ✅ | Fast, defensible starting accuracy |
+| Binary / multiclass classification on tabular data | ✅ | Native classification task |
+| Regression on numeric targets | ✅ | Native regression task |
+| Univariate / multi-series forecasting | ✅ | Built-in forecasting with Prophet/ARIMA |
+| Citizen DS or analyst without ML depth | ✅ | UI-driven, no pipeline coding |
+| Benchmark before investing in custom modeling | ✅ | Cheap yardstick for effort justification |
+| Teaching / upskilling on ML workflow | ✅ | Generated code is readable and idiomatic |
+| Rapid feature-value screening | ✅ | Feature importance surfaced per trial |
+| Reproducible baselines under MLflow | ✅ | Every trial logged automatically |
+| Standardizing team modeling patterns | ✅ | Consistent generated notebook structure |
+| Prototyping before productionizing | ✅ | Best-trial notebook is the handoff artifact |
+| Data with heavy custom feature engineering | ⚠️ | Do prep upstream, then feed AutoML |
+| Small labeled datasets | ⚠️ | Works but limited signal; validate carefully |
+| Deep learning / unstructured inputs | ⚠️ | Tabular-focused; not for images/text/audio |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+| --- | --- | --- |
+| Unstructured data (images, text, audio) | ❌ | Designed for tabular/forecast problems |
+| Deep neural network architectures | ❌ | Search covers tree/linear-style models |
+| Real-time / online learning | ❌ | Batch training over a static table |
+| Highly customized loss or constraints | ❌ | Fixed objective set per task |
+| Fully hands-off production retraining | ⚠️ | Meant for baselines; wrap in Jobs if used |
+| Massive high-cardinality feature sets | ⚠️ | Prep and cardinality reduction needed first |
+| Strict fairness / bespoke validation regimes | ⚠️ | Edit generated code to enforce them |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+| --- | --- |
+| Data Engineers | 2 |
+| Analytics Engineers | 3 |
+| Platform Engineers | 2 |
+| Data Scientists | 4 |
+| BI Teams | 3 |
+| AI Engineers | 2 |
+| Executives | 3 |
+| Architects | 3 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+| --- | --- |
+| Developer Productivity | 5 |
+| Implementation Speed | 5 |
+| Governance | 3 |
+| Security | 3 |
+| Maintainability | 3 |
+| Scalability | 3 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 5 |
+| Business Value | 4 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+| --- | --- |
+| Delta Lake | Provides the labeled input table AutoML reads. |
+| Unity Catalog | Governs source tables and the registered output model. |
+| MLflow | Tracks every trial run, metrics, and artifacts. |
+| Model Registry (in Unity Catalog) | Stores and versions the promoted best model. |
+| Mosaic AI Model Serving | Deploys the promoted model to real-time or batch endpoints. |
+| Compute clusters | Runs parallel trials; scales with cores and workers. |
+| Lakeflow Jobs | Schedules AutoML runs or periodic baseline refreshes. |
+| Notebooks / Repos | Host and version the generated, editable trial code. |
+| Feature Engineering / Feature Store | Optional source of curated features fed into training. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+| --- | --- | --- |
+| Manual modeling (scikit-learn/XGBoost + MLflow) | In-Databricks | Full control, more effort; AutoML is faster to a baseline |
+| Hyperparameter tuning (Optuna/Hyperopt) | In-Databricks | Tunes a chosen model; AutoML also selects the model |
+| Custom Lakeflow Job pipeline | In-Databricks | Bespoke and repeatable, but you build all logic |
+| AWS SageMaker Autopilot | External | Similar glass-box notebooks; separate governance/data plane |
+| Google Vertex AI AutoML | External | Strong on unstructured data; more black-box for tabular |
+| Azure ML Automated ML | External | Comparable tabular AutoML; ties to Azure ML ecosystem |
+| H2O Driverless AI | External | Rich feature engineering; added license and integration |
+| DataRobot | External | Enterprise MLOps breadth; higher cost, less lakehouse-native |
+
+## 11. Strengths
+- Glass-box output: every trial is real, editable code, not a black box.
+- Fast time-to-baseline, often within a single session.
+- Automatic feature prep: imputation, encoding, and splits handled.
+- Covers classification, regression, and forecasting in one interface.
+- Every trial auto-logged to MLflow for comparison and reproducibility.
+- Best-trial notebook is a natural handoff to refinement teams.
+- Feature importance and data-exploration notebook aid understanding.
+- Runs trials in parallel on existing Databricks compute.
+- Low barrier for citizen DS; UI and Python API both available.
+- Output model promotes straight into Unity Catalog and Serving.
+
+## 12. Limitations
+- Tabular and forecasting only; no images, text, or audio.
+- Model search is bounded to standard algorithm families.
+- Not a substitute for domain-driven feature engineering.
+- No native scheduled retraining; must be wrapped in Jobs.
+- Objective/metric set is fixed per task type.
+- Large or high-cardinality datasets need upstream prep.
+- Baselines can lull teams into skipping deeper validation.
+- Generated code still needs review before production use.
+- Limited control over data splitting strategy without editing code.
+- Cost scales with trial count and compute; unbounded runs waste spend.
+
+## 13. Common Mistakes
+- Shipping the AutoML baseline straight to production without review.
+- Feeding raw, un-cleaned tables and expecting strong results.
+- Ignoring data leakage from target-derived or future columns.
+- Treating the metric leaderboard as the only quality signal.
+- Setting excessive trial counts or timeouts, inflating cost.
+- Skipping the generated data-exploration notebook.
+- Using it for problem types (unstructured) it does not support.
+- Not registering or versioning the chosen model in Unity Catalog.
+- Assuming baseline accuracy will hold on unseen production data.
+
+## 14. Design Recommendations
+- ✔ Use AutoML to set a baseline, then refine the best-trial notebook.
+- ✔ Clean, dedupe, and split time-aware data upstream in Delta.
+- ✔ Review the exploration notebook for leakage and skew first.
+- ✔ Cap trial count and timeout to control compute spend.
+- ✔ Register the chosen model in Unity Catalog for governance.
+- ✔ Wrap recurring runs in Lakeflow Jobs for scheduled baselines.
+- ✔ Compare against a naive/heuristic benchmark, not just other trials.
+- ✔ Hand the edited notebook to data scientists for productionization.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+| --- | --- |
+| Fast baseline model | ✅ Core purpose |
+| Tabular classification/regression | ✅ Native task support |
+| Time-series forecasting | ✅ Built-in forecasting |
+| Editable, transparent code | ✅ Glass-box notebooks |
+| Citizen DS enablement | ✅ Low-code, UI-driven |
+| MLflow-tracked experiments | ✅ Automatic logging |
+| Unstructured / deep learning | ❌ Not supported |
+| Heavy custom feature engineering | ⚠️ Do it upstream first |
+| Automated production retraining | ⚠️ Wrap in Jobs manually |
+| Bespoke loss / constraints | ⚠️ Requires editing code |
+
+## 16. Quick Comparison
+| Criterion | Databricks AutoML | SageMaker Autopilot | Vertex AI AutoML | DataRobot |
+| --- | --- | --- | --- | --- |
+| Output transparency | Editable notebooks | Editable notebooks | Mostly black-box | Guided, semi-open |
+| Lakehouse-native | Yes | No | No | No |
+| Tracking | MLflow built-in | SageMaker experiments | Vertex experiments | Native MLOps |
+| Task coverage | Tabular + forecast | Tabular | Tabular + unstructured | Broad + MLOps |
+| Best for | Baselines on lakehouse | AWS-centric tabular | Unstructured-heavy | Enterprise MLOps |
+
+## 17. Maturity
+| Dimension | Rating |
+| --- | --- |
+| Technology Readiness | High |
+| Enterprise Readiness | Medium |
+| Production Readiness | Medium |
+| Governance Readiness | Medium |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+- **Licensing:** included with the Databricks ML runtime; no separate AutoML license. Verify current pricing.
+- **Compute:** primary cost driver — parallel trials consume cluster cores; cap trials and timeout.
+- **Storage:** minimal; MLflow artifacts and generated notebooks are small relative to training data.
+- **Operational Overhead:** low to run, but productionizing and retraining require added engineering.
+- **Training:** short learning curve for the UI; deeper skill needed to interpret and refine output.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** fast, defensible baselines on tabular and forecasting problems for citizen DS and prototyping.
+- ✔ **Avoid when:** you need unstructured data, deep learning, or a fully automated production retraining system.
+- ✔ **Biggest benefit:** glass-box notebooks that turn hours of setup into editable, MLflow-tracked starting points.
+- ✔ **Biggest limitation:** bounded to standard tabular algorithms — not a replacement for expert feature engineering.
+- ✔ **Overall recommendation:** adopt as the baseline and enablement on-ramp, then hand the best-trial notebook to data scientists for refinement.

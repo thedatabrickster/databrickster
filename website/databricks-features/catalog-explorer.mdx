@@ -1,0 +1,225 @@
+---
+sidebar_position: 20
+title: "Catalog Explorer — Architecture Guide"
+description: "The workspace UI for browsing, searching, and governing Unity Catalog assets — tables, volumes, models, lineage, permissions, and tags — not a separate metadata engine."
+---
+
+# Catalog Explorer
+
+## 1. Executive Summary
+Catalog Explorer is the workspace user interface for discovering, inspecting, and governing Unity Catalog assets — tables, views, volumes, models, functions, lineage, permissions, and tags — without writing SQL or API calls.
+
+## 2. Primary Purpose
+- **Why it exists:** give humans a point-and-click surface over Unity Catalog's namespace and grants.
+- **Business problem:** analysts and stewards cannot find, trust, or document data assets scattered across schemas.
+- **Technical problem:** managing permissions, tags, and lineage purely via `GRANT`/`information_schema` is error-prone and unauditable by non-engineers.
+- **Scope:** browse and search assets · view/edit permissions · inspect lineage · apply tags · preview sample data · read and generate AI comments.
+- **Not:** a query engine, a separate catalog store, or a governance model of its own — it renders and edits Unity Catalog state.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Users / Stewards / Analysts / Engineers (browser)
+        ↓
+CATALOG EXPLORER  (workspace UI surface)
+  browse · search · permissions · lineage · tags · sample · AI docs
+        ↓
+┌─────────────────────────────────────────────┐
+│  UNITY CATALOG  (account-level governance)    │
+│  namespace · grants · lineage · audit · ABAC  │
+└─────────────────────────────────────────────┘
+        ↓
+Delta Lake / Volumes on cloud object storage
+```
+- Sits **above Unity Catalog** as a read/write UI — every action becomes a UC API call and audit event.
+- **Thin surface, no state of its own:** what it shows is UC metadata; what it edits is UC grants/tags/comments.
+- Reuses UC lineage and system tables; it does not compute lineage itself.
+- Sample-data preview and AI comments run on **compute** (a warehouse/serverless), not in the UI layer.
+
+## 4. Typical Architecture Placement
+```
+☑ User Interface
+☑ Developer Experience
+☑ Data Engineering
+☑ Data Governance
+☑ AI
+☐ Machine Learning
+☐ Storage
+☐ Security
+☐ Administration
+☐ Monitoring
+```
+- Primarily a **User Interface** and **Data Governance** surface for Unity Catalog.
+- **AI** because it generates column/table comments via a built-in LLM; **Developer Experience** for discovery.
+- Not itself Security/Administration — it invokes UC's controls rather than defining them.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+|---|---|---|
+| Self-service discovery of tables/views | ✅ | Search + browse across the namespace |
+| Inspecting a table's schema and sample rows | ✅ | Built-in preview without writing SQL |
+| Editing grants without SQL | ✅ | Point-and-click permissions tab |
+| Applying/curating governed tags | ✅ | Tag editor feeds ABAC and search |
+| Reviewing column-level lineage | ✅ | Interactive upstream/downstream graph |
+| Documenting assets with AI comments | ✅ | LLM drafts table/column descriptions |
+| Onboarding new analysts to the estate | ✅ | Visual map of catalogs and schemas |
+| Managing volumes and files | ✅ | Browse and permission non-tabular data |
+| Locating governed ML models/functions | ✅ | Models and UDFs are browsable objects |
+| Ad-hoc data-quality spot checks | ✅ | Sample + profiling views on a table |
+| Bulk, scripted grant changes | ⚠️ | Prefer Terraform/SQL for repeatability |
+| Cross-workspace governance rollout | ⚠️ | UI is per-workspace; policy should be as-code |
+| Deep column profiling/statistics | ⚠️ | Basic previews only; use full profiling tools |
+| External (non-Databricks) asset catalog | ⚠️ | Only shows Federation-registered sources |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| CI/CD-managed permissions at scale | ❌ | Use Terraform / Asset Bundles, not clicks |
+| Programmatic bulk tagging | ❌ | Script via SQL/API for consistency |
+| Governing assets outside Unity Catalog | ❌ | It only renders UC-registered objects |
+| Enterprise stewardship workflow (approvals) | ⚠️ | No native request/approval engine |
+| Business glossary / policy management | ⚠️ | Tags exist, but not full glossary tooling |
+| Heavy data profiling and monitoring | ⚠️ | Use Lakehouse Monitoring / profiling tools |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 4 |
+| Analytics Engineers | 5 |
+| Platform Engineers | 3 |
+| Data Scientists | 4 |
+| BI Teams | 5 |
+| AI Engineers | 3 |
+| Executives | 2 |
+| Architects | 3 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 4 |
+| Implementation Speed | 5 |
+| Governance | 4 |
+| Security | 3 |
+| Maintainability | 3 |
+| Scalability | 3 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 5 |
+| Business Value | 4 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Unity Catalog | The system of record it browses and edits. |
+| Delta Lake | Underlying governed table format previewed. |
+| Volumes | Governed file storage browsed in the UI. |
+| Databricks SQL / Serverless | Runs sample-data previews and profiling queries. |
+| UC Lineage | Supplies the upstream/downstream graph. |
+| System Tables & Audit Logs | Record actions taken through the UI. |
+| Governed Tags | Metadata the tag editor reads and writes. |
+| MLflow / Model Registry | Registers models shown as UC objects. |
+| Lakehouse Federation | Surfaces external sources as browsable catalogs. |
+| Built-in LLM (AI comments) | Generates draft table/column descriptions. |
+| Databricks Assistant | Complements discovery with natural-language help. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| `information_schema` / `SHOW` queries | In-Databricks | Scriptable but no visuals, lineage, or tagging UX. |
+| Terraform / Asset Bundles | In-Databricks (as-code) | Repeatable governance, but no interactive discovery. |
+| Databricks REST / UC API | In-Databricks | Automatable; requires code, no browse experience. |
+| Collibra | External catalog | Rich stewardship/glossary; not the UC enforcement point. |
+| Alation | External catalog | Strong discovery/curation; needs sync, adds cost. |
+| Atlan | External catalog | Modern lineage/collaboration; separate platform to run. |
+| Cloud-native catalogs (Glue, Purview) | External | Broader multi-source reach; weaker UC-native depth. |
+
+## 11. Strengths
+- Zero-install UI over Unity Catalog — nothing to deploy.
+- Unified browse of tables, views, volumes, models, and functions.
+- Search and filtering across the three-level namespace.
+- Point-and-click permission management without SQL.
+- Interactive column-level lineage from UC's runtime capture.
+- Tag editing that directly powers ABAC and discovery.
+- AI-generated comments accelerate documentation coverage.
+- Sample-data preview for quick trust and validation.
+- Every edit is a governed UC action, captured in audit logs.
+- Consistent with grants applied via SQL, API, or Terraform.
+
+## 12. Limitations
+- Per-workspace UI; governance policy should still be as-code.
+- Not built for bulk operations — clicks do not scale.
+- No native stewardship workflow (requests, approvals, certification).
+- Tags exist, but there is no full business-glossary tooling.
+- Profiling/previews are shallow versus dedicated tools.
+- Only shows what Unity Catalog knows; unregistered assets are invisible.
+- AI comments need review — drafts can be generic or wrong.
+- Sample previews and profiling consume compute (billed).
+- Manual UI changes can drift from as-code definitions.
+- Limited visibility into external sources beyond Federation coverage.
+
+## 13. Common Mistakes
+- Treating the UI as the source of truth instead of as-code grants.
+- Making one-off permission clicks that drift from Terraform state.
+- Accepting AI-generated comments without human review.
+- Skipping a tag taxonomy, so search and ABAC stay weak.
+- Granting to individuals in the UI rather than groups.
+- Assuming lineage covers non-Databricks pipelines.
+- Expecting glossary/stewardship features it does not provide.
+- Forgetting that previews spin up compute and incur cost.
+
+## 14. Design Recommendations
+- ✔ Use the UI for discovery and review; manage grants **as-code**.
+- ✔ Grant to **groups**, never individuals, even when clicking.
+- ✔ Establish a **tag taxonomy** before curating in the UI.
+- ✔ Treat AI comments as drafts — require steward review before publish.
+- ✔ Reconcile UI edits back into Terraform/Asset Bundles to avoid drift.
+- ✔ Point users here for onboarding and self-service data trust.
+- ✔ Use a small serverless warehouse for previews to control cost.
+- ✔ Pair with an external catalog only if you need glossary/stewardship workflows.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+|---|---|
+| Data discovery / search | ✅ Purpose-built UI |
+| Sample-data inspection | ✅ Built-in preview |
+| Ad-hoc permission edits | ✅ Point-and-click |
+| Lineage exploration | ✅ Interactive graph |
+| Tag curation | ✅ Native editor |
+| AI-assisted documentation | ✅ Built-in generator |
+| Bulk / scripted grants | ⚠️ Prefer as-code |
+| Cross-workspace policy | ⚠️ UI is per-workspace |
+| Stewardship workflows | ❌ Not provided |
+| Business glossary | ❌ Use external catalog |
+| Governing non-UC assets | ❌ Out of scope |
+
+## 16. Quick Comparison
+| Criterion | Catalog Explorer | information_schema queries | External catalog (Collibra/Alation/Atlan) |
+|---|---|---|---|
+| Interface | Visual, in-workspace | SQL only | Separate web app |
+| UC enforcement point | Yes (edits UC directly) | Yes (via SQL) | No (syncs metadata) |
+| Lineage | Native, column-level | Not visual | Imported/collected |
+| AI documentation | Built-in | No | Varies |
+| Stewardship workflow | No | No | Yes |
+| Setup / cost | Included, no setup | Included | Separate license + sync |
+
+## 17. Maturity
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | Medium–High |
+| Production Readiness | High |
+| Governance Readiness | Medium–High |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+- **Licensing:** included with Databricks and Unity Catalog; no separate license. Verify current pricing.
+- **Compute:** the UI is free, but sample previews, profiling, and AI comments run on a warehouse/serverless (billed).
+- **Storage:** no additional storage; it reads existing UC metadata and data.
+- **Operational Overhead:** main effort is governance design (groups, tags) and preventing UI-vs-as-code drift.
+- **Training:** minimal — the UI is discoverable; budget instead for tag-taxonomy and stewardship practices.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** self-service discovery and hands-on inspection of Unity Catalog assets by analysts and stewards.
+- ✔ **Avoid when:** you need bulk, repeatable governance or formal stewardship/glossary workflows.
+- ✔ **Biggest benefit:** a zero-setup visual surface that makes UC data findable, trustworthy, and documentable.
+- ✔ **Biggest limitation:** it is a per-workspace UI, not a governance engine — policy belongs as-code.
+- ✔ **Overall recommendation:** adopt as the default discovery and review surface, but drive permissions and tags through as-code definitions and reconcile UI edits back to them.

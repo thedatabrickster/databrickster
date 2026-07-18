@@ -1,0 +1,235 @@
+---
+sidebar_position: 20
+title: "Auto Loader — Architecture Guide"
+description: "Incremental, exactly-once ingestion of files from cloud storage into Delta with automatic schema inference and evolution."
+---
+
+# Auto Loader
+
+## 1. Executive Summary
+
+Auto Loader is a Structured Streaming source (`cloudFiles`) that incrementally and exactly-once ingests new files landing in cloud object storage into Delta, with automatic schema inference and evolution.
+
+## 2. Primary Purpose
+
+- **Why it exists:** turn a continuously growing folder of files in cloud storage into a reliable, incremental table without re-reading everything.
+- **Business problem solved:** slow, costly, error-prone batch reloads and late data as file volumes grow into millions of objects.
+- **Technical problem solved:** tracking which files were already processed, handling drifting schemas, and scaling file discovery without custom bookkeeping.
+- **Scope note:** it is a *source*, not a full pipeline — it feeds Lakeflow Declarative Pipelines, Lakeflow Jobs, or standalone Structured Streaming.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Cloud Storage (S3/ADLS/GCS) → Auto Loader (cloudFiles) → Structured Streaming / Lakeflow → Delta (Bronze) → Silver/Gold → SQL / BI / AI
+   (landing files)              (incremental discovery)        (transform + write)          (raw ingest)     (curation)     (consumers)
+```
+
+- Sits at the **ingestion edge** of the Data Engineering layer — the first hop from files to Delta.
+- Typically writes the **Bronze** (raw) table; downstream transforms handle Silver/Gold.
+- Runs inside Lakeflow Declarative Pipelines (as a streaming table source), Lakeflow Jobs, or a raw streaming query.
+- Governs targets through Unity Catalog once data lands in Delta.
+
+## 4. Typical Architecture Placement
+
+```
+☐ User Interface
+☐ Developer Experience
+☑ Data Engineering
+☐ Data Governance
+☐ AI
+☐ Machine Learning
+☑ Storage
+☐ Security
+☐ Administration
+☐ Monitoring
+```
+
+- Core home is **Data Engineering** — incremental file-to-Delta ingestion.
+- Touches **Storage** directly: it reads cloud object stores and manages file-discovery state (checkpoints, notification queues).
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+|---|---|---|
+| Continuous ingestion of files landing in cloud storage | ✅ | Purpose-built incremental source |
+| Millions of files in a directory | ✅ | File notification mode scales past listing limits |
+| Exactly-once raw (Bronze) ingestion | ✅ | Checkpointed, dedup-tracked file processing |
+| Evolving/drifting JSON or CSV schemas | ✅ | Automatic schema inference and evolution |
+| Semi-structured formats (JSON, CSV, Avro, XML) | ✅ | Rescued-data column captures mismatches |
+| Binary/unstructured files (images, PDFs) | ✅ | `binaryFile` and `text` formats supported |
+| Streaming table source in Lakeflow pipelines | ✅ | Native integration for Bronze layer |
+| Near-real-time file arrival processing | ✅ | Event-driven via file notifications |
+| Backfill plus ongoing incremental load | ✅ | Processes existing files then tails new ones |
+| High file-arrival rate, low per-file size | ✅ | Notification mode avoids repeated listings |
+| Late-arriving or out-of-order files | ✅ | Discovery is arrival-based, not partition-scan |
+| One-time bulk load of a static dataset | ⚠️ | COPY INTO or a batch read is simpler |
+| Small, infrequent file drops | ⚠️ | Directory listing is fine; streaming may be overkill |
+| Row-level updates/deletes to source records | ⚠️ | File source is append-oriented; pair with CDC downstream |
+| Ingesting from databases or SaaS APIs | ⚠️ | Use Lakeflow Connect, not a file source |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Database / CDC / API ingestion | ❌ | Not a file source; use Lakeflow Connect |
+| One-off idempotent bulk file load | ⚠️ | COPY INTO is simpler and re-runnable |
+| Mutable source files edited in place | ❌ | Detects new files, not in-place content changes |
+| Sub-millisecond event streaming | ❌ | Micro-batch over files, not per-event |
+| Complex multi-table transform logic | ❌ | It ingests; transformation belongs downstream |
+| Tiny static reference dataset | ⚠️ | Plain batch read has less overhead |
+| Non-cloud / on-prem-only file systems | ⚠️ | Designed for cloud object storage |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 5 |
+| Analytics Engineers | 3 |
+| Platform Engineers | 4 |
+| Data Scientists | 2 |
+| BI Teams | 1 |
+| AI Engineers | 2 |
+| Executives | 1 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 5 |
+| Implementation Speed | 5 |
+| Governance | 3 |
+| Security | 3 |
+| Maintainability | 4 |
+| Scalability | 5 |
+| Cost Optimization | 4 |
+| Ease of Adoption | 4 |
+| Business Value | 4 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Cloud Object Storage | Source location where files land (S3, ADLS, GCS). |
+| Delta Lake | Standard target format for ingested data. |
+| Structured Streaming | Execution engine; Auto Loader is the `cloudFiles` source. |
+| Lakeflow Declarative Pipelines | Hosts Auto Loader as a streaming-table source for Bronze. |
+| Lakeflow Jobs | Schedules and triggers ingestion streams. |
+| Unity Catalog | Governs the Delta targets and (with volumes) the source paths. |
+| Cloud Notification Services | SNS/SQS, Event Grid/Queue Storage, Pub/Sub for file notification mode. |
+| Checkpoint / RocksDB state store | Tracks processed files for exactly-once guarantees. |
+| Serverless / Classic Compute | Runs the ingestion query with autoscaling. |
+| Databricks Asset Bundles | Deploys ingestion code as versioned IaC. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| COPY INTO | In-Databricks (SQL) | Idempotent batch load, simpler; weaker at millions of files and continuous streaming. |
+| Custom Structured Streaming file source | In-Databricks | Full control; you own file tracking, schema handling, and scaling logic. |
+| Lakeflow Connect | In-Databricks | Managed connectors for DBs/SaaS; not a raw file source. |
+| Spark batch read on a directory | In-Databricks | Simple for static data; re-reads everything, no incremental state. |
+| Azure Data Factory / AWS Glue / DMS | External | Managed ingestion; less Lakehouse-native, extra tooling and cost. |
+| Fivetran / Airbyte / custom scripts | External | Broad source coverage; adds a separate platform and file-level bookkeeping. |
+
+## 11. Strengths
+
+- Incremental, exactly-once file processing with checkpointed state.
+- Two discovery modes: directory listing (default) and file notification (scale).
+- Scales to millions of files per directory via notification queues.
+- Automatic schema inference and evolution for drifting sources.
+- Rescued-data column preserves values that do not match the schema.
+- Supports JSON, CSV, Avro, ORC, Parquet, text, and binary files.
+- Backfills existing files then continuously tails new arrivals.
+- Native source for Lakeflow Declarative Pipeline streaming tables.
+- Lower cost than repeated full-directory listings at scale.
+- Minimal code — a single `cloudFiles` read replaces custom bookkeeping.
+
+## 12. Limitations
+
+- Ingestion only — transformation and modeling happen downstream.
+- Detects new files, not edits to already-processed files.
+- File notification mode needs cloud IAM/permissions setup per provider.
+- Directory listing degrades on very large or deeply nested paths.
+- Schema evolution can restart the stream when new columns appear.
+- Aggressive inference may need type hints for numeric/date precision.
+- Append-oriented; row updates/deletes require CDC handling later.
+- Checkpoint state is tied to the target; moving/rewriting it is disruptive.
+- Not suited to non-cloud/on-prem-only file systems.
+- Cross-cloud and per-provider notification behaviors differ.
+
+## 13. Common Mistakes
+
+- Using directory listing at scale where file notification is required.
+- Not enabling schema evolution, then breaking on new source columns.
+- Ignoring the rescued-data column and silently losing mismatched fields.
+- Deleting or sharing checkpoints across streams, corrupting state.
+- Reprocessing by re-dropping files, expecting content changes to be picked up.
+- Reaching for Auto Loader when COPY INTO fits a one-time load.
+- Over-transforming in the ingestion query instead of writing raw Bronze.
+- Forgetting to grant cloud permissions for the notification queue/topic.
+- Letting many tiny files land without compaction downstream.
+
+## 14. Design Recommendations
+
+- ✔ Land data in cloud storage (or Unity Catalog volumes) and read with `cloudFiles`.
+- ✔ Use directory listing for modest volumes; switch to file notification at scale.
+- ✔ Enable schema evolution and keep the rescued-data column for auditability.
+- ✔ Provide schema hints for critical typed columns to stop over-inference.
+- ✔ Write raw to Bronze; defer cleansing and modeling to Silver/Gold.
+- ✔ Run inside Lakeflow Declarative Pipelines for managed streaming tables.
+- ✔ Store a dedicated checkpoint per stream and treat it as production state.
+- ✔ Use COPY INTO instead for simple, idempotent, one-time batch loads.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+|---|---|
+| Incremental file ingestion | ✅ Purpose-built |
+| Millions of files at scale | ✅ File notification mode |
+| Exactly-once raw ingestion | ✅ Checkpointed state |
+| Automatic schema evolution | ✅ Native support |
+| One-time idempotent bulk load | ⚠️ COPY INTO simpler |
+| Database / SaaS ingestion | ❌ Use Lakeflow Connect |
+| In-place file content changes | ❌ Detects new files only |
+| Downstream transformation | ❌ Ingestion only |
+| Bronze layer in pipelines | ✅ Native streaming source |
+| On-prem-only file systems | ❌ Cloud storage oriented |
+
+## 16. Quick Comparison
+
+| Criterion | Auto Loader | COPY INTO | Custom Streaming file source |
+|---|---|---|---|
+| Model | Streaming (`cloudFiles`) | Batch SQL command | Streaming (manual) |
+| Incremental tracking | Automatic (checkpoint) | Idempotent per file | Hand-coded |
+| Scale (file count) | High (notification mode) | Moderate | Depends on your code |
+| Schema evolution | Automatic | Limited | Hand-coded |
+| Setup effort | Low | Very low | High |
+| Best for | Continuous ingestion | One-time / periodic loads | Bespoke edge cases |
+
+## 17. Maturity
+
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | Medium |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+
+- **Licensing:** consumed as Databricks DBUs via the compute running the stream — verify current pricing.
+- **Compute:** streaming or triggered compute; use triggered/`availableNow` runs for periodic loads to avoid idle cost.
+- **Storage:** standard Delta target storage plus checkpoint state; small notification-queue metadata.
+- **Operational Overhead:** low once configured; file notification adds one-time cloud IAM/queue setup and monitoring.
+- **Training:** moderate — teams learn `cloudFiles` options, schema evolution behavior, and checkpoint discipline.
+
+## 19. Executive Takeaway
+
+- ✔ **Best for:** continuous, incremental, exactly-once ingestion of files from cloud storage into Delta at scale.
+- ✔ **Avoid when:** you need database/SaaS ingestion, in-place file-change detection, or a simple one-time load (use COPY INTO).
+- ✔ **Biggest benefit:** automatic file tracking and schema evolution replace fragile custom bookkeeping and scale to millions of files.
+- ✔ **Biggest limitation:** ingestion-only and append-oriented — transformation and updates must happen downstream.
+- ✔ **Overall recommendation:** default ingestion source for file-based Bronze layers in Lakeflow pipelines and jobs. See the [feature catalog](/databricks-features) for related components.

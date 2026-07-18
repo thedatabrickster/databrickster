@@ -1,0 +1,226 @@
+---
+sidebar_position: 20
+title: "Cluster Policies — Architecture Guide"
+description: "Admin-defined rule sets that constrain how compute is created in Databricks — capping instance types, autoscaling, tags, and cost, and standardizing configuration across teams."
+---
+
+# Cluster Policies
+
+## 1. Executive Summary
+Cluster Policies are admin-authored JSON rule sets that constrain and template the configuration of Databricks compute, enforcing guardrails for cost, security, and standardization before a cluster or warehouse is ever created.
+
+## 2. Primary Purpose
+- **Why it exists:** give platform admins a declarative control point over how compute is provisioned, without approving each request by hand.
+- **Business problem:** unbounded self-service compute drives runaway cost, missing chargeback tags, and inconsistent environments.
+- **Technical problem:** users otherwise pick arbitrary node types, versions, and autoscaling ranges, producing sprawl and unsupportable configurations.
+- **Scope:** all-purpose clusters, job clusters, instance pools, and SQL warehouse sizing — governed by fixed, limited, or defaulted attributes.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Users / Data Engineers / Analysts / Jobs / Service Principals
+        ↓  (request compute)
+┌───────────────────────────────────────────────┐
+│  CLUSTER POLICY  (admission + templating)       │
+│  fixed · allowlist · range · default · tags     │
+└───────────────────────────────────────────────┘
+        ↓  (validated request)
+Compute layer (clusters · pools · SQL warehouses)
+        ↓
+Spark / Photon execution → Unity Catalog → Delta
+```
+- Sits at the **admission gate** between the user's compute request and the provisioning layer — it shapes requests, it does not run workloads.
+- Applies to compute creation and edit; it is evaluated in the control plane before nodes launch.
+- Governed by permissions: policies themselves are ACL'd so only intended users can use each one.
+- Complements, not replaces, Unity Catalog data governance — policies govern the machine, UC governs the data.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☐ Developer Experience
+☐ Data Engineering
+☑ Data Governance
+☐ AI
+☐ Machine Learning
+☐ Storage
+☑ Security
+☑ Administration
+☑ Monitoring
+```
+- Core **Administration** control: the primary lever for standardizing and constraining compute fleet-wide.
+- **Security + Governance** because policies restrict node types, access modes, and enforce chargeback tags.
+- **Monitoring** because enforced tags make usage attributable in billing and System Tables.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+|---|---|---|
+| Enforce cost-control caps on node types and counts | ✅ | Range/allowlist limits stop oversized clusters |
+| Mandate chargeback / cost-center tags | ✅ | Fixed or required custom tags on every cluster |
+| Standardize Databricks Runtime version | ✅ | Allowlist or fixed `spark_version` |
+| Force auto-termination on idle clusters | ✅ | Fixed `autotermination_minutes` stops runaways |
+| Constrain autoscaling min/max worker ranges | ✅ | Range limits bound elastic spend |
+| Restrict to Photon or specific access modes | ✅ | Fixed attributes standardize execution |
+| Separate prod vs dev compute profiles | ✅ | Distinct policies per environment and team |
+| Require spot/on-demand mix for savings | ✅ | Constrain availability and bid attributes |
+| Limit which users can launch GPU compute | ✅ | Policy ACLs plus node-type allowlist |
+| Template job clusters for pipelines | ✅ | Consistent job compute via policy defaults |
+| Enforce instance-pool usage for fast starts | ✅ | Fix `instance_pool_id` in the policy |
+| Block public IP / enforce secure config | ✅ | Fix network and security attributes |
+| Give analysts a simple, safe cluster form | ✅ | Hidden/defaulted fields reduce choices |
+| Governing serverless-only estates | ⚠️ | Serverless removes most knobs policies control |
+| Fine-grained per-notebook resource limits | ⚠️ | Policy is per-cluster, not per-workload |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Data-level access control | ❌ | That is Unity Catalog, not cluster policy |
+| Enforcing rules after a cluster is running | ❌ | Policies validate at create/edit, not runtime |
+| Governing fully serverless compute | ⚠️ | Few tunable attributes remain to constrain |
+| Precise per-query cost limits | ⚠️ | Policy bounds shape, not live consumption |
+| Replacing cloud IAM / network controls | ❌ | Policies template config, not cloud security |
+| Dynamic limits that change by workload | ⚠️ | Policies are static JSON, not runtime logic |
+| Sole guarantee against all overspend | ⚠️ | Needs budgets and monitoring alongside |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 3 |
+| Analytics Engineers | 3 |
+| Platform Engineers | 5 |
+| Data Scientists | 2 |
+| BI Teams | 2 |
+| AI Engineers | 2 |
+| Executives | 4 |
+| Architects | 5 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 3 |
+| Implementation Speed | 4 |
+| Governance | 5 |
+| Security | 4 |
+| Maintainability | 4 |
+| Scalability | 4 |
+| Cost Optimization | 5 |
+| Ease of Adoption | 4 |
+| Business Value | 4 |
+| Innovation | 2 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Compute (clusters, pools, warehouses) | The resource whose configuration the policy constrains. |
+| Instance Pools | Policies can require pool use for faster, standardized starts. |
+| Lakeflow Jobs | Job clusters inherit policies to standardize pipeline compute. |
+| Unity Catalog | Governs data access; policies govern the compute that reaches it. |
+| Account & workspace admin | Where policies are authored, versioned, and ACL'd. |
+| Billing / usage System Tables | Consume the enforced tags for cost attribution and chargeback. |
+| Audit Logs | Record policy creation, edits, and cluster events for review. |
+| Terraform / IaC | Can define and deploy policies as code across workspaces. |
+| Service principals | Automated actors whose compute is also policy-constrained. |
+| Databricks SQL warehouses | Serverless and pro warehouse sizing partly shaped by policy. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Manual review / approval workflow | Manual | No tooling cost, but slow, error-prone, and not scalable. |
+| Cloud provider quotas & service limits | External | Caps raw capacity, but no Databricks-aware templating or tags. |
+| Terraform-enforced cluster definitions | External/IaC | Strong config-as-code, but only for IaC-created compute, not ad-hoc UI clusters. |
+| Cloud IAM / SCP guardrails | External | Restricts instance families, but blind to runtime, autoscaling, tags. |
+| Budgets & cost alerts only | In-Databricks | Detects overspend after the fact; does not prevent it. |
+| Serverless compute (fewer knobs) | In-Databricks | Removes most config choices, but also removes most policy levers. |
+| Open self-service (no policy) | Default | Maximum flexibility, maximum sprawl and cost risk. |
+
+## 11. Strengths
+- Preventive: constrains compute at creation, before spend or drift occurs.
+- Declarative JSON with fixed, allowlist, range, and default attribute types.
+- Enforces chargeback tags, making usage attributable in billing tables.
+- Caps node types, worker counts, and autoscaling to bound cost.
+- Forces auto-termination, stopping idle and forgotten clusters.
+- Policy ACLs restrict who can use each compute profile.
+- Simplifies the cluster form by hiding or defaulting fields for users.
+- Applies uniformly to all-purpose, job, and pool-backed compute.
+- Deployable as code via Terraform for consistency across workspaces.
+- Standardizes runtime versions and access modes, easing support.
+
+## 12. Limitations
+- Validates only at create/edit — no enforcement once a cluster runs.
+- Static JSON; cannot express dynamic or workload-conditional rules.
+- Limited leverage over serverless compute, which exposes few knobs.
+- Bounds configuration shape, not actual live consumption or cost.
+- Poorly scoped policies frustrate users or push them to weaker profiles.
+- Attribute names and options evolve with runtime releases; policies drift.
+- Does not govern data access — needs Unity Catalog alongside.
+- Complex allow/range logic across many teams grows hard to maintain.
+- No native versioning UI; change history relies on audit logs or IaC.
+- A too-permissive policy provides false assurance of control.
+
+## 13. Common Mistakes
+- Leaving compute creation unrestricted (no policy) and relying on goodwill.
+- One giant permissive policy that constrains almost nothing.
+- Not enforcing tags, so chargeback and cost attribution stay impossible.
+- Forgetting `autotermination_minutes`, leaving idle clusters billing.
+- Setting autoscaling max too high, defeating the cost intent.
+- Managing policies by hand instead of as code, causing per-workspace drift.
+- Ignoring job clusters, governing only interactive compute.
+- Over-restricting so teams file exceptions or route around the policy.
+- Not restricting policy-use ACLs, so anyone picks the powerful profile.
+- Assuming policies secure data — conflating compute and data governance.
+
+## 14. Design Recommendations
+- ✔ Create tiered policies per environment and persona (dev, prod, GPU, jobs).
+- ✔ Make cost-center and owner tags required or fixed on every policy.
+- ✔ Always fix a sane `autotermination_minutes`.
+- ✔ Bound node types and autoscaling with allowlists and ranges, not fixed single values where flexibility is needed.
+- ✔ Restrict each policy's use ACL to the intended group.
+- ✔ Manage policies as code (Terraform) and version them in Git.
+- ✔ Prefer instance pools in policies for faster, standardized starts.
+- ✔ Review policies against new runtime releases and billing data regularly.
+- ✔ Provide a simple default policy so most users never see raw config.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+|---|---|
+| Compute cost control | ✅ Caps size and autoscaling |
+| Chargeback tag enforcement | ✅ Required/fixed tags |
+| Configuration standardization | ✅ Templates node type, runtime |
+| Preventing runaway clusters | ✅ Forces auto-termination |
+| Environment separation (dev/prod) | ✅ Distinct policies |
+| Data access governance | ❌ Use Unity Catalog |
+| Runtime enforcement on live clusters | ❌ Create/edit only |
+| Serverless compute governance | ⚠️ Limited knobs |
+| Live per-query cost limits | ⚠️ Bounds shape, not spend |
+| Cloud-level capacity limits | ⚠️ Use quotas alongside |
+
+## 16. Quick Comparison
+| Criterion | Cluster Policies | Cloud quotas | Terraform-enforced configs | Manual governance |
+|---|---|---|---|---|
+| Databricks-aware config | Full | None | Full | Manual |
+| Covers ad-hoc UI clusters | Yes | Indirect | No | Depends |
+| Enforces tags | Yes | No | Yes | Manual |
+| Preventive vs reactive | Preventive | Preventive | Preventive | Reactive |
+| Setup effort | Low–Medium | Low | Medium | Low |
+| Best role | Fleet standardization | Raw capacity caps | Config-as-code | Last resort |
+
+## 17. Maturity
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+- **Licensing:** cluster policies are included with Databricks at no separate license. Verify current pricing.
+- **Compute:** the feature adds no compute cost; its value is reducing compute spend through caps and auto-termination.
+- **Storage:** negligible — policy definitions are small JSON documents.
+- **Operational Overhead:** authoring, ACLing, and maintaining tiered policies as runtimes evolve; assign a clear platform owner.
+- **Training:** upskilling admins on the policy attribute schema and users on which policy to pick for their workload.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** platform teams standardizing self-service compute and enforcing cost, tag, and security guardrails at scale.
+- ✔ **Avoid when:** you need data-level governance or runtime enforcement — use Unity Catalog and monitoring instead.
+- ✔ **Biggest benefit:** preventive, fleet-wide control that caps runaway clusters and enforces chargeback tags before spend occurs.
+- ✔ **Biggest limitation:** it validates only at create/edit, is static JSON, and has little leverage over serverless compute.
+- ✔ **Overall recommendation:** deploy tiered policies as code, require cost-center tags and auto-termination everywhere, and pair with budgets and audit monitoring.

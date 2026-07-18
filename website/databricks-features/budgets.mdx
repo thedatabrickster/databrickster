@@ -1,0 +1,223 @@
+---
+sidebar_position: 20
+title: "Budgets & Budget Policies — Architecture Guide"
+description: "Account-level spend tracking with threshold alerts, plus budget policies that enforce tagging and attribution on serverless usage for chargeback."
+---
+
+# Budgets & Budget Policies
+
+## 1. Executive Summary
+Budgets track account-level Databricks spend against periodic limits and fire threshold alerts, while Budget Policies enforce cost tags on serverless workloads so usage can be attributed and charged back through System Tables.
+
+## 2. Primary Purpose
+- **Why it exists:** give finance and platform owners visibility and early warning on Databricks consumption before invoices arrive.
+- **Business problem:** cloud data spend is easy to overrun and hard to attribute to teams, projects, or cost centers.
+- **Technical problem:** serverless compute has no cluster the user can hand-tag, so usage arrives untagged unless a policy injects the tags.
+- **Two distinct features:** Budgets = monitoring + alerts; Budget Policies = tag enforcement/attribution on serverless.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Users / Jobs / Serverless SQL / Pipelines / Model Serving / Apps
+        ↓  (consume DBUs; serverless work carries a budget policy)
+Budget Policy  →  injects cost tags on serverless usage
+        ↓
+system.billing.usage  (metered records + tags, Delta)
+        ↓
+Budgets  →  aggregate spend vs limit, evaluate thresholds
+        ↓
+Alerts (email) + BI / chargeback reports over System Tables
+```
+- Sits in the **administration and monitoring** plane at the account level, above individual workspaces.
+- Budget Policies act **upstream** at consumption time; Budgets act **downstream** over metered usage.
+- Neither is an enforcement gate on compute — they attribute and warn, they do not cap or kill workloads.
+- Chargeback and analysis live in **System Tables** plus BI, not inside the Budgets UI.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☐ Developer Experience
+☐ Data Engineering
+☑ Data Governance
+☐ AI
+☐ Machine Learning
+☐ Storage
+☑ Security
+☑ Administration
+☑ Monitoring
+```
+- **Administration + Monitoring:** account admins set spend limits and consume alerts on consumption trends.
+- **Governance:** Budget Policies enforce a tagging standard, making attribution a governed default rather than a manual habit.
+- Complements FinOps practice; the analytical work happens over billing System Tables.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+|---|---|---|
+| Early warning on monthly spend overrun | ✅ | Threshold alerts before the invoice |
+| Attributing serverless cost to teams | ✅ | Budget Policies inject cost tags |
+| Chargeback / showback by cost center | ✅ | Tagged usage in System Tables feeds reports |
+| Enforcing a tagging standard on serverless | ✅ | Policy applies tags users cannot skip |
+| Per-team or per-project spend tracking | ✅ | Scope budgets by tag or workspace filter |
+| Detecting unexpected consumption spikes | ✅ | Period-over-period alerting on usage |
+| Finance visibility without cloud console access | ✅ | Account-level view of Databricks spend |
+| Governing serverless jobs, SQL, pipelines | ✅ | Policies apply across serverless surfaces |
+| Multi-workspace spend rollup | ✅ | Account-level aggregation across workspaces |
+| Budgeting a proof-of-concept spend cap awareness | ✅ | Alert when a POC nears its allowance |
+| Hard enforcement that stops workloads at a limit | ⚠️ | Budgets alert, they do not block |
+| Real-time (sub-minute) cost cutoff | ⚠️ | Usage metering has reporting lag |
+| Detailed cost analytics and forecasting | ⚠️ | Use System Tables + BI, not the Budgets UI |
+| Attributing classic (non-serverless) compute | ⚠️ | Use cluster/pool custom tags instead of policies |
+| Tracking non-Databricks cloud spend | ⚠️ | Out of scope; use cloud billing consoles |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Hard cap that terminates jobs at a threshold | ❌ | Not an enforcement/kill switch |
+| Sub-minute, real-time spend blocking | ❌ | Metering and evaluation are not instant |
+| Full cost analytics, trends, forecasting | ❌ | Purpose-built for alerts; use BI over System Tables |
+| Tagging classic compute via budget policy | ❌ | Policies target serverless; use cluster tags |
+| Governing total cloud (VMs, storage, egress) spend | ❌ | Covers Databricks DBU usage, not raw cloud bills |
+| Line-item invoice reconciliation | ⚠️ | Estimates usage; reconcile against provider billing |
+| Guaranteed tag coverage on every workload type | ⚠️ | Coverage depends on serverless surface support |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 3 |
+| Analytics Engineers | 3 |
+| Platform Engineers | 5 |
+| Data Scientists | 2 |
+| BI Teams | 3 |
+| AI Engineers | 2 |
+| Executives | 5 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 2 |
+| Implementation Speed | 4 |
+| Governance | 4 |
+| Security | 2 |
+| Maintainability | 4 |
+| Scalability | 5 |
+| Cost Optimization | 4 |
+| Ease of Adoption | 4 |
+| Business Value | 5 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| System Tables (`system.billing.usage`) | Source of metered, tagged usage that budgets aggregate and reports query. |
+| Serverless compute | The usage surface that Budget Policies tag and attribute. |
+| Unity Catalog | Governs access to billing System Tables and enforces policy permissions. |
+| Lakeflow Jobs | Serverless jobs inherit a budget policy for attribution. |
+| Databricks SQL / Serverless warehouses | Serverless SQL usage is tagged and metered under policies. |
+| Lakeflow Declarative Pipelines | Serverless pipeline usage attributed via assigned policy. |
+| Model Serving | Serverless inference usage tagged for chargeback. |
+| AI/BI Dashboards | Surface chargeback and spend-trend reporting over usage tables. |
+| Account console / admin APIs | Where budgets and policies are created and managed. |
+| Delta Lake | Underlying storage format for the billing usage table. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| System Tables + BI dashboards | In-Databricks | Richer analytics and forecasting, but you build alerting yourself. |
+| Cluster / pool custom tags | In-Databricks | Tags classic compute, but no serverless coverage or central policy. |
+| Cloud billing console (AWS/Azure/GCP) | External | Covers all cloud spend, but lacks DBU-level and per-team Databricks detail. |
+| Cloud budget/alert services (e.g. AWS Budgets) | External | Native cloud alerts, but coarse for Databricks attribution. |
+| Third-party FinOps platforms | External | Cross-cloud analytics and optimization, but added license and integration. |
+| Manual tag governance / spreadsheets | Manual | No license cost, but not enforced, timely, or scalable. |
+
+## 11. Strengths
+- Enforces cost tags on serverless usage that users cannot otherwise apply.
+- Turns attribution into a governed default rather than a manual convention.
+- Account-level rollup across all workspaces in one place.
+- Threshold alerts give finance early warning before invoices land.
+- Pairs directly with billing System Tables for SQL-based chargeback.
+- Low setup effort; configured from the account console or admin APIs.
+- Vendor-neutral chargeback model based on standard cost tags.
+- Scales with usage without customer-managed infrastructure.
+- Separates monitoring (Budgets) from attribution (Policies) cleanly.
+- Makes serverless spend as attributable as tagged classic compute.
+
+## 12. Limitations
+- Not an enforcement control — alerts do not cap, throttle, or kill workloads.
+- Usage metering and budget evaluation carry reporting latency, not real-time.
+- Budget Policies apply to serverless surfaces; classic compute uses cluster tags.
+- Alerting is threshold email; deep analytics require System Tables + BI.
+- Coverage of every serverless surface can vary across releases.
+- Amounts are usage estimates; reconcile against provider invoices.
+- Only covers Databricks DBU spend, not underlying raw cloud resources.
+- Requires account-admin rights to configure, limiting self-service.
+- Tag taxonomy must be designed up front or attribution stays messy.
+- Historical usage before a policy existed remains untagged.
+
+## 13. Common Mistakes
+- Expecting budgets to block spend; they alert, they do not enforce.
+- Not assigning budget policies, leaving serverless usage untagged.
+- Designing no tag taxonomy, so attribution is inconsistent or unusable.
+- Ignoring classic compute tags and assuming policies cover everything.
+- Building chargeback in spreadsheets instead of over System Tables.
+- Setting a single account budget with no per-team breakdown.
+- Treating alert latency as real-time and building cutoffs on it.
+- Not restricting who can create or edit policies, weakening the standard.
+- Forgetting that pre-policy historical usage cannot be retro-tagged.
+- No owner for reviewing alerts, so warnings go unread.
+
+## 14. Design Recommendations
+- ✔ Define a cost-tag taxonomy (team, project, environment, cost center) before rollout.
+- ✔ Create a default budget policy and require it on all serverless workloads.
+- ✔ Set budgets per team or cost center, not just one account-wide limit.
+- ✔ Use multiple alert thresholds (for example 50/80/100 percent) for early warning.
+- ✔ Build chargeback and trend dashboards over `system.billing.usage`.
+- ✔ Restrict policy and budget administration to a small FinOps/platform group.
+- ✔ Reconcile budget estimates against cloud provider invoices periodically.
+- ✔ Assign a clear owner to triage alerts and review attribution monthly.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+|---|---|
+| Spend visibility and alerts | ✅ Threshold email alerts |
+| Serverless cost attribution | ✅ Budget policies tag usage |
+| Chargeback / showback | ✅ Via System Tables + BI |
+| Enforce tagging standard | ✅ Policy applies tags |
+| Multi-workspace rollup | ✅ Account-level aggregation |
+| Hard spend cap / kill switch | ❌ Alerts only, no enforcement |
+| Real-time spend blocking | ❌ Metering has lag |
+| Deep cost analytics/forecasting | ⚠️ Use BI over System Tables |
+| Classic compute attribution | ⚠️ Use cluster/pool tags |
+| Total cloud spend governance | ❌ Databricks DBUs only |
+
+## 16. Quick Comparison
+| Criterion | Budgets & Budget Policies | System Tables + BI | Cloud billing console | Third-party FinOps |
+|---|---|---|---|---|
+| Databricks DBU detail | High | High | Low | Medium |
+| Serverless tag enforcement | Yes | No | No | No |
+| Built-in alerting | Yes | Build yourself | Yes (coarse) | Yes |
+| Analytics / forecasting | Low | High | Medium | High |
+| Cross-cloud scope | Databricks only | Databricks only | Full cloud | Full cloud |
+| Setup effort | Low | Medium | Low | Medium–High |
+
+## 17. Maturity
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | Medium |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+- **Licensing:** Budgets and Budget Policies are included with Databricks; no separate license. Verify current pricing.
+- **Compute:** the features themselves are not billed; cost comes from running the serverless workloads they track and from queries over usage tables.
+- **Storage:** billing System Tables consume minimal managed storage; chargeback marts you build add incremental storage.
+- **Operational Overhead:** main effort is designing the tag taxonomy, dashboards, and alert-triage process.
+- **Training:** upskill FinOps and platform teams on the billing schema and tag conventions; assign a clear owner.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** organizations needing account-level Databricks spend visibility, alerting, and serverless cost attribution for chargeback.
+- ✔ **Avoid when:** you need a hard cap that stops workloads or real-time spend blocking — this warns, it does not enforce.
+- ✔ **Biggest benefit:** enforced tagging on serverless makes previously opaque usage attributable, then billable, through System Tables.
+- ✔ **Biggest limitation:** it is monitoring and attribution only, with reporting latency and no enforcement.
+- ✔ **Overall recommendation:** define a tag taxonomy, require a budget policy on all serverless usage, set per-team budgets with tiered alerts, and do the analytics in BI over billing System Tables.

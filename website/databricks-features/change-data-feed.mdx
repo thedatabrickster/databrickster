@@ -1,0 +1,227 @@
+---
+sidebar_position: 20
+title: "Change Data Feed (CDF) — Architecture Guide"
+description: "A Delta table property that records row-level inserts, updates, and deletes so downstream jobs can process only what changed."
+---
+
+# Change Data Feed (CDF)
+
+## 1. Executive Summary
+Change Data Feed is a Delta Lake table property that captures row-level inserts, updates, and deletes as a queryable change stream, enabling incremental downstream processing without full recomputes or manual diffing.
+
+## 2. Primary Purpose
+- **Why it exists:** downstream tables often need only the rows that changed, but a base Delta table exposes state, not deltas.
+- **Business problem solved:** cuts pipeline runtime and cost by propagating only changes through the medallion layers instead of rebuilding tables.
+- **Technical problem solved:** emits per-row change events (`insert`, `update_preimage`, `update_postimage`, `delete`) with commit version and timestamp, so consumers can apply exact CDC.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Source systems / Bronze writes
+        ↓
+Delta table (CDF enabled)  →→→ _change_data + transaction log
+        ↓
+Change stream  (readChangeFeed: batch or streaming)
+        ↓
+Downstream MERGE  (Silver / Gold incremental apply)
+        ↓
+BI / ML / Apps
+```
+
+- CDF sits **on the source Delta table** as a property, not as a separate service.
+- It is a **read-time capability**: consumers query changes by version or timestamp range.
+- It **feeds incremental MERGE** into Silver/Gold and SCD dimensions.
+- Changes are materialized only when a commit cannot be derived from data files (inserts/appends can be read directly).
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☐ Developer Experience
+☑ Data Engineering
+☐ Data Governance
+☐ AI
+☐ Machine Learning
+☐ Storage
+☐ Security
+☐ Administration
+☐ Monitoring
+```
+- Core placement is **Data Engineering** — it powers incremental propagation and CDC apply patterns.
+- Secondary relevance to Storage, since it is a Delta table property backed by the transaction log.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+|---|---|---|
+| Incremental Silver/Gold updates | ✅ | Process only changed rows, not full table |
+| MERGE-based CDC downstream | ✅ | Change rows map directly to upsert/delete logic |
+| Slowly changing dimensions (SCD 1/2) | ✅ | Pre/post images support history tracking |
+| Materialized aggregate refresh | ✅ | Update aggregates from deltas, not recompute |
+| Streaming consumption of table changes | ✅ | `readChangeFeed` works as a streaming source |
+| Replicating changes to another table | ✅ | Deterministic change events per commit |
+| Feeding feature tables incrementally | ✅ | Only changed keys need re-featurization |
+| Audit of what rows changed per commit | ✅ | Version + timestamp on every change row |
+| Propagating deletes for compliance | ✅ | Delete events flow downstream explicitly |
+| Fan-out to multiple consumers | ✅ | Many readers share one change history |
+| Sync to external CDC targets | ⚠️ | Works, but purpose-built connectors may fit better |
+| Very high-churn tables | ⚠️ | Change materialization overhead grows with updates |
+| Full reload every run anyway | ⚠️ | No benefit if you always recompute |
+| Capturing changes retroactively | ❌ | Only records changes after the property is enabled |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Need history before CDF was enabled | ❌ | CDF is not retroactive; earlier commits have no feed |
+| Append-only tables with no updates/deletes | ⚠️ | Plain incremental reads or streaming may suffice |
+| OLTP-style row capture at millisecond latency | ❌ | Delta commit cadence, not a database log |
+| Capturing source-database changes | ❌ | Use Lakeflow Connect / Debezium at the source |
+| Tables rebuilt in full each run | ⚠️ | Change feed adds cost with no downstream gain |
+| Extreme update-heavy workloads | ⚠️ | Change-data files inflate storage and write cost |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 5 |
+| Analytics Engineers | 4 |
+| Platform Engineers | 3 |
+| Data Scientists | 3 |
+| BI Teams | 2 |
+| AI Engineers | 2 |
+| Executives | 1 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 4 |
+| Implementation Speed | 4 |
+| Governance | 3 |
+| Security | 3 |
+| Maintainability | 3 |
+| Scalability | 4 |
+| Cost Optimization | 5 |
+| Ease of Adoption | 4 |
+| Business Value | 4 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Delta Lake | Provides the transaction log and table property that CDF extends. |
+| Apache Spark / Structured Streaming | Reads the change feed in batch or as a streaming source. |
+| Lakeflow Declarative Pipelines | Consumes CDF and applies `AUTO CDC` / `APPLY CHANGES` downstream. |
+| Lakeflow Jobs | Orchestrates incremental change-processing tasks on a schedule. |
+| Unity Catalog | Governs the table whose changes are exposed via CDF. |
+| Databricks SQL / Photon | Serves and accelerates change-feed queries and MERGE. |
+| Delta Sharing | Can share change data across organizations where supported. |
+| MLflow / Feature Engineering | Incrementally refreshes feature tables from changed rows. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Full recompute | In-Databricks pattern | Simple and always correct, but scales poorly and costs more as tables grow. |
+| Manual diffing (snapshot compare) | In-Databricks pattern | No table property needed, but expensive joins and brittle change detection. |
+| Streaming from Delta (no CDF) | In-Databricks pattern | Captures appends efficiently, but does not surface updates/deletes as change events. |
+| Lakeflow Connect CDC | Managed connector | Captures changes at the source database; complements CDF rather than replacing it. |
+| Debezium / Kafka CDC | External CDC platform | Log-based source capture with low latency, but more infrastructure to run and govern. |
+| Trigger-based CDC in source DB | External pattern | Familiar in RDBMS, but adds source load and lives outside the lakehouse. |
+
+## 11. Strengths
+- Emits exact row-level insert/update/delete events per commit.
+- Includes pre-image and post-image for updates, enabling SCD logic.
+- Dramatically reduces downstream cost by processing only changes.
+- Readable as both batch (version/timestamp range) and streaming source.
+- Native to Delta — no separate CDC service to deploy or operate.
+- Integrates with Lakeflow declarative CDC apply patterns.
+- Deterministic and replayable by commit version.
+- Fans out to many independent downstream consumers.
+- Carries commit metadata (version, timestamp, change type).
+- Enabled with a single table property; no schema redesign.
+
+## 12. Limitations
+- Not retroactive — only changes after enablement are captured.
+- Extra storage and write cost from materialized change-data files.
+- Overhead grows with update/delete churn, not just data volume.
+- Change history is bounded by VACUUM and log retention.
+- Captures Delta commits, not sub-commit or millisecond-level events.
+- Requires consumers to handle out-of-order and multi-version reads carefully.
+- Some operations may not produce change data as expected (verify per operation).
+- Cross-engine and Delta Sharing support for CDF varies by reader.
+- No built-in downstream apply — you still write the MERGE logic.
+- Reprocessing a wide version range can be as costly as a recompute.
+
+## 13. Common Mistakes
+- Enabling CDF everywhere instead of only tables with real downstream consumers.
+- Assuming history exists before the property was turned on.
+- Setting VACUUM/retention too low and losing needed change history.
+- Ignoring update pre/post-image semantics and double-counting changes.
+- Reprocessing huge version ranges, negating the incremental benefit.
+- Confusing CDF (table-level) with source-database CDC (Lakeflow Connect/Debezium).
+- Not accounting for extra storage on high-churn tables.
+- Failing to make downstream MERGE idempotent for replays.
+
+## 14. Design Recommendations
+- ✔ Enable CDF only on tables with genuine incremental consumers.
+- ✔ Read changes by explicit version or timestamp range and checkpoint progress.
+- ✔ Make downstream MERGE idempotent so replays are safe.
+- ✔ Use Lakeflow declarative CDC apply where possible instead of hand-rolled logic.
+- ✔ Align VACUUM/log retention with your change-replay window.
+- ✔ Filter to needed change types (skip pre-images when not required).
+- ✔ Use Lakeflow Connect or Debezium for source-database capture, CDF for in-lakehouse propagation.
+- ✔ Monitor change-data storage growth on update-heavy tables.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+|---|---|
+| Incremental medallion propagation | ✅ Core use case |
+| MERGE/CDC downstream apply | ✅ Change rows map directly |
+| SCD 1/2 dimension maintenance | ✅ Pre/post images available |
+| Append-only ingestion | ⚠️ Plain streaming may suffice |
+| Full reload each run | ❌ No incremental benefit |
+| History before enablement | ❌ Not retroactive |
+| Source-database change capture | ❌ Use Lakeflow Connect/Debezium |
+| Millisecond change latency | ❌ Commit-cadence only |
+| Multiple downstream consumers | ✅ Shared change history |
+
+## 16. Quick Comparison
+
+| Criteria | CDF | Full recompute | Manual diffing | Lakeflow Connect CDC |
+|---|---|---|---|---|
+| Captures updates/deletes | Yes | Implicit | Yes (compute-heavy) | Yes |
+| Incremental cost | Low | High | High | Low |
+| Setup effort | Minimal | None | High | Moderate |
+| Source scope | Delta tables | Delta tables | Delta tables | External databases |
+| Latency | Commit-level | Batch | Batch | Near-real-time |
+| Operational overhead | Low | Low | Medium | Managed |
+
+## 17. Maturity
+
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High (with Unity Catalog) |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+- **Licensing:** the Delta format and CDF are open-source; Databricks compute (DBUs) applies when used on the platform. Verify current pricing.
+- **Compute:** reading and applying changes uses compute; incremental apply is far cheaper than full recompute at scale.
+- **Storage:** materialized change-data files add footprint, proportional to update/delete churn and retention.
+- **Operational Overhead:** low — a table property plus standard read/MERGE patterns; retention tuning is the main task.
+- **Training:** modest — teams need to understand change types, version ranges, and idempotent apply.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** incremental propagation of row-level changes through medallion layers via MERGE.
+- ✔ **Avoid when:** you need history before enablement, or you must capture changes from a source database.
+- ✔ **Biggest benefit:** large cost and runtime savings by processing only what changed.
+- ✔ **Biggest limitation:** not retroactive and adds storage/write overhead on high-churn tables.
+- ✔ **Overall recommendation:** enable selectively on tables with real incremental consumers; pair with Lakeflow for declarative CDC apply.
+
+See the full [feature catalog](/databricks-features) for related guides.

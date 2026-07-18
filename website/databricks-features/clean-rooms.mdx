@@ -1,0 +1,223 @@
+---
+sidebar_position: 20
+title: "Clean Rooms — Architecture Guide"
+description: "Privacy-preserving multi-party data collaboration on Delta Sharing and Unity Catalog, where parties run approved computations without exposing raw data."
+---
+
+# Clean Rooms
+
+## 1. Executive Summary
+Databricks Clean Rooms is a governed environment where two or more organizations run approved, mutually agreed computations over each other's data without any party moving, copying, or seeing the other's raw records.
+
+## 2. Primary Purpose
+- **Why it exists:** enable cross-organization analytics where legal, privacy, or competitive constraints forbid sharing raw data.
+- **Business problem:** partners want joint insight (overlap, measurement, lift) but cannot hand over customer-level data due to privacy law or contract.
+- **Technical problem:** traditional collaboration means copying data out, losing lineage, control, and residency — and creating uncontrolled second copies.
+- **Model:** each party keeps data in its own account; only outputs of pre-approved computations are returned, not inputs.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Party A (own account)          Party B (own account)
+   Delta tables                   Delta tables
+        ↓  (Delta Sharing, no copy)   ↓
+        └────────────┬────────────────┘
+                     ↓
+        ┌──────────────────────────────┐
+        │        CLEAN ROOM            │
+        │  approved notebooks / SQL    │
+        │  collaborator-agreed compute │
+        │  UC-governed, isolated       │
+        └──────────────────────────────┘
+                     ↓
+        Approved outputs only → each party's Delta
+```
+- Sits **above two or more separately governed lakehouses**, not inside one.
+- Built on **Delta Sharing** for zero-copy access and **Unity Catalog** for governance and audit.
+- Runs on **serverless compute** isolated from every collaborator's workspace.
+- Only sanctioned results leave the room; source tables never do.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☐ Developer Experience
+☑ Data Engineering
+☑ Data Governance
+☐ AI
+☐ Machine Learning
+☐ Storage
+☑ Security
+☑ Administration
+☐ Monitoring
+```
+- Primarily a **Governance + Security** construct: it enforces who may compute what on whose data.
+- Touches **Data Engineering** because collaboration is expressed as notebooks, SQL, and jobs.
+- **Administration** because collaborators, agreements, and approved assets are lifecycle-managed.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+|---|---|---|
+| Advertiser + publisher audience overlap | ✅ | Match without exposing customer lists |
+| Campaign measurement and attribution | ✅ | Joint outcomes without raw exposure |
+| Retail media network analytics | ✅ | Brands query sales data they cannot see |
+| Financial fraud signal sharing | ✅ | Cross-institution patterns, private inputs |
+| Healthcare cohort analysis across systems | ✅ | Aggregate insight under HIPAA constraints |
+| Supply chain joint forecasting | ✅ | Combine partner data without disclosure |
+| Insurance risk pooling across carriers | ✅ | Shared modeling, isolated raw records |
+| Telco + brand location measurement | ✅ | Privacy-safe footfall and reach |
+| Multi-party benchmarking / consortium | ✅ | Members compare without revealing detail |
+| Loyalty and CPG co-marketing analytics | ✅ | Overlap and lift on protected data |
+| Data monetization with query limits | ✅ | Sell answers, not the dataset |
+| Two-party collaboration, same cloud region | ✅ | Simplest, best-supported topology |
+| Cross-cloud collaboration | ⚠️ | Supported but check region/cloud pairing |
+| More than 2–3 collaborators | ⚠️ | Feasible but agreement complexity grows |
+| Real-time / streaming joint compute | ⚠️ | Batch-oriented; low-latency is limited |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Internal cross-team sharing, one org | ❌ | Use Unity Catalog grants or Delta Sharing directly |
+| You need the partner's raw rows | ❌ | Defeats the purpose; use a data share or license |
+| Sub-second interactive joins | ⚠️ | Compute is provisioned, not always-on |
+| Ad-hoc exploration of unknown queries | ⚠️ | Computations must be approved by both parties |
+| Partner has no Delta Sharing capability | ⚠️ | Requires shareable, governed source data |
+| Heavy ML training across parties | ⚠️ | Possible but constrained vs a full ML platform |
+| Simple one-way data delivery | ❌ | Delta Sharing alone is lower overhead |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 4 |
+| Analytics Engineers | 4 |
+| Platform Engineers | 4 |
+| Data Scientists | 3 |
+| BI Teams | 3 |
+| AI Engineers | 2 |
+| Executives | 4 |
+| Architects | 5 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 3 |
+| Implementation Speed | 3 |
+| Governance | 5 |
+| Security | 5 |
+| Maintainability | 4 |
+| Scalability | 4 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 3 |
+| Business Value | 5 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Delta Sharing | Provides the zero-copy, open protocol that exposes data to the room without duplication. |
+| Unity Catalog | Governs identities, grants, and audit for collaborators and shared assets. |
+| Delta Lake | Underlying table format for the source data each party contributes. |
+| Serverless Compute | Runs approved computations in an isolated, party-neutral environment. |
+| Lakeflow Jobs | Schedules and operationalizes recurring collaborative computations. |
+| Databricks SQL | Expresses approved analytics as governed queries. |
+| Audit / System Tables | Record who ran what, supporting compliance and dispute resolution. |
+| Notebooks | Author the approved computation logic the collaborators agree to. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Delta Sharing (plain) | In-Databricks | Simpler, but exposes shared rows; no computation-only boundary. |
+| AWS Clean Rooms | External | Cloud-native, but AWS-centric and less integrated with the lakehouse. |
+| Snowflake Data Clean Rooms | External | Strong if both parties are on Snowflake; cross-platform is harder. |
+| Google Ads Data Hub / PAIR | External | Purpose-built for ad measurement; narrow scope, walled-garden. |
+| DIY secure enclave (SGX/Nitro) | External | Maximum control, but heavy engineering and operational burden. |
+| Data escrow / trusted third party | External | Neutral custodian, but introduces a raw-data copy and a new trust point. |
+| Federated query / query federation | Mixed | Queries in place, but weaker privacy guarantees on outputs. |
+
+## 11. Strengths
+- No raw data movement — inputs never leave each party's account.
+- Both parties must approve computations, giving mutual control.
+- Built on open Delta Sharing, so collaborators are not forced onto one vendor stack.
+- Unity Catalog governance and audit apply end to end.
+- Serverless isolation removes cluster management for the shared environment.
+- Supports cross-cloud and cross-region collaboration (with pairing constraints).
+- Familiar authoring surface: notebooks and SQL, not a bespoke language.
+- Reduces legal friction — data residency and ownership stay with the source.
+- Scales to multiple collaborators under one agreement model.
+- Outputs are governed assets that flow back into each lakehouse.
+
+## 12. Limitations
+- Batch-oriented; not designed for real-time or sub-second joint queries.
+- Every computation requires bilateral (or multilateral) approval, slowing iteration.
+- Cross-cloud and cross-region pairings have compatibility constraints — verify support.
+- Collaborator count scales the complexity of agreements and output review.
+- Advanced ML workflows are more constrained than a dedicated ML platform.
+- Requires partners to have governed, shareable Delta data — a real prerequisite.
+- Output review is manual discipline; poorly designed queries can leak via aggregates.
+- Cost attribution across parties needs explicit agreement up front.
+- Feature depth still maturing relative to some ad-specific external clean rooms.
+- Not a substitute for legal data-sharing agreements; it enforces, not authors, them.
+
+## 13. Common Mistakes
+- Treating it as plain data sharing and expecting raw rows back.
+- Designing queries whose small-cohort aggregates re-identify individuals.
+- Skipping minimum-aggregation thresholds and differential-privacy safeguards.
+- Under-specifying the collaboration agreement before building computations.
+- Ignoring cross-cloud/region pairing rules until deployment.
+- No plan for cost allocation between collaborators.
+- Assuming approval workflow is instant; it is a governance gate by design.
+- Using it for a one-way delivery that Delta Sharing would handle more simply.
+
+## 14. Design Recommendations
+- ✔ Confirm both parties' data is in Unity Catalog and shareable before scoping.
+- ✔ Define minimum aggregation and output-suppression rules in the agreement.
+- ✔ Keep the number of collaborators small for the first use case.
+- ✔ Template approved computations; version them alongside the agreement.
+- ✔ Validate cloud/region pairing early in design.
+- ✔ Agree cost ownership and compute budgets before go-live.
+- ✔ Route outputs to a governed catalog with lineage and audit enabled.
+- ✔ Start with a narrow, high-value case (overlap or measurement) before broadening.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+|---|---|
+| Cross-org analytics, no raw exposure | ✅ Core purpose |
+| Advertising overlap / measurement | ✅ Primary use case |
+| Internal team data sharing | ❌ Use UC grants instead |
+| Partner needs your raw data | ❌ Use a data share or license |
+| Multi-party joint modeling | ⚠️ Feasible, plan carefully |
+| Real-time joint queries | ⚠️ Batch-oriented |
+| Regulated data collaboration | ✅ Governance and audit built in |
+| Data monetization by query | ✅ Sell answers, not data |
+| Open, non-lock-in protocol | ✅ Built on Delta Sharing |
+
+## 16. Quick Comparison
+| Criterion | Databricks Clean Rooms | AWS Clean Rooms | Snowflake Data Clean Rooms | DIY Secure Enclave |
+|---|---|---|---|---|
+| Raw data movement | None (zero-copy) | None | None | None |
+| Underlying protocol | Delta Sharing (open) | AWS-native | Snowflake-native | Custom |
+| Cross-platform reach | Broad via open sharing | AWS-centric | Snowflake-centric | Fully custom |
+| Governance integration | Unity Catalog | AWS IAM / Lake Formation | Snowflake RBAC | Self-built |
+| Engineering burden | Low–medium | Low–medium | Low–medium | High |
+| Best when | Both on lakehouse / open data | Both on AWS | Both on Snowflake | Extreme control needs |
+
+## 17. Maturity
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | Medium–High |
+| Production Readiness | Medium–High |
+| Governance Readiness | High |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+- **Licensing:** part of the Databricks platform; no separate license, but verify current pricing.
+- **Compute:** serverless charges for each approved computation run; agree who pays.
+- **Storage:** minimal incremental — source data stays in place; outputs are small governed tables.
+- **Operational Overhead:** agreement management, computation approval, and output review are the real recurring cost.
+- **Training:** teams must learn the clean-room model and privacy design (aggregation thresholds, suppression); modest for existing Databricks users.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** cross-organization analytics — advertising, measurement, joint insight — where raw data cannot be shared.
+- ✔ **Avoid when:** collaboration is internal, one-way, or the partner needs your raw rows.
+- ✔ **Biggest benefit:** actionable joint results with no raw data movement and full governance.
+- ✔ **Biggest limitation:** batch-oriented with a deliberate bilateral approval gate that slows iteration.
+- ✔ **Overall recommendation:** adopt for privacy-constrained partnerships already near the lakehouse; scope narrow, govern outputs, and confirm cloud/region pairing first. See the [feature catalog](/databricks-features) for related governance features.
