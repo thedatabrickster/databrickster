@@ -1,10 +1,11 @@
 import type {ReactNode} from 'react';
-import clsx from 'clsx';
 import Link from '@docusaurus/Link';
 import Heading from '@theme/Heading';
+import StatusBadge from '@site/src/components/StatusBadge';
 import styles from './styles.module.css';
 
 type Topic = {
+  icon: string;
   title: string;
   status: 'Available' | 'Coming soon';
   to: string;
@@ -14,23 +15,67 @@ type Topic = {
 
 const TopicList: Topic[] = [
   {
+    icon: '🧠',
     title: 'Databricks AI',
     status: 'Available',
     to: '/docs/intro',
-    cta: 'Start learning →',
+    cta: 'Start learning',
     description: (
       <>
         From what a token really is to building, evaluating, deploying, and
-        governing production AI agents on Databricks. 13 parts, built for Data
-        Engineers — plus a full AI system design interview prep track.
+        governing production AI agents on Databricks — plus a full AI
+        system-design interview-prep track.
       </>
     ),
   },
   {
+    icon: '🤖',
+    title: 'Agentic Coding',
+    status: 'Available',
+    to: '/agentic-coding',
+    cta: 'Start learning',
+    description: (
+      <>
+        Ship AI software faster with AI coding agents. A full <strong>VS Code</strong>{' '}
+        track and a <strong>Claude Code</strong> track that builds a governed
+        Databricks App end to end.
+      </>
+    ),
+  },
+  {
+    icon: '🧩',
+    title: 'Databricks Features',
+    status: 'Available',
+    to: '/databricks-features',
+    cta: 'Browse the catalog',
+    description: (
+      <>
+        Executive-style architecture guides for <strong>70+</strong> Databricks
+        features — placement, use cases, alternatives, cost, and decision
+        matrices. Built for architects and leaders.
+      </>
+    ),
+  },
+  {
+    icon: '🆕',
+    title: 'DAIS 2026',
+    status: 'Available',
+    to: '/dais-2026',
+    cta: "See what's new",
+    description: (
+      <>
+        A field guide to Data + AI Summit 2026 — every announcement with where
+        it fits, where it fails, and its release stage (GA / Preview / Beta),
+        sourced from the official blogs.
+      </>
+    ),
+  },
+  {
+    icon: '💬',
     title: 'Genie',
     status: 'Coming soon',
     to: '/genie',
-    cta: 'Preview the plan →',
+    cta: 'Preview the plan',
     description: (
       <>
         Ask governed data questions in plain English — Genie writes and runs the
@@ -39,10 +84,11 @@ const TopicList: Topic[] = [
     ),
   },
   {
+    icon: '📊',
     title: 'Business Intelligence',
     status: 'Coming soon',
     to: '/business-intelligence',
-    cta: 'Preview the plan →',
+    cta: 'Preview the plan',
     description: (
       <>
         AI-era BI on the lakehouse: dashboards, a trustworthy metrics layer, and
@@ -50,56 +96,25 @@ const TopicList: Topic[] = [
       </>
     ),
   },
-  {
-    title: 'Agentic Coding',
-    status: 'Coming soon',
-    to: '/agentic-coding',
-    cta: 'Preview the plan →',
-    description: (
-      <>
-        Ship AI software faster with AI coding agents. Two subtopics: VS Code and
-        Claude Code — a repo-first, testable workflow for Databricks and beyond.
-      </>
-    ),
-  },
 ];
 
-function TopicCard({title, status, to, cta, description}: Topic) {
-  const available = status === 'Available';
+function TopicCard({icon, title, status, to, cta, description}: Topic) {
   return (
-    <div className={clsx('col col--6')} style={{marginBottom: '1.5rem'}}>
-      <Link
-        to={to}
-        style={{textDecoration: 'none', color: 'inherit', display: 'block', height: '100%'}}>
-        <div className="card" style={{height: '100%', padding: '1.5rem'}}>
-          <div
-            className="card__header"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '0.5rem',
-            }}>
-            <Heading as="h3" style={{marginBottom: 0}}>
-              {title}
-            </Heading>
-            <span
-              className={clsx(
-                'badge',
-                available ? 'badge--success' : 'badge--secondary',
-              )}>
-              {status}
-            </span>
-          </div>
-          <div className="card__body">
-            <p>{description}</p>
-          </div>
-          <div className="card__footer">
-            <span className="button button--primary button--block">{cta}</span>
-          </div>
-        </div>
-      </Link>
-    </div>
+    <Link to={to} className={styles.card}>
+      <div className={styles.cardTop}>
+        <span className={styles.icon} aria-hidden="true">
+          {icon}
+        </span>
+        <StatusBadge stage={status} />
+      </div>
+      <Heading as="h3" className={styles.cardTitle}>
+        {title}
+      </Heading>
+      <p className={styles.cardBody}>{description}</p>
+      <span className={styles.cardCta}>
+        {cta} <span aria-hidden="true">→</span>
+      </span>
+    </Link>
   );
 }
 
@@ -107,10 +122,13 @@ export default function HomepageFeatures(): ReactNode {
   return (
     <section className={styles.features}>
       <div className="container">
-        <Heading as="h2" className="text--center" style={{marginBottom: '2rem'}}>
-          Explore the topics
+        <Heading as="h2" className={styles.sectionTitle}>
+          Explore the tracks
         </Heading>
-        <div className="row">
+        <p className={styles.sectionSubtitle}>
+          Six ways in — pick a course, or dive into the reference.
+        </p>
+        <div className={styles.grid}>
           {TopicList.map((props, idx) => (
             <TopicCard key={idx} {...props} />
           ))}

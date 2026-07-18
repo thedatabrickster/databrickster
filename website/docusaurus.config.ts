@@ -137,7 +137,9 @@ const config: Config = {
         alt: 'Databrickster Logo',
         src: 'img/logo.svg',
       },
+      hideOnScroll: false,
       items: [
+        // Learning tracks (core) kept top-level.
         {
           type: 'docSidebar',
           sidebarId: 'curriculumSidebar',
@@ -165,21 +167,27 @@ const config: Config = {
           position: 'left',
           label: 'Agentic Coding',
         },
+        // Reference + news grouped so the bar stays uncrowded and aligned.
         {
-          type: 'docSidebar',
-          docsPluginId: 'databricks-features',
-          sidebarId: 'databricksFeaturesSidebar',
+          type: 'dropdown',
+          label: 'More',
           position: 'left',
-          label: 'Databricks Features',
+          items: [
+            {
+              type: 'docSidebar',
+              docsPluginId: 'databricks-features',
+              sidebarId: 'databricksFeaturesSidebar',
+              label: 'Databricks Features',
+            },
+            {
+              type: 'docSidebar',
+              docsPluginId: 'dais-2026',
+              sidebarId: 'dais2026Sidebar',
+              label: 'DAIS 2026',
+            },
+            {to: '/blog', label: 'Deep Dives (Blog)'},
+          ],
         },
-        {
-          type: 'docSidebar',
-          docsPluginId: 'dais-2026',
-          sidebarId: 'dais2026Sidebar',
-          position: 'left',
-          label: 'DAIS 2026',
-        },
-        {to: '/blog', label: 'Deep Dives', position: 'left'},
         {to: '/about', label: 'About', position: 'right'},
         {
           href: 'https://docs.databricks.com/aws/en/agents/',

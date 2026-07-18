@@ -8,24 +8,43 @@ import Heading from '@theme/Heading';
 
 import styles from './index.module.css';
 
+const STATS = [
+  {value: '13-part', label: 'Databricks AI course'},
+  {value: '70+', label: 'feature architecture guides'},
+  {value: '2 tracks', label: 'VS Code + Claude Code'},
+  {value: 'DAIS 2026', label: 'announcements, decoded'},
+];
+
 function HomepageHeader() {
   const {siteConfig} = useDocusaurusContext();
   return (
-    <header className={clsx('hero hero--primary', styles.heroBanner)}>
+    <header className={clsx(styles.heroBanner)}>
       <div className="container">
-        <Heading as="h1" className="hero__title">
+        <span className={styles.eyebrow}>Free · independent · in-depth</span>
+        <Heading as="h1" className={styles.heroTitle}>
           {siteConfig.title}
         </Heading>
-        <p className="hero__subtitle">
-          Free, in-depth courses that turn Data Engineers into AI Engineers —
-          on Databricks and beyond.
+        <p className={styles.heroSubtitle}>
+          Courses and references that turn <strong>Data Engineers</strong> into{' '}
+          <strong>AI Engineers</strong> — on Databricks and beyond.
         </p>
         <div className={styles.buttons}>
-          <Link
-            className="button button--secondary button--lg"
-            to="/docs/intro">
-            Start Learning → Databricks AI
+          <Link className={clsx('button button--lg', styles.btnPrimary)} to="/docs/intro">
+            Start with Databricks AI →
           </Link>
+          <Link
+            className={clsx('button button--lg', styles.btnGhost)}
+            to="/databricks-features">
+            Browse Databricks Features
+          </Link>
+        </div>
+        <div className={styles.stats}>
+          {STATS.map((s) => (
+            <div key={s.label} className={styles.stat}>
+              <div className={styles.statValue}>{s.value}</div>
+              <div className={styles.statLabel}>{s.label}</div>
+            </div>
+          ))}
         </div>
       </div>
     </header>
@@ -36,8 +55,8 @@ export default function Home(): ReactNode {
   const {siteConfig} = useDocusaurusContext();
   return (
     <Layout
-      title={`${siteConfig.title} — Learn Databricks AI, Genie & more`}
-      description="Free, in-depth courses for Data Engineers becoming AI Engineers: Databricks AI & Agents, Genie & Business Intelligence, and AI engineering in VS Code with Claude Code.">
+      title={`${siteConfig.title} — Learn Databricks AI, Agents & more`}
+      description="Free, in-depth courses and references for Data Engineers becoming AI Engineers: Databricks AI & Agents, Agentic Coding (VS Code + Claude Code), a 70+ Databricks feature catalog, and DAIS 2026 coverage.">
       <HomepageHeader />
       <main>
         <HomepageFeatures />

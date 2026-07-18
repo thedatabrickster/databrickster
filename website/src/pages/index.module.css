@@ -1,23 +1,134 @@
 /**
- * CSS files with the .module.css suffix will be treated as CSS modules
- * and scoped locally.
+ * Homepage styles. Scoped locally via CSS modules.
  */
 
 .heroBanner {
-  padding: 4rem 0;
-  text-align: center;
   position: relative;
   overflow: hidden;
+  padding: 5rem 0 4rem;
+  text-align: center;
+  color: #fff;
+  background:
+    radial-gradient(
+      1100px 480px at 50% -10%,
+      rgba(255, 255, 255, 0.18),
+      transparent 60%
+    ),
+    linear-gradient(
+      135deg,
+      var(--ifm-color-primary-darkest) 0%,
+      var(--ifm-color-primary) 55%,
+      var(--ifm-color-primary-light) 100%
+    );
 }
 
-@media screen and (max-width: 996px) {
-  .heroBanner {
-    padding: 2rem;
-  }
+/* Subtle dotted texture over the gradient. */
+.heroBanner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px);
+  background-size: 22px 22px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.heroBanner > :global(.container) {
+  position: relative;
+  z-index: 1;
+}
+
+.eyebrow {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  margin-bottom: 1.1rem;
+}
+
+.heroTitle {
+  font-size: 3.4rem;
+  line-height: 1.05;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.02em;
+}
+
+.heroSubtitle {
+  font-size: 1.3rem;
+  max-width: 640px;
+  margin: 0 auto 2rem;
+  opacity: 0.96;
 }
 
 .buttons {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
+  gap: 0.85rem;
+}
+
+.btnPrimary {
+  background: #fff;
+  color: var(--ifm-color-primary-darkest);
+  border: none;
+  font-weight: 700;
+}
+.btnPrimary:hover {
+  background: #fff;
+  color: var(--ifm-color-primary-darkest);
+  transform: translateY(-2px);
+}
+
+.btnGhost {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  font-weight: 600;
+}
+.btnGhost:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-color: #fff;
+}
+
+/* Stats strip */
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.25rem 2.5rem;
+  margin-top: 2.75rem;
+}
+
+.stat {
+  min-width: 120px;
+}
+
+.statValue {
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.statLabel {
+  font-size: 0.82rem;
+  opacity: 0.9;
+}
+
+@media screen and (max-width: 768px) {
+  .heroBanner {
+    padding: 3rem 1rem 2.5rem;
+  }
+  .heroTitle {
+    font-size: 2.4rem;
+  }
+  .heroSubtitle {
+    font-size: 1.1rem;
+  }
 }
