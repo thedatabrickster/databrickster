@@ -96,7 +96,7 @@ flowchart LR
 
 Notice the shape. The function is defined **once**. Three different agents **share** it. And a dotted `EXECUTE` grant controls access — that is the sign-out sheet and the lock, together.
 
-One more piece of intuition, and it is the most important one in the whole lesson: **the function's `COMMENT` is the label on the tool.** The model does not read your function's body. It reads the comment and the parameter descriptions to decide *when* to reach for this tool and *how* to fill in the inputs. A clear comment is a well-labeled tool. A vague comment is a mystery tool the model will use wrong. We will come back to this again — it matters that much.
+One more piece of intuition, and it is the most important one in the whole lesson: **the function's `COMMENT` is the label on the tool.** The model does not read your function's body. It reads the comment and the parameter descriptions to decide *when* to reach for this tool and *how* to fill in the inputs. A clear comment is a well-labeled tool. A vague comment is a mystery tool the model will use wrong.
 
 ## Theory
 
@@ -468,10 +468,6 @@ This is least privilege — the specific tool, the specific agent — and mirror
 The `COMMENT` (and parameter comments). The model chooses tools based on those descriptions, not the body. A vague or misleading comment is the most common cause of wrong or mistimed calls. Rewrite it to say clearly what the tool returns and when to use it.
 
 </details>
-
-## Summary
-
-A Unity Catalog function *is* an agent tool. Instead of hand-writing tool logic inside every app, you define the action once as a UC function — SQL or Python — with a clear `COMMENT`, grant `EXECUTE` to the agents that should use it, and load it with `UCFunctionToolkit`. Because the tool lives in Unity Catalog, it inherits the governance you already trust for tables: permissions, versioning, sharing, and audit. The single most important habit is writing strong comments, because the comment is the tool's instruction to the model. Think of it as one shared, approved toolbox with a lock and a sign-out sheet, instead of everyone forging tools in secret.
 
 ## Key Takeaways
 

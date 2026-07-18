@@ -395,11 +395,9 @@ The calling identity needs the right **Unity Catalog grants** on *both* the inde
 
 </details>
 
-## Summary
-
-An agent gets far more useful the moment it can fetch facts on its own. Those facts live in two places, so there are two kinds of retrieval tools. **Unstructured** tools search documents with Vector Search — this is your RAG pipeline reborn as a single tool the agent calls on demand. **Structured** tools query governed tables, either through a parameterized Unity Catalog SQL function or through a Genie Space that turns plain English into SQL. The agent reads each tool's description and decides which to use, even splitting one compound question across both. And underneath it all, Unity Catalog governs everything, so the security model is the one you already trust.
-
 ## Key Takeaways
+
+An agent gets far more useful the moment it can fetch facts on its own — and those facts live in two places, so there are two kinds of retrieval tools.
 
 - Retrieval tools let an agent **look things up**: documents *and* data.
 - **Unstructured = documents via Vector Search** (`VectorSearchRetrieverTool`), which is RAG-as-a-tool.

@@ -236,7 +236,7 @@ tools = [
 ]
 ```
 
-This is the labeled form. The `name` matches our Python function. The `description` tells the model when to reach for it. The `parameters` block is a JSON schema saying, "this tool needs one input, `account_id`, and it's a string, and it's required." The model reads all of this to decide whether and how to call the tool. Clear descriptions here directly improve the model's choices.
+This is the labeled form. The `name` matches our Python function. The `description` tells the model when to reach for it. The `parameters` block is a JSON schema saying, "this tool needs one input, `account_id`, and it's a string, and it's required." The model reads all of this to decide whether and how to call the tool.
 
 Now we start the conversation and make the first call.
 
@@ -414,10 +414,6 @@ The role `"tool"`. That message also includes the matching `tool_call_id`.
 No. First validate the argument, then check that the current user is actually authorized to see account 999. The model's request is not permission to act. Your code enforces the rules.
 
 </details>
-
-## Summary
-
-Function calling is the mechanism that lets a language model use real tools. You describe your tools with a name, a description, and a JSON schema. The model reads a request and either answers directly or returns a structured `tool_call` asking your code to run a function. Your code validates the arguments, checks permissions, runs the real function, and sends the result back as a `"tool"` message. Then the model, now holding real data, writes the final answer. On Databricks you do all this through the OpenAI-compatible chat API using `get_open_ai_client()` and a model like `databricks-meta-llama-3-3-70b-instruct`. The golden rule: the model decides, your code acts.
 
 ## Key Takeaways
 

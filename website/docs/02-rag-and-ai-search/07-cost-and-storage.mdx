@@ -429,22 +429,6 @@ compute when you refresh.
 
 </details>
 
-## Summary
-
-A RAG system has **four cost meters**: embedding your chunks (paid once, then on refreshes),
-storage (continuous but cheap per GB), the Vector Search endpoint (compute while it's up),
-and the generation call (paid per question, usually the biggest per-query cost). Which one
-dominates depends on your ratio of **corpus size to query volume** — big-corpus/low-traffic
-systems are index-and-storage-bound, while small-corpus/high-traffic systems are
-generation-and-endpoint-bound.
-
-You can estimate storage exactly (`dims × 4 bytes` per vector, then 2–3× for text,
-metadata, overhead, and Delta history), and you control the bill with settings you already
-know: incremental re-embedding, `TRIGGERED` sync, shared and right-sized endpoints, a
-modest `top_k` with reranking, a smaller embedding model where recall holds, caching, and
-capped answer length. The happy news: on RAG, the cheap choice is usually the fast choice
-too. Measure, attribute, and turn the meter that matters.
-
 ## Key Takeaways
 
 - **Four meters:** embedding (index time), storage, the always-on endpoint, and per-query generation.

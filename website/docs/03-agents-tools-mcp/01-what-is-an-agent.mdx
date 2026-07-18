@@ -17,7 +17,7 @@ That difference, a helper who can only talk versus a helper who can look things 
 By the end of this lesson, you will be able to:
 
 - Explain in plain English what an AI agent is and why it is more than a chatbot.
-- Describe the agent loop: reason, act, observe, repeat.
+- Trace how an agent works step by step and why looping is what makes it an agent.
 - Define the words **tool** and **tool call** without hesitation.
 - Explain how an agent differs from a RAG pipeline (the thing you built in Part 2).
 - Recognize a good use case for an agent, using our fictional company, Northwind Trust.
@@ -58,9 +58,7 @@ Here's the simplest way to hold it in your head.
 - A **RAG pipeline** is that same friend, but you first hand them the right page from a manual, then they answer. Helpful, but they do it in one fixed shot: look up, then talk. Once.
 - An **agent** is a capable executive assistant. You give them a goal. They figure out the steps. They look things up, use apps, take actions, check the results, and keep going until the job is done. Then they report back.
 
-The magic word is **loop**. A chatbot answers once. An agent works in a loop, taking one step at a time, until the goal is met.
-
-You don't need to memorize that yet. Just hold the picture: an assistant who keeps working until the task is finished.
+The magic word is **loop**. A chatbot answers once. An agent works in a loop, taking one step at a time, until the goal is met. Just hold that picture: an assistant who keeps working until the task is finished.
 
 ## Theory
 
@@ -77,7 +75,7 @@ Let's put slightly more precise words on it, one idea at a time.
 3. **Observe** the result the tool sent back.
 4. **Repeat** until the goal is met.
 
-That's the entire concept. Reason, act, observe, repeat. Everything else is detail.
+That's the entire concept. Everything else is detail.
 
 :::note[Going deeper (optional)]
 This reason-then-act pattern has a name in research papers: **ReAct** (short for "Reasoning and Acting"). You'll see the term in blog posts and docs. You do not need it to build agents, and you can safely forget it for now. We mention it only so the word isn't a surprise later.
@@ -375,10 +373,6 @@ An agent. The task needs two different sources and multiple steps chosen by the 
 To prevent a confused agent from looping far more than intended, which would waste time and money. The step cap is a simple, essential safety limit.
 
 </details>
-
-## Summary
-
-An AI agent is a language model that can **decide and act in a loop** instead of just answering once. It follows a simple heartbeat: **reason, act, observe, repeat**, using **tools** (actions like querying a table or searching documents) that it chooses itself, until the task is done. This is different from a RAG pipeline, which walks one fixed path, retrieve then answer. Crucially, RAG can live *inside* an agent as one of its tools. We saw all of this through Northwind Trust, where an agent looked up a client's balance and searched policy docs to answer one compound question, choosing both steps on its own. You've now got the whole mental model. Nicely done.
 
 ## Key Takeaways
 

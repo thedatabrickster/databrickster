@@ -540,10 +540,6 @@ When you don't need fine-grained control over the logic. Low-code Agent Bricks (
 
 </details>
 
-## Summary
-
-You learned that authoring an agent on Databricks means implementing one standard interface, MLflow's `ResponsesAgent`, by writing a `predict` method that takes the conversation in and returns a response out. Inside `predict`, you call a foundation model, and when needed, run a tool and call the model again. You turned on tracing with a single line, logged the agent as an MLflow model using models-from-code, and tested it locally before any deployment. Because the interface is standard, the platform handles serving, observability, and deployment for you.
-
 ## Key Takeaways
 
 - An agent is a class that subclasses `ResponsesAgent` and implements `predict`.

@@ -200,9 +200,7 @@ Feel the difference from the tangle? They built once and reused everywhere. That
 
 Let's make it concrete with a scenario you can picture. We'll keep it conceptual — the exact URLs and API calls evolve, and you should always confirm current specifics in the [Databricks MCP documentation](https://docs.databricks.com/aws/en/generative-ai/mcp/). Treat the snippets below as a shape to recognize, not gospel to copy.
 
-**Scenario:** Northwind Trust's support agent needs to answer "Is account 42 active?" using the managed MCP server that exposes their Unity Catalog functions.
-
-We'll walk through it in three small steps in the next section: connect, list tools, call a tool. Read each block, then read the narration underneath it. Go slowly — each block does one small thing.
+**Scenario:** Northwind Trust's support agent needs to answer "Is account 42 active?" using the managed MCP server that exposes their Unity Catalog functions. We'll walk through it in three small steps: connect, list tools, call a tool. Read each block slowly, then read the narration underneath it — each block does one small thing.
 
 ## Code Examples
 
@@ -291,6 +289,7 @@ A few gentle, practical notes for when you move past experiments. Nothing alarmi
 - **Reuse one toolset across agents.** Like Northwind Trust, expose your governed tools once and let every agent connect to the same server. Resist the urge to rebuild per team.
 - **Version and document custom servers.** If you host your own MCP server as a Databricks App, treat it like any service: version it, monitor it, and write clear tool descriptions (the agent reads those descriptions to decide what to call).
 - **Keep tool descriptions clear and honest.** The model chooses tools based on their descriptions. A vague description leads to wrong tool choices. This is your highest-leverage, lowest-effort win.
+- **Verify current specifics.** MCP on Databricks is newer and evolving. Check the [official docs](https://docs.databricks.com/aws/en/generative-ai/mcp/) for exact URLs, libraries, and options before building.
 
 ## Performance Considerations
 
@@ -324,18 +323,6 @@ Everyone new to MCP hits a few of these. Spotting them early saves hours.
 - **Vague tool descriptions.** The model can't choose a tool it doesn't understand. "Does stuff with accounts" is not a description; "Returns the status and tier of a customer account by id" is.
 - **Sharing one human identity across agents.** This blurs permissions and audit trails. Give each agent its own service identity.
 - **Hardcoding tool lists anyway.** The whole point of MCP is discovery. If you find yourself pasting fixed tool definitions, ask whether the server could publish them instead.
-
-## Best Practices
-
-A short checklist you can lean on:
-
-- **Start managed.** Use Databricks managed MCP servers for Unity Catalog functions, Vector Search, and Genie before building anything custom.
-- **Build the toolset once, reuse everywhere.** One governed set of tools, many agents. This is the reuse win MCP was made for.
-- **One identity per agent, least privilege.** Grant only what each agent needs, and audit it.
-- **Write tool descriptions for the model, not for humans.** Clear, specific, action-oriented. The description *is* the interface.
-- **Keep each agent's toolset small and relevant.** Fewer, sharper tools mean better decisions and faster responses.
-- **Verify current specifics.** MCP on Databricks is newer and evolving. Check the [official docs](https://docs.databricks.com/aws/en/generative-ai/mcp/) for exact URLs, libraries, and options before building.
-- **Treat custom servers like production services.** Version, monitor, document.
 
 ## Interview Questions
 
@@ -396,15 +383,9 @@ Custom integrations would mean up to 9 separate wirings to build and maintain, g
 
 </details>
 
-## Summary
-
-MCP — the Model Context Protocol — is a universal plug for connecting AI agents to tools and data. Instead of custom cables for every agent-tool pairing (a tangle that grows fast), MCP gives one standard shape: any agent that speaks MCP can discover and use any MCP-exposed tool the same way.
-
-Two roles: an **MCP server** offers tools and describes them; an **MCP client** (an agent) connects, lists the tools, and calls them. On Databricks, **managed MCP servers** expose your existing Unity Catalog functions, Vector Search indexes, and Genie spaces as tools with no glue code. When you need more, you can **host a custom MCP server** (for example as a Databricks App) or **register an external one** — and both are brought under Unity Catalog governance. Every call is checked against the agent's identity, so agents get exactly the access they're permitted and nothing more.
-
-You've earned a real milestone here: you now understand the standard that ties together everything you learned about agents, function calling, and retrieval tools. Nicely done.
-
 ## Key Takeaways
+
+You've reached a real milestone: the standard that ties together everything you learned about agents, function calling, and retrieval tools.
 
 - MCP is an **open standard** — a universal plug — for connecting agents to tools and data, so a tool built once can be used by many agents.
 - The two roles are **server** (offers tools) and **client** (the agent that discovers and calls them). **Discovery** removes the need for hardcoded tool lists.
