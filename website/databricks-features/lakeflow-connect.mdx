@@ -1,0 +1,234 @@
+---
+sidebar_position: 20
+title: "Lakeflow Connect — Architecture Guide"
+description: "Managed, low-code ingestion connectors that bring SaaS applications and databases into the Lakehouse with change data capture."
+---
+
+# Lakeflow Connect
+
+## 1. Executive Summary
+
+Lakeflow Connect is a set of managed, low-code connectors that ingest data from SaaS applications and operational databases into governed Delta tables, using change data capture to keep them incrementally in sync.
+
+## 2. Primary Purpose
+
+- **Why it exists:** eliminate hand-built ingestion pipelines for common enterprise sources.
+- **Business problem solved:** slow, costly, and fragile onboarding of source systems into the Lakehouse.
+- **Technical problem solved:** incremental extraction, CDC, schema drift, and connector maintenance for SaaS and databases.
+- **Family note:** part of **Lakeflow** alongside **Lakeflow Declarative Pipelines** (transform) and **Lakeflow Jobs** (orchestration); Connect handles the ingest stage.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Sources → Lakeflow Connect → Delta (Bronze) → Lakeflow Declarative Pipelines → Delta (Silver/Gold) → SQL / BI / AI
+ (Salesforce, Workday,     (managed CDC       (raw landed)     (transform + DQ)      (curated)          (consumers)
+  SQL Server, ...)          ingestion)
+```
+
+- Sits at the **ingestion** edge of the Data Engineering layer.
+- Lands source data as governed Delta tables registered in Unity Catalog.
+- Feeds downstream transformation (Declarative Pipelines) and consumption (SQL, BI, AI).
+- Uses CDC where the source supports it, so only changed rows move after the initial snapshot.
+
+## 4. Typical Architecture Placement
+
+```
+☐ User Interface
+☐ Developer Experience
+☑ Data Engineering
+☐ Data Governance
+☐ AI
+☐ Machine Learning
+☐ Storage
+☐ Security
+☐ Administration
+☑ Monitoring
+```
+
+- Core home is **Data Engineering** — the managed ingestion entry point.
+- Overlaps **Monitoring** via pipeline run history and ingestion metrics.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+|---|---|---|
+| Salesforce CRM into the Lakehouse | ✅ | Managed SaaS connector |
+| Workday HR/finance ingestion | ✅ | Managed SaaS connector |
+| SQL Server operational DB replication | ✅ | Database connector with CDC |
+| Incremental sync after initial snapshot | ✅ | CDC moves only changed rows |
+| Landing Bronze tables for medallion ETL | ✅ | Outputs governed Delta |
+| Replacing per-source custom extractors | ✅ | Reduces bespoke code |
+| Schema-drift-tolerant ingestion | ✅ | Managed schema evolution |
+| Governed, Unity Catalog-registered sources | ✅ | Native UC integration |
+| Consolidating third-party ETL spend | ✅ | Fewer external tools |
+| Low-code teams without pipeline engineers | ✅ | UI/API-driven setup |
+| Serverless, hands-off ingestion ops | ✅ | Managed compute |
+| Source not on the supported connector list | ⚠️ | Use Auto Loader/JDBC instead |
+| Sub-second operational replication | ⚠️ | Scheduled, not event-instant |
+| Heavy in-flight transformation needs | ⚠️ | Transform downstream, not here |
+| One-off file loads | ⚠️ | Auto Loader/COPY INTO is simpler |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Unsupported / niche source systems | ❌ | Connector may not exist |
+| Complex transformation during ingest | ❌ | Connect lands raw; transform later |
+| Sub-second replication SLAs | ⚠️ | Scheduled incremental, not streaming |
+| Ad-hoc file ingestion from storage | ⚠️ | Auto Loader / COPY INTO fits better |
+| Full control over extraction logic | ⚠️ | Managed model abstracts internals |
+| Off-Databricks portability requirement | ❌ | Runtime-bound to the platform |
+| Reverse ETL (warehouse to SaaS) | ❌ | Inbound ingestion only |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 5 |
+| Analytics Engineers | 4 |
+| Platform Engineers | 4 |
+| Data Scientists | 2 |
+| BI Teams | 3 |
+| AI Engineers | 2 |
+| Executives | 3 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 5 |
+| Implementation Speed | 5 |
+| Governance | 4 |
+| Security | 4 |
+| Maintainability | 5 |
+| Scalability | 4 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 4 |
+| Business Value | 4 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Unity Catalog | Governs, secures, and registers ingested tables and lineage. |
+| Delta Lake | Storage format for landed ingestion targets. |
+| Lakeflow Declarative Pipelines | Transforms landed Bronze data into Silver/Gold. |
+| Lakeflow Jobs | Schedules and orchestrates ingestion with downstream tasks. |
+| Serverless Compute | Managed elastic runtime for ingestion pipelines. |
+| Change Data Feed / source CDC | Supplies incremental change records from sources. |
+| Networking (PrivateLink / gateways) | Secures connectivity to on-prem and SaaS sources. |
+| Databricks Asset Bundles | Deploys ingestion definitions as versioned IaC. |
+| Secrets management | Stores source credentials securely. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Auto Loader | In-Databricks | Great for files/object storage; not SaaS/DB CDC. |
+| JDBC + custom Spark ingestion | In-Databricks | Full control; you own CDC, drift, and maintenance. |
+| COPY INTO | In-Databricks | Simple batch file loads; no managed connectors or CDC. |
+| Fivetran / Airbyte | External | Broad connector catalog; extra tool, cost, and governance seam. |
+| Debezium + Kafka | External | Low-latency log-based CDC; heavy infra to operate. |
+| Cloud-native ETL (ADF / Glue) | External | Managed pipelines; weaker Lakehouse-native lineage. |
+
+## 11. Strengths
+
+- Managed connectors remove per-source extraction and CDC code.
+- Incremental CDC after initial snapshot reduces data movement and cost.
+- Native Unity Catalog governance and lineage on ingested tables.
+- Low-code setup via UI and API lowers the engineering barrier.
+- Managed schema evolution handles common source drift.
+- Serverless execution removes cluster sizing and ops for ingestion.
+- Consolidates ingestion into the platform, cutting external tool sprawl.
+- Direct fit as the Bronze-landing stage of the medallion pattern.
+- Integrates with Lakeflow Jobs for end-to-end orchestration.
+- Deployable as code via Databricks Asset Bundles.
+
+## 12. Limitations
+
+- Connector catalog is finite — unsupported sources need Auto Loader/JDBC.
+- Scheduled incremental model, not sub-second operational replication.
+- Lands raw data; transformation must happen downstream.
+- Runtime-bound to Databricks — no off-platform portability.
+- Managed abstraction limits fine-grained control of extraction.
+- Source-side CDC prerequisites (log access, permissions) can be involved.
+- Connector coverage and features still maturing versus older ETL vendors.
+- Inbound only — no reverse ETL back to source systems.
+- Network setup for on-prem databases adds initial complexity.
+- Per-source quotas and object limits may apply.
+
+## 13. Common Mistakes
+
+- Expecting connectors for every niche source system.
+- Treating it as a transformation tool instead of pure ingestion.
+- Skipping source-side CDC prerequisites, then hitting sync failures.
+- Assuming sub-second latency from a scheduled incremental model.
+- Not landing to Bronze and transforming with Declarative Pipelines.
+- Hand-managing credentials instead of using secrets and PrivateLink.
+- Ignoring schema-drift handling settings on volatile sources.
+- Not orchestrating ingestion with downstream jobs, causing stale data.
+
+## 14. Design Recommendations
+
+- ✔ Use Connect for supported SaaS/DB sources; Auto Loader for files.
+- ✔ Land raw to Bronze, then transform with Lakeflow Declarative Pipelines.
+- ✔ Verify source CDC prerequisites before onboarding a database.
+- ✔ Secure connectivity with PrivateLink/gateways and store secrets centrally.
+- ✔ Register targets in Unity Catalog for governance and lineage.
+- ✔ Orchestrate ingestion and transforms together via Lakeflow Jobs.
+- ✔ Deploy connector definitions with Databricks Asset Bundles.
+- ✔ Fall back to JDBC/custom ingestion only where no connector exists.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+|---|---|
+| SaaS app ingestion (Salesforce, Workday) | ✅ Managed connectors |
+| Database CDC (SQL Server, etc.) | ✅ Managed CDC ingestion |
+| File / object-storage ingestion | ❌ Use Auto Loader |
+| In-flight transformation | ❌ Transform downstream |
+| Sub-second replication | ⚠️ Scheduled incremental only |
+| Governed, lineage-tracked landing | ✅ Via Unity Catalog |
+| Reducing custom ingestion code | ✅ Low-code connectors |
+| Unsupported source system | ❌ Use JDBC/custom |
+| Reverse ETL to SaaS | ❌ Inbound only |
+| Off-platform portability | ❌ Databricks-bound |
+
+## 16. Quick Comparison
+
+| Criterion | Lakeflow Connect | Fivetran / Airbyte | Custom Auto Loader / JDBC |
+|---|---|---|---|
+| Setup model | Low-code, managed | Low-code, managed | Hand-coded |
+| Connector breadth | Growing catalog | Very broad | Build your own |
+| CDC support | Native | Native | Manual |
+| Governance / lineage | Native (Unity Catalog) | External seam | Manual |
+| Ops burden | Low (serverless) | Low (SaaS) | High |
+| Platform lock-in | High | Low | Medium |
+
+## 17. Maturity
+
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | Medium |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+
+- **Licensing:** consumed as Databricks DBUs; connector/serverless tier affects rate — verify current pricing.
+- **Compute:** serverless ingestion compute; CDC incremental sync keeps steady-state cost lower than full reloads.
+- **Storage:** standard Delta storage for landed tables plus CDC history overhead.
+- **Operational Overhead:** low — managed connectors, schema evolution, and retries reduce ops effort.
+- **Training:** low to moderate — teams learn connector setup and source prerequisites.
+
+## 19. Executive Takeaway
+
+- ✔ **Best for:** managed, low-code ingestion of supported SaaS apps and databases into the Lakehouse with CDC.
+- ✔ **Avoid when:** the source is unsupported, you need sub-second replication, or you require off-platform portability.
+- ✔ **Biggest benefit:** removes custom ingestion and CDC code while keeping data governed in Unity Catalog.
+- ✔ **Biggest limitation:** finite connector catalog and scheduled incremental (not real-time) model.
+- ✔ **Overall recommendation:** default ingestion path for supported sources on Databricks; pair with Declarative Pipelines and Jobs. See the [feature catalog](/databricks-features) for related components.

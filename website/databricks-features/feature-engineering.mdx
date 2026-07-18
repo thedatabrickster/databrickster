@@ -1,0 +1,223 @@
+---
+sidebar_position: 20
+title: "Feature Store / Feature Engineering — Architecture Guide"
+description: "Governed feature tables in Unity Catalog that make ML features reusable, prevent train/serve skew, and serve low-latency lookups with lineage to models."
+---
+
+# Feature Store / Feature Engineering in Unity Catalog
+
+## 1. Executive Summary
+Feature Engineering in Unity Catalog turns Delta tables into governed, discoverable, reusable feature stores that join automatically into training and inference, eliminating train/serve skew and carrying lineage from raw data through features to deployed models.
+
+## 2. Primary Purpose
+- **Why it exists:** to make ML features a shared, governed asset rather than logic re-implemented per model and per team.
+- **Business problem solved:** cuts duplicated feature work, speeds new-model delivery, and provides audit-ready lineage from data to prediction.
+- **Technical problem solved:** guarantees the same feature computation at training and serving time, removing a leading cause of silent model degradation.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Raw / Bronze Delta
+        ↓
+Feature pipelines (batch/streaming, Lakeflow)
+        ↓
+Feature tables in Unity Catalog  (Delta, PK-keyed)
+        ↓         ↘
+Training set join        Online Store / online table
+   ↓                          ↓
+MLflow model (logged w/ feature refs)
+        ↓
+Model Serving  →  auto feature lookup at inference
+```
+- Sits between curated Delta data and the ML model as the **feature governance and reuse layer**.
+- One feature table feeds both offline training joins and online low-latency lookups.
+- Feature references are logged with the model, so serving resolves lookups automatically.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☐ Developer Experience
+☑ Data Engineering
+☑ Data Governance
+☐ AI
+☑ Machine Learning
+☐ Storage
+☐ Security
+☐ Administration
+☐ Monitoring
+```
+- Core to **Machine Learning**: supplies consistent features to training and inference.
+- **Data Engineering** builds and refreshes the feature pipelines that populate tables.
+- **Data Governance**: feature tables are Unity Catalog objects with permissions, lineage, and discovery.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+| --- | --- | --- |
+| Features reused across multiple models | ✅ | Single governed source, no duplication |
+| Preventing train/serve skew | ✅ | Same computation offline and online |
+| Real-time scoring needing fresh lookups | ✅ | Online store serves sub-millisecond reads |
+| Point-in-time correct training joins | ✅ | Time-series lookups avoid label leakage |
+| Model lineage and audit requirements | ✅ | Feature-to-model lineage in Unity Catalog |
+| Cross-team feature discovery | ✅ | Catalog search and documentation |
+| Batch scoring on large tables | ✅ | Offline join scales on Spark |
+| Streaming feature freshness | ✅ | Streaming pipelines update tables continuously |
+| Governed feature access control | ✅ | UC grants at table/column level |
+| Standardizing feature definitions | ✅ | Central definitions replace per-notebook logic |
+| Serving features to external apps | ✅ | Feature Serving endpoints expose lookups |
+| One-off model with no reuse | ⚠️ | Overhead may exceed benefit |
+| Purely unstructured inputs (raw images/text) | ⚠️ | Store derived embeddings/features, not raw blobs |
+| Sub-millisecond needs at extreme scale | ⚠️ | Validate online store latency/throughput limits |
+| Very high-cardinality per-request features | ⚠️ | Design keys and TTL carefully |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+| --- | --- | --- |
+| General-purpose OLTP data store | ❌ | It is a feature layer, not an app database |
+| Ad-hoc analyst exploration only | ❌ | Plain Delta/SQL is simpler for non-ML work |
+| Raw unstructured blob storage | ❌ | Store computed features, not raw media |
+| Single throwaway experiment | ⚠️ | Setup cost may not pay back |
+| Features changing shape every run | ⚠️ | Schema churn undermines reuse |
+| Teams unwilling to own pipelines | ⚠️ | Stale tables erode trust fast |
+| Extreme ultra-low-latency edge scoring | ⚠️ | Confirm online store meets the SLA |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+| --- | --- |
+| Data Engineers | 4 |
+| Analytics Engineers | 3 |
+| Platform Engineers | 3 |
+| Data Scientists | 5 |
+| BI Teams | 2 |
+| AI Engineers | 4 |
+| Executives | 3 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+| --- | --- |
+| Developer Productivity | 4 |
+| Implementation Speed | 3 |
+| Governance | 5 |
+| Security | 4 |
+| Maintainability | 4 |
+| Scalability | 4 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 3 |
+| Business Value | 4 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+| --- | --- |
+| Unity Catalog | Governs feature tables with permissions, lineage, and discovery. |
+| Delta Lake | Underlying storage format for offline feature tables. |
+| MLflow | Logs feature references with the model for automatic lookup. |
+| Model Serving | Resolves and joins features at inference time. |
+| Online stores / online tables | Serve low-latency feature lookups for real-time scoring. |
+| Lakeflow Declarative Pipelines | Build and refresh feature pipelines (batch/streaming). |
+| Lakeflow Jobs | Schedule periodic feature recomputation. |
+| Structured Streaming | Keeps streaming features fresh in near real time. |
+| Feature Serving endpoints | Expose feature lookups to apps beyond model serving. |
+| Vector Search | Complements structured features with embedding retrieval. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+| --- | --- | --- |
+| Ad-hoc feature code in notebooks | In-Databricks | Fast to start, but duplicates logic and invites skew |
+| Plain Delta tables joined manually | In-Databricks | No enforced lineage, discovery, or point-in-time safety |
+| AWS SageMaker Feature Store | External | Comparable offline/online split; separate governance and data plane |
+| Google Vertex AI Feature Store | External | Managed online serving; ties to GCP, less lakehouse-native |
+| Feast (open source) | External | Flexible and portable; you operate stores, registry, and infra |
+| Tecton | External | Rich streaming feature platform; added license and integration |
+| Redis / DynamoDB as custom online store | External | Full control of latency, but you build sync and consistency |
+
+## 11. Strengths
+- Same feature computation at training and serving removes train/serve skew.
+- Feature-to-model lineage is captured natively in Unity Catalog.
+- One feature table serves both offline training and online inference.
+- Point-in-time joins prevent label leakage in time-series training.
+- Governed access: table- and column-level grants, audit, discovery.
+- Serving auto-resolves logged feature references, less glue code.
+- Batch and streaming pipelines keep features fresh.
+- Reuse across teams cuts duplicated feature engineering.
+- Feature Serving exposes lookups to apps beyond model endpoints.
+- Built on Delta and Spark, so it scales with existing compute.
+
+## 12. Limitations
+- Online store adds infrastructure, sync latency, and cost to manage.
+- Point-in-time correctness requires disciplined timestamp keys.
+- Teams must own pipeline freshness; stale tables silently hurt models.
+- Not a general OLTP or app database, narrow to feature workloads.
+- Schema and key changes to shared tables ripple to many consumers.
+- Online store latency/throughput limits need validation per SLA.
+- Best experience assumes Unity Catalog is fully adopted.
+- Migrating legacy Workspace Feature Store tables takes planning.
+- Unstructured inputs must be pre-converted to computed features.
+- Cross-cloud/external serving may need extra sync patterns.
+
+## 13. Common Mistakes
+- Recomputing features separately for serving, reintroducing skew.
+- Skipping point-in-time joins and leaking future data into training.
+- No ownership for pipeline refresh, letting features go stale.
+- Storing raw data instead of governed, model-ready features.
+- Overloading one table with unrelated features and poor keys.
+- Ignoring online store cost and TTL until bills or latency spike.
+- Not logging feature references, forcing manual lookup at serving.
+- Treating the feature store as an afterthought instead of a design layer.
+- Uncontrolled schema changes breaking downstream models.
+
+## 14. Design Recommendations
+- ✔ Define features once as governed tables and reuse across models.
+- ✔ Use point-in-time / time-series lookups for temporal training data.
+- ✔ Log feature references with the model so serving auto-joins them.
+- ✔ Assign explicit owners and SLAs for each feature pipeline.
+- ✔ Provision online stores only for models needing real-time lookup.
+- ✔ Version and document feature definitions in Unity Catalog.
+- ✔ Choose primary keys and timestamp keys deliberately up front.
+- ✔ Monitor freshness, drift, and online store latency/cost.
+- ✔ Refresh features via Lakeflow pipelines and Jobs, not manual runs.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+| --- | --- |
+| Reuse features across models | ✅ Core purpose |
+| Eliminate train/serve skew | ✅ Same computation both sides |
+| Real-time feature lookup | ✅ Via online store |
+| Point-in-time correct training | ✅ Time-series joins |
+| Feature-to-model lineage | ✅ Native in Unity Catalog |
+| Governed feature access | ✅ UC grants and audit |
+| One-off throwaway model | ⚠️ Overhead may not pay back |
+| Purely unstructured raw inputs | ⚠️ Store derived features instead |
+| General OLTP application store | ❌ Wrong tool |
+| Analyst-only SQL exploration | ❌ Plain Delta is simpler |
+
+## 16. Quick Comparison
+| Criterion | UC Feature Engineering | SageMaker Feature Store | Vertex AI Feature Store | Feast |
+| --- | --- | --- | --- | --- |
+| Lakehouse-native | Yes | No | No | Partial |
+| Governance / lineage | Unity Catalog native | IAM + separate catalog | GCP IAM | External registry |
+| Online serving | Online stores / tables | Built-in online store | Built-in online store | Bring your own store |
+| Train/serve consistency | Auto via logged refs | Manual wiring | Manual wiring | SDK-managed |
+| Operational burden | Managed on lakehouse | Managed on AWS | Managed on GCP | Self-operated |
+
+## 17. Maturity
+| Dimension | Rating |
+| --- | --- |
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+- **Licensing:** included with Databricks ML capabilities; no separate feature store license. Verify current pricing.
+- **Compute:** feature pipeline runs (batch/streaming) and training joins are the main drivers.
+- **Storage:** offline tables are Delta; online stores add duplicate hot storage for served features.
+- **Operational Overhead:** owning pipeline freshness, keys, and online sync is the real ongoing cost.
+- **Training:** moderate learning curve for point-in-time joins, keys, and online store setup.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** organizations reusing ML features across teams and models while needing consistent training and serving with governed lineage.
+- ✔ **Avoid when:** you have a single throwaway model, analyst-only SQL work, or need a general-purpose application database.
+- ✔ **Biggest benefit:** the same governed features power training and serving, eliminating train/serve skew with lineage to every model.
+- ✔ **Biggest limitation:** it requires disciplined pipeline ownership and, for real-time use, an online store that adds cost and operational work.
+- ✔ **Overall recommendation:** adopt as the standard feature layer once Unity Catalog is in place and features are shared beyond a single model.

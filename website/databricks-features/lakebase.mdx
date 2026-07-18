@@ -1,0 +1,245 @@
+---
+sidebar_position: 20
+title: "Lakebase — Architecture Guide"
+description: "Managed Postgres-compatible OLTP database integrated with the Databricks Lakehouse for low-latency serving and Delta sync."
+---
+
+# Lakebase
+
+## 1. Executive Summary
+
+A fully managed, Postgres-compatible OLTP database built into Databricks that serves low-latency transactional reads and writes for apps and agents, with two-way sync to Delta so operational and analytical data stay connected.
+
+## 2. Primary Purpose
+
+- **Why it exists:** give the Lakehouse a native transactional store so teams stop bolting a separate operational database onto Databricks.
+- **Business problem:** cut the integration cost and latency of moving data between an external OLTP system and the analytics platform.
+- **Technical problem:** serve single-row, sub-second reads/writes that Delta and the analytics engine are not designed for, while keeping data in sync.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Users / Apps / Agents
+        ↓
+Databricks Apps / Model Serving / External clients (Postgres wire protocol)
+        ↓
+Lakebase (managed Postgres OLTP)  ← low-latency reads/writes
+        ↓
+Sync layer  ← Delta → Lakebase (online serving) · Lakebase → Delta (analytics)
+        ↓
+Delta Lake (governed by Unity Catalog)
+```
+
+- Sits in the **serving/OLTP tier** in front of the Lakehouse, not inside the analytical path.
+- Reads from Delta to publish features/reference data; writes app state back for analysis.
+- Consumed over the standard Postgres protocol by Apps, agents, and external services.
+
+## 4. Typical Architecture Placement
+
+```
+☑ User Interface
+☑ Developer Experience
+☑ Data Engineering
+☐ Data Governance
+☑ AI
+☐ Machine Learning
+☑ Storage
+☐ Security
+☐ Administration
+☐ Monitoring
+```
+
+- Primary role is the operational/serving store powering applications and agent state.
+- Overlaps AI (low-latency feature and context serving) and data engineering (Delta sync).
+- Governance and security are inherited from Unity Catalog integration, not owned here.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+| --- | --- | --- |
+| Backing store for Databricks Apps | ✅ | Native, low-latency transactional store on-platform |
+| Low-latency feature serving for models | ✅ | Sub-second point lookups from Delta-synced tables |
+| Agent state and short-term memory | ✅ | Transactional reads/writes for conversational context |
+| Serving reference/lookup data to apps | ✅ | Delta-to-Lakebase sync keeps served data current |
+| Operational dashboards needing fresh writes | ✅ | Handles concurrent row-level updates |
+| Session, cart, or workflow state | ✅ | Classic OLTP access pattern |
+| Write-back of user edits for analytics | ✅ | Lakebase-to-Delta sync exposes writes to the Lakehouse |
+| Postgres app migration onto Databricks | ✅ | Postgres wire compatibility eases porting |
+| Serving embeddings metadata / keys | ✅ | Fast keyed retrieval alongside Vector Search |
+| Small-to-mid transactional workloads | ✅ | Fits managed sizing without external DB ops |
+| Multi-tenant app with row-level access | ⚠️ | Works; design isolation and RLS deliberately |
+| Very high write throughput OLTP | ⚠️ | Validate limits; a tuned self-managed Postgres may fit better |
+| Complex relational schema with heavy joins | ⚠️ | Postgres handles it, but confirm sizing and latency |
+| Analytical aggregation over large tables | ⚠️ | Push to Delta/Databricks SQL, not Lakebase |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+| --- | --- | --- |
+| Large-scale analytical queries / BI scans | ❌ | Use Delta + Databricks SQL, not OLTP |
+| Petabyte data warehousing | ❌ | Lakehouse storage is the right layer |
+| Heavy batch ETL transformations | ❌ | Use Lakeflow/Spark, not a transactional DB |
+| Long-running analytical joins | ❌ | OLTP engine is tuned for point access |
+| Extreme write volume beyond managed limits | ⚠️ | Verify throughput ceilings before committing |
+| Full control over Postgres internals/extensions | ⚠️ | Managed service constrains deep tuning |
+| Cross-cloud active-active OLTP | ⚠️ | Scoped to the platform region; plan topology |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+| --- | --- |
+| Data Engineers | 3 |
+| Analytics Engineers | 2 |
+| Platform Engineers | 4 |
+| Data Scientists | 2 |
+| BI Teams | 1 |
+| AI Engineers | 5 |
+| Executives | 2 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+| --- | --- |
+| Developer Productivity | 5 |
+| Implementation Speed | 4 |
+| Governance | 3 |
+| Security | 4 |
+| Maintainability | 4 |
+| Scalability | 3 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 4 |
+| Business Value | 4 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+| --- | --- |
+| Delta Lake | Source and sink for synced operational data. |
+| Unity Catalog | Governs identity and access for Lakebase objects. |
+| Databricks Apps | Primary consumer using Lakebase as its backend. |
+| Mosaic AI Model Serving | Reads features/state served from Lakebase at inference. |
+| Agent Bricks / agents | Store and retrieve transactional context and memory. |
+| Mosaic AI Vector Search | Complements Lakebase for semantic vs. keyed retrieval. |
+| Lakeflow (Jobs/Pipelines) | Prepares Delta data upstream of sync into Lakebase. |
+| Serverless compute | Provisions and scales the managed instance. |
+| Postgres ecosystem / drivers | Standard clients, ORMs, and tools connect via the wire protocol. |
+| SDK / REST API | Programmatic provisioning and management. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+| --- | --- | --- |
+| Online Tables | In-Databricks | Read-only key-value serving from Delta; no general OLTP writes. |
+| Amazon RDS / Aurora Postgres | External managed | Mature, tunable; separate governance, networking, and Delta sync. |
+| Google Cloud SQL Postgres | External managed | Full Postgres control; you build the Lakehouse integration. |
+| Azure Database for Postgres | External managed | Native to Azure; not Lakehouse-integrated out of the box. |
+| Self-managed Postgres | Self-hosted | Maximum control and extensions; you own ops, HA, and sync. |
+| DynamoDB / Cosmos DB | External NoSQL | Extreme scale KV; not relational, no Delta sync, separate model. |
+
+## 11. Strengths
+
+- Postgres-compatible: existing drivers, ORMs, SQL, and skills carry over.
+- Managed service: no servers, patching, HA, or backups to operate.
+- Native Delta sync in both directions links operational and analytical data.
+- Separates OLTP serving from the analytical engine, protecting each workload.
+- Low-latency point reads/writes suited to apps and agents.
+- Tight integration with Databricks Apps as a backend store.
+- Governance and identity integrate with Unity Catalog.
+- Serves features and agent state without an external database hop.
+- Serverless provisioning shortens time to a working transactional store.
+- Consolidates OLTP and analytics on one platform, reducing integration surface.
+
+## 12. Limitations
+
+- Relatively new; smaller track record than established managed Postgres.
+- Managed service limits deep tuning, custom extensions, and version control.
+- Not built for large analytical scans or heavy joins over big tables.
+- Throughput and connection ceilings must be validated for demanding OLTP.
+- Sync introduces latency and design considerations between Delta and Lakebase.
+- Region/platform scoping limits cross-cloud or multi-region OLTP topologies.
+- Cost of an always-on serving instance accrues even at low utilization.
+- Feature set and limits are still evolving; verify current capabilities.
+- Governance depth for Lakebase objects is less mature than for Delta assets.
+- Migrating stateful apps still requires schema, connection, and cutover planning.
+
+## 13. Common Mistakes
+
+- Using Lakebase for analytical queries that belong in Databricks SQL.
+- Treating sync as instant; ignoring the lag between Delta and Lakebase.
+- Over-provisioning an instance for a pilot with minimal traffic.
+- Skipping connection pooling and exhausting connections under load.
+- Duplicating large analytical tables into Lakebase instead of serving keys.
+- Assuming full self-managed Postgres control over extensions and settings.
+- Neglecting row-level access design in multi-tenant apps.
+- Choosing Lakebase where read-only Online Tables would be simpler and cheaper.
+
+## 14. Design Recommendations
+
+- ✔ Use Lakebase for serving/OLTP; keep analytics in Delta and Databricks SQL.
+- ✔ Prefer Online Tables when you only need read-only key-value lookups from Delta.
+- ✔ Model the sync direction explicitly (Delta→serving vs. write-back→analytics).
+- ✔ Right-size the instance and add connection pooling before scaling traffic.
+- ✔ Keep large historical data in Delta; serve only what apps need low-latency.
+- ✔ Design row-level access and tenancy isolation up front.
+- ✔ Pilot throughput and latency against real access patterns before production.
+- ✔ Verify current limits and pricing given the feature's newness.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+| --- | --- |
+| App/agent transactional backend | ✅ Native OLTP fit |
+| Low-latency feature serving | ✅ Sub-second lookups |
+| Postgres app migration to Databricks | ✅ Wire-compatible |
+| Write-back for later analytics | ✅ Lakebase-to-Delta sync |
+| Read-only key-value serving | ⚠️ Online Tables may suffice |
+| Large analytical queries | ❌ Use Databricks SQL |
+| Heavy batch ETL | ❌ Use Lakeflow/Spark |
+| Deep Postgres tuning/extensions | ⚠️ Managed limits apply |
+| Multi-region active-active OLTP | ⚠️ Plan topology / external option |
+| Extreme write throughput | ⚠️ Validate limits first |
+
+## 16. Quick Comparison
+
+| Criterion | Lakebase | Online Tables | RDS/Aurora Postgres | Self-managed Postgres |
+| --- | --- | --- | --- | --- |
+| Workload | OLTP read/write | Read-only KV serving | General OLTP | General OLTP |
+| Hosting | Managed in Databricks | Managed in Databricks | Managed (cloud) | You operate |
+| Delta sync | Native, two-way | Native, one-way | Build yourself | Build yourself |
+| Postgres compatibility | Yes | No (KV) | Yes | Yes |
+| Ops burden | Low | Very low | Medium | High |
+| Tuning control | Limited | None | High | Full |
+
+## 17. Maturity
+
+| Dimension | Rating |
+| --- | --- |
+| Technology Readiness | Medium |
+| Enterprise Readiness | Medium |
+| Production Readiness | Medium |
+| Governance Readiness | Medium |
+| AI Readiness | High |
+
+## 18. Cost Considerations
+
+- **Licensing:** consumption-based via Databricks; no separate Postgres license. Verify current pricing.
+- **Compute:** an always-on managed instance plus sync compute; scales with sizing and load.
+- **Storage:** transactional storage in addition to the Delta source it syncs from.
+- **Operational Overhead:** low — no DB servers to run; effort shifts to sizing, sync, and schema design.
+- **Training:** minimal for teams that know Postgres; Lakehouse sync patterns are the main learning curve.
+
+:::note[Cost model]
+The main levers are the **instance size** (always-on serving capacity) and the **sync** compute keeping Delta and Lakebase aligned. Serve only what apps need at low latency and keep bulk data in Delta. Always verify current pricing.
+:::
+
+## 19. Executive Takeaway
+
+- ✔ **Best for:** app and agent transactional serving on the Lakehouse without an external database.
+- ✔ **Avoid when:** the workload is analytical scans, heavy ETL, or extreme-scale OLTP better served elsewhere.
+- ✔ **Biggest benefit:** managed Postgres-compatible OLTP with native two-way Delta sync, all on one platform.
+- ✔ **Biggest limitation:** relatively new with managed constraints and evolving limits versus mature external Postgres.
+- ✔ **Overall recommendation:** the default operational store for teams building apps and agents on Databricks; verify limits for demanding OLTP.
+
+See the full [feature catalog](/databricks-features) for related components.

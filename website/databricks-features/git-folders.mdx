@@ -1,0 +1,221 @@
+---
+sidebar_position: 20
+title: "Git Folders (Repos) — Architecture Guide"
+description: "Git-backed workspace folders that bring branch, commit, and pull-request workflows to Databricks notebooks and code, feeding CI/CD promotion with Asset Bundles."
+---
+
+# Git Folders (Repos)
+
+## 1. Executive Summary
+Git Folders (formerly Repos) are Git-backed folders inside the Databricks workspace that clone a remote repository so notebooks and code can be edited, branched, committed, and pushed to GitHub, GitLab, Azure DevOps, or Bitbucket without leaving the workspace.
+
+## 2. Primary Purpose
+- **Why it exists:** give in-workspace notebooks and code the same version control developers expect from an IDE.
+- **Business problem:** ungoverned notebooks in personal folders can't be reviewed, audited, or reliably promoted to production.
+- **Technical problem:** clone, branch, commit, pull, and push against a remote provider directly from the workspace UI and APIs.
+- **Positioning:** the source-control entry point that feeds CI/CD and Databricks Asset Bundles; the checkout target production jobs run from.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Remote Git Provider (GitHub · GitLab · Azure DevOps · Bitbucket)
+        ↓  clone / pull / push
+Git Folder in Workspace (branch + commit UI)
+        ↓
+Notebooks · Python · SQL · DABs config
+        ↓
+Lakeflow Jobs · Pipelines run from a repo checkout
+        ↓
+Unity Catalog (governance, lineage)
+        ↓
+Delta Lake
+```
+- Sits in the **developer-experience layer**, between the remote Git provider and the code that executes in the workspace.
+- Stores a working copy — the remote repository remains the source of truth.
+- Serves both interactive editing (UI branch/commit) and automated execution (jobs pointing at a repo path and branch).
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☑ Developer Experience
+☑ Data Engineering
+☐ Data Governance
+☐ AI
+☐ Machine Learning
+☐ Storage
+☐ Security
+☑ Administration
+☐ Monitoring
+```
+- Primarily a **Developer Experience** capability — brings branching, review, and history to workspace code.
+- Supports **Data Engineering** as the checkout source for jobs and pipelines.
+- Touches **Administration** through Git provider allow-lists, credential policy, and repo permissions.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+| --- | --- | --- |
+| Version-controlled notebooks | ✅ | Branch, commit, and diff from the workspace |
+| Feature-branch development | ✅ | Isolated branches per developer or task |
+| Pull-request review workflow | ✅ | Push branch, open PR in the provider |
+| Production jobs from a fixed branch | ✅ | Jobs run a pinned repo path and branch |
+| CI/CD promotion with Asset Bundles | ✅ | Repo is the source DABs deploys from |
+| GitHub / GitLab / Azure DevOps integration | ✅ | Native provider connections |
+| Migrating notebooks off personal folders | ✅ | Moves code under source control |
+| Sharing reusable Python modules | ✅ | Import `.py` modules alongside notebooks |
+| Reproducible environment via requirements files | ✅ | Dependencies committed with code |
+| Small-team collaboration on shared code | ✅ | Common history and review flow |
+| Documentation and config alongside code | ✅ | Markdown, YAML, and scripts tracked together |
+| Rollback to a known-good commit | ✅ | Reset or redeploy a prior commit |
+| Storing large datasets in the repo | ❌ | Use Volumes or Delta, not Git |
+| Committing secrets or tokens | ❌ | Use secret scopes, never the repo |
+| Binary model artifacts in Git | ⚠️ | Prefer MLflow / Model Registry |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+| --- | --- | --- |
+| Storing data files or large binaries | ❌ | Git bloats; use Volumes, Delta, or object storage |
+| Secrets, keys, and connection strings | ❌ | Belongs in secret scopes, not version control |
+| Model weights and large artifacts | ❌ | Use MLflow Model Registry and Unity Catalog |
+| Ad-hoc throwaway exploration | ⚠️ | Overhead not justified for one-off work |
+| Complex merge-heavy multi-author edits | ⚠️ | Notebook JSON merges are harder than plain source |
+| Cross-repo monorepo orchestration | ⚠️ | One folder maps to one repo; limited multi-repo UX |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+| --- | --- |
+| Data Engineers | 5 |
+| Analytics Engineers | 4 |
+| Platform Engineers | 5 |
+| Data Scientists | 4 |
+| BI Teams | 2 |
+| AI Engineers | 4 |
+| Executives | 2 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+| --- | --- |
+| Developer Productivity | 5 |
+| Implementation Speed | 4 |
+| Governance | 4 |
+| Security | 3 |
+| Maintainability | 5 |
+| Scalability | 4 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 4 |
+| Business Value | 4 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+| --- | --- |
+| Git Provider (GitHub/GitLab/Azure DevOps/Bitbucket) | Hosts the remote repository and PR workflow. |
+| Databricks Asset Bundles | Deploys resources defined in the tracked repo. |
+| Lakeflow Jobs | Run notebooks and scripts from a repo path and branch. |
+| Databricks CLI / SDK | Automate clone, checkout, and update in CI. |
+| Databricks Notebooks | Primary editable artifacts inside the folder. |
+| Unity Catalog | Governs data the tracked code reads and writes. |
+| Service Principals | Non-interactive identity for prod repo checkout. |
+| Secret Scopes | Hold provider tokens and runtime credentials. |
+| Databricks Connect / IDE | Alternative local editing against the same repo. |
+| MLflow | Stores models the code produces, kept out of Git. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+| --- | --- | --- |
+| Local Git + Databricks Connect | Local IDE workflow | Full IDE and Git tooling; no in-workspace UI, requires local setup |
+| External CI checkout | Automation | CI clones the repo itself; no interactive workspace editing |
+| Manual export / import (.dbc, source) | Interactive | Simple but no branches, history, or review; drift-prone |
+| VS Code / JetBrains Databricks extension | IDE plugin | Rich editing plus sync; adds local environment management |
+| dbt project in Git | Modeling framework | Owns SQL model source; not general notebook version control |
+| Workspace files without Git | In-platform | Fast to start; no versioning, branching, or PR flow |
+
+## 11. Strengths
+- Branch, commit, pull, and push directly from the workspace UI.
+- Native connections to GitHub, GitLab, Azure DevOps, and Bitbucket.
+- Jobs and pipelines can run from a pinned repo path and branch.
+- Feeds CI/CD and Asset Bundles as the versioned source of truth.
+- Notebooks stored as source-friendly formats for cleaner diffs.
+- Reusable `.py` modules import alongside notebooks in the same folder.
+- Per-branch isolation supports parallel feature development.
+- Sparse checkout limits large repos to needed subfolders.
+- Admin allow-lists restrict which providers and URLs are permitted.
+- Rollback by resetting or redeploying a prior commit.
+
+## 12. Limitations
+- Notebook JSON/source merges are harder than plain-code merges.
+- No full IDE Git experience — advanced operations still need a client.
+- Repo is a working copy; heavy conflict resolution is awkward in-UI.
+- Not built for large binaries, data files, or model weights.
+- Multi-repo / monorepo orchestration is limited; one folder, one repo.
+- Provider credential setup and token rotation add admin overhead.
+- Concurrent edits to the same notebook can collide without discipline.
+- PR creation and review happen in the provider, not in Databricks.
+- Very large repos need sparse checkout to stay performant.
+- Interactive commits can bypass CI if teams skip review discipline.
+
+## 13. Common Mistakes
+- Committing secrets, tokens, or connection strings into the repo.
+- Storing datasets or large binaries in Git instead of Volumes/Delta.
+- Running production jobs off a personal branch instead of a pinned one.
+- Editing prod code directly in the workspace, bypassing PR review.
+- Using a personal token for prod checkout instead of a service principal.
+- Treating the workspace copy as the source of truth over the remote.
+- One giant repo for the whole org instead of scoped, team-owned repos.
+- Ignoring sparse checkout on large repos, hurting performance.
+
+## 14. Design Recommendations
+- ✔ Pin production jobs to a specific repo path and release branch.
+- ✔ Use feature branches and merge through provider pull requests.
+- ✔ Deploy prod checkout via a service principal, not a user token.
+- ✔ Keep secrets in secret scopes; never commit credentials.
+- ✔ Store data in Volumes/Delta and models in MLflow, not Git.
+- ✔ Scope one repo per team or domain, not a single org monorepo.
+- ✔ Enable admin provider allow-lists to restrict remote URLs.
+- ✔ Use sparse checkout for large repositories.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+| --- | --- |
+| Version-controlled notebooks | ✅ Core purpose |
+| Branch / commit in workspace | ✅ Native UI |
+| Pull-request review | ✅ Via provider |
+| Production job source | ✅ Pin path and branch |
+| CI/CD with Asset Bundles | ✅ Repo is the source |
+| Full IDE Git operations | ⚠️ Use local Git + Connect |
+| Storing data or binaries | ❌ Use Volumes/Delta |
+| Secrets management | ❌ Use secret scopes |
+| Multi-repo monorepo flow | ⚠️ Limited support |
+| One-off throwaway analysis | ⚠️ Overhead unjustified |
+
+## 16. Quick Comparison
+| Criterion | Git Folders | Local Git + Connect | External CI checkout | Manual export/import |
+| --- | --- | --- | --- | --- |
+| In-workspace UI | Yes | No | No | Partial |
+| Branch / commit | Yes | Yes | Yes | No |
+| PR workflow | Via provider | Via provider | Via provider | No |
+| Runs jobs from repo | Yes | Indirect | Yes | No |
+| IDE tooling | Limited | Full | N/A | None |
+| Setup effort | Low | Medium | Medium | Low |
+
+## 17. Maturity
+| Dimension | Rating |
+| --- | --- |
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | Medium |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+- **Licensing:** no separate Databricks charge for Git Folders; the Git provider may bill seats or repos — verify current pricing.
+- **Compute:** cost comes from jobs and clusters running the code, not from the folder itself.
+- **Storage:** minimal — a working copy of source files in the workspace.
+- **Operational Overhead:** provider credential setup, token rotation, allow-list policy, and branch/PR governance.
+- **Training:** modest Git literacy for teams new to branching and pull-request workflows.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** teams that want version-controlled notebooks and code with branch, commit, and PR workflows inside the workspace.
+- ✔ **Avoid when:** you need full IDE Git tooling, or you are storing data, binaries, or secrets — those belong elsewhere.
+- ✔ **Biggest benefit:** brings source control and CI/CD-ready structure to workspace code, feeding Asset Bundles and production jobs.
+- ✔ **Biggest limitation:** notebook merges and advanced Git operations are weaker than a local IDE workflow.
+- ✔ **Overall recommendation:** adopt as the standard source-control layer for workspace code; pair with local Git + Connect for heavy IDE work and DABs for promotion.

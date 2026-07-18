@@ -1,0 +1,245 @@
+---
+sidebar_position: 20
+title: "Foundation Model APIs — Architecture Guide"
+description: "Databricks-hosted access to LLMs and embedding models via Model Serving, in pay-per-token and provisioned-throughput modes."
+---
+
+# Foundation Model APIs
+
+## 1. Executive Summary
+
+Foundation Model APIs give in-platform access to hosted large language and embedding models through Model Serving, billed either pay-per-token or as reserved provisioned throughput.
+
+## 2. Primary Purpose
+
+- **Why it exists:** provide LLM and embedding inference inside the Lakehouse without provisioning GPUs or signing separate vendor contracts.
+- **Business problem:** teams need generative AI fast, but standing up model infrastructure or negotiating external providers slows delivery and fragments spend.
+- **Technical problem:** standardizes prompt/embedding calls behind one OpenAI-compatible API governed by Unity Catalog and AI Gateway.
+- **Consolidation:** the same endpoints power AI Functions, RAG, Vector Search embeddings, and agents — one governed inference surface.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Users / Apps / Analysts / Agents
+        ↓
+User Interfaces        (Databricks Apps, AI Playground, Genie, notebooks, SQL)
+        ↓
+AI & Machine Learning  (AI Functions, RAG, Agent Bricks → Foundation Model APIs ◀ HERE)
+        ↓
+Governance / Gateway   (AI Gateway, Unity Catalog, Inference Tables)
+        ↓
+Serving Layer          (Mosaic AI Model Serving — hosts the FM endpoints)
+        ↓
+Storage                (Delta Lake, Volumes, Vector Search indexes)
+```
+
+- Sits inside **Model Serving** as the Databricks-hosted catalog of foundation and embedding models.
+- Consumed by higher layers (AI Functions, RAG, agents) rather than called directly by end users.
+- Every request passes through **AI Gateway** for rate limits, guardrails, and usage tracking.
+- Not a model store or training service — it is the managed inference runtime for pretrained models.
+
+## 4. Typical Architecture Placement
+
+```
+☐ User Interface
+☐ Developer Experience
+☐ Data Engineering
+☑ Data Governance
+☑ AI
+☑ Machine Learning
+☐ Storage
+☐ Security
+☐ Administration
+☑ Monitoring
+```
+
+- Primarily an **AI inference** service; governance and monitoring are integral (UC permissions, Gateway usage, Inference Tables).
+- Not a UI or data-engineering tool — those layers call it via `ai_query`, SQL AI Functions, or the serving API.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+|---|---|---|
+| Chat / summarization inside notebooks or apps | ✅ | Hosted chat models via one OpenAI-compatible API |
+| Text embeddings for Vector Search / RAG | ✅ | Native embedding endpoints feed indexes directly |
+| SQL AI Functions (`ai_query`, `ai_summarize`) | ✅ | Functions call FM endpoints with no setup |
+| Batch inference over Delta tables | ✅ | `ai_query` scales token calls across rows |
+| Prototyping model choice in AI Playground | ✅ | Compare hosted models before committing |
+| Bursty or low-volume generative workloads | ✅ | Pay-per-token bills only actual usage |
+| High-volume, latency-sensitive LLM serving | ✅ | Provisioned throughput reserves predictable capacity |
+| Regulated data that must stay in the platform | ✅ | Inference runs in Databricks under UC governance |
+| Powering RAG and tool-using agents | ✅ | Agent Bricks / Agent Framework call FM endpoints |
+| Centralized, governed LLM access for many teams | ✅ | Gateway quotas and per-team usage attribution |
+| Standardized embeddings across pipelines | ✅ | One endpoint keeps embedding dimensions consistent |
+| Fine-tuned open-weight model serving | ⚠️ | Use provisioned throughput; verify model support |
+| Ultra-low single-digit-ms latency | ⚠️ | Managed HTTP + token generation adds overhead |
+| Cutting-edge proprietary model needed day one | ⚠️ | Route via external models if not in the FM catalog |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Offline / edge / air-gapped inference | ❌ | Cloud-hosted; needs control-plane connectivity |
+| Training or fine-tuning from scratch | ❌ | Serves pretrained models only |
+| A specific proprietary model not in the catalog | ⚠️ | Use external-model endpoints to that vendor instead |
+| Sub-millisecond hard-real-time paths | ❌ | Token generation and HTTP overhead exceed budget |
+| Deep control over GPU kernels / runtime | ⚠️ | Managed service hides low-level tuning |
+| Lowest possible unit cost at massive sustained scale | ⚠️ | Benchmark provisioned throughput vs self-hosted GPUs |
+| Non-text modalities beyond supported models | ⚠️ | Catalog is model-dependent; verify availability |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 4 |
+| Analytics Engineers | 4 |
+| Platform Engineers | 3 |
+| Data Scientists | 4 |
+| BI Teams | 3 |
+| AI Engineers | 5 |
+| Executives | 3 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 5 |
+| Implementation Speed | 5 |
+| Governance | 5 |
+| Security | 4 |
+| Maintainability | 5 |
+| Scalability | 4 |
+| Cost Optimization | 4 |
+| Ease of Adoption | 5 |
+| Business Value | 4 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Mosaic AI Model Serving | Hosts and runs the foundation model endpoints. |
+| AI Gateway | Adds rate limits, guardrails, key routing, and usage logging. |
+| Unity Catalog | Governs endpoint access and links usage to identities. |
+| AI Functions | Call FM endpoints from SQL (`ai_query`, `ai_summarize`, etc.). |
+| Mosaic AI Vector Search | Uses FM embedding endpoints to build and query indexes. |
+| Agent Bricks / Agent Framework | Use FM chat endpoints as the reasoning layer for agents. |
+| Inference Tables (Delta) | Capture request/response payloads for audit and monitoring. |
+| AI Playground | Interactive surface for comparing and testing FM endpoints. |
+| Serverless Compute | Provides the elastic GPU capacity behind the endpoints. |
+| Lakehouse Monitoring | Tracks quality and drift from inference-table data. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| External Models (Databricks) | In-Databricks | Same governed API, but routes to OpenAI/Anthropic/Google — data leaves the platform. |
+| Self-hosted open model on Model Serving | In-Databricks | Full model control via provisioned throughput; you own model selection and updates. |
+| OpenAI API (direct) | External | Broad model range; separate keys, billing, and no lakehouse governance. |
+| Anthropic API (direct) | External | Strong reasoning models; keys and usage sit outside UC and Gateway. |
+| Azure OpenAI / Bedrock / Vertex | External | Cloud-native hosting; data and lineage governed outside the Lakehouse. |
+| Self-hosted on GPUs (vLLM, TGI) | External / OSS | Maximum control and unit cost at scale; highest operational burden. |
+
+## 11. Strengths
+
+- No GPU provisioning — hosted models are callable immediately.
+- OpenAI-compatible API eases migration from external SDKs.
+- **Pay-per-token** removes idle cost for bursty or low-volume use.
+- **Provisioned throughput** gives predictable latency and reserved capacity.
+- Inference stays in-platform under Unity Catalog governance.
+- One endpoint powers AI Functions, RAG, embeddings, and agents.
+- AI Gateway centralizes quotas, guardrails, and per-team usage.
+- Consumption billed as DBUs — unified with the rest of the platform spend.
+- Embedding endpoints keep vector dimensions consistent across pipelines.
+- Batch inference via `ai_query` scales token calls across large Delta tables.
+
+## 12. Limitations
+
+- Model catalog is curated — not every proprietary model is available.
+- Newest frontier models may lag direct vendor availability.
+- Higher and more variable latency than co-located inference.
+- Pay-per-token cost can grow unpredictably without quotas.
+- Provisioned throughput bills reserved capacity even when idle.
+- GPU quotas can constrain large-model provisioned throughput.
+- Limited low-level control over runtime and hardware.
+- Regional and cloud availability varies by model.
+- Context-window and rate limits differ per model and mode.
+- External-model routes still depend on third-party provider limits.
+
+## 13. Common Mistakes
+
+- Defaulting to provisioned throughput for spiky traffic that suits pay-per-token.
+- Leaving provisioned throughput always-on and paying for idle capacity.
+- Skipping AI Gateway, so quotas and guardrails are never enforced.
+- No token budgets, letting pay-per-token spend drift upward.
+- Mixing embedding models across pipelines, breaking index compatibility.
+- Not enabling Inference Tables, losing the audit and evaluation trail.
+- Hard-coding a model name instead of an endpoint indirection layer.
+- Ignoring per-model context-window limits until prompts truncate.
+- Choosing an oversized model where a smaller one meets the SLA.
+- Treating FM APIs as fine-tuning — they serve pretrained models only.
+
+## 14. Design Recommendations
+
+- ✔ Start with pay-per-token; move to provisioned throughput once volume and SLAs justify it.
+- ✔ Front all FM traffic with AI Gateway for quotas, guardrails, and logging.
+- ✔ Enable Inference Tables from day one for audit and evaluation.
+- ✔ Standardize on one embedding endpoint per vector index to keep dimensions stable.
+- ✔ Abstract model names behind endpoints so models can be swapped without code changes.
+- ✔ Right-size the model to the task — reserve large models for hard reasoning.
+- ✔ Set token budgets and alerts to contain pay-per-token spend.
+- ✔ Use external-model routes (never raw vendor keys) when a catalog model is missing.
+- ✔ Compare candidate models in AI Playground before committing.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+|---|---|
+| In-platform LLM inference | ✅ Core hosted use case |
+| Embeddings for RAG / Vector Search | ✅ Native embedding endpoints |
+| SQL-based generative functions | ✅ Powers AI Functions |
+| Bursty / low-volume generation | ✅ Pay-per-token |
+| Predictable high-volume serving | ✅ Provisioned throughput |
+| Data must stay in the platform | ✅ Inference runs in Databricks |
+| A specific external proprietary model | ⚠️ Use external-model routes |
+| Model training / fine-tuning | ❌ Serves pretrained only |
+| Offline / edge inference | ❌ Cloud-hosted only |
+| Sub-millisecond latency | ❌ Token + HTTP overhead |
+| Governed LLM access for many teams | ✅ UC + Gateway boundary |
+
+## 16. Quick Comparison
+
+| Criterion | Foundation Model APIs | External Models (Databricks) | OpenAI / Anthropic (direct) | Self-hosted (vLLM/TGI) |
+|---|---|---|---|---|
+| Inference location | In-platform | Third-party vendor | Third-party vendor | Your GPUs |
+| Governance with lakehouse data | Native (UC) | Native routing (UC) | Separate | Manual |
+| Billing model | Per-token or provisioned | Vendor pass-through | Vendor billing | Infra cost |
+| Model breadth | Curated catalog | Any routed vendor | Full vendor range | Any open model |
+| Operational burden | Low | Low | Low | High |
+
+## 17. Maturity
+
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | High |
+
+## 18. Cost Considerations
+
+- **Licensing:** consumption-based via DBUs; no separate license. Verify current pricing.
+- **Compute:** pay-per-token bills per input/output token; provisioned throughput bills reserved capacity by the hour whether or not it is used.
+- **Storage:** Inference Tables and payload logs consume Delta storage — set retention.
+- **Operational Overhead:** low — no GPU management; effort shifts to model selection, quotas, and monitoring.
+- **Training:** minimal — OpenAI-compatible API is familiar; external-model routes add per-provider token charges.
+
+## 19. Executive Takeaway
+
+- ✔ **Best for:** governed, in-platform LLM and embedding inference that powers AI Functions, RAG, and agents.
+- ✔ **Avoid when:** you need offline/edge inference, fine-tuning, or a proprietary model absent from the catalog.
+- ✔ **Biggest benefit:** immediate hosted inference with pay-per-token or provisioned throughput, governed by UC and AI Gateway.
+- ✔ **Biggest limitation:** curated catalog and managed abstraction mean less model breadth and low-level control than direct or self-hosted options.
+- ✔ **Overall recommendation:** default LLM/embedding layer for Databricks-centric AI; use external-model routes for missing vendors and self-hosting only for extreme cost or control needs.

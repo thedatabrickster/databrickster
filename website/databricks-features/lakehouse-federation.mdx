@@ -1,0 +1,225 @@
+---
+sidebar_position: 20
+title: "Lakehouse Federation — Architecture Guide"
+description: "Query external data sources such as Postgres, MySQL, Snowflake, Redshift, and BigQuery in place through Unity Catalog, without ingestion."
+---
+
+# Lakehouse Federation
+
+## 1. Executive Summary
+Lakehouse Federation lets Databricks query external databases and warehouses — Postgres, MySQL, Snowflake, Redshift, BigQuery, and others — in place through Unity Catalog, exposing them as foreign catalogs without copying the data.
+
+## 2. Primary Purpose
+- **Why it exists:** run queries against data that lives outside the lakehouse without first ingesting it.
+- **Business problem:** teams need a unified view across scattered operational and analytical systems, but ETL to consolidate everything is slow and costly.
+- **Technical problem:** cross-system analytics historically required pipelines, copies, and duplicated governance per source.
+- **Model:** a UC *connection* holds credentials to a source; a *foreign catalog* mirrors its schemas/tables and is queried like any UC table.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Users · BI · SQL · Notebooks · AI/ML
+        ↓
+   Unity Catalog (single namespace + governance)
+        ↓
+ ┌──────────────┬─────────────────────────────┐
+ │              │                             │
+Delta tables   Foreign catalogs        (query in place)
+ (managed)     Connection → source           ↓
+        ↓              ↓            Postgres · MySQL · Snowflake ·
+ Cloud object     JDBC / native     Redshift · BigQuery · SQL Server ·
+   storage         connector        Synapse · Oracle · Salesforce DW
+```
+- Sits **beside Delta** under Unity Catalog as a read path to non-lakehouse systems.
+- The **connection** is a UC securable (credentials, host); the **foreign catalog** is the queryable projection.
+- Query engine plans locally, **pushes down** supported operations, and pulls remaining rows over the connector.
+- Complements, not replaces, ingestion — it **delays or avoids ETL** for many access patterns.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☐ Developer Experience
+☑ Data Engineering
+☑ Data Governance
+☐ AI
+☐ Machine Learning
+☑ Storage
+☑ Security
+☑ Administration
+☐ Monitoring
+```
+- Primarily a **Data Engineering + Governance** capability: it brings external sources under one governed namespace.
+- **Security + Administration** because connections centralize credentials and access grants in UC.
+- Touches **Storage** conceptually: data stays in the source system, not the lakehouse.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+|---|---|---|
+| Exploratory analysis before committing to ingest | ✅ | Query in place, decide later |
+| Ad-hoc joins across a warehouse and lakehouse | ✅ | One query, no pipeline |
+| Prototyping a pipeline against real source data | ✅ | Skip early ETL scaffolding |
+| Governing external sources in Unity Catalog | ✅ | Central grants, lineage, audit |
+| Migrating off a legacy warehouse gradually | ✅ | Read live during transition |
+| Small dimension/reference tables in Postgres/MySQL | ✅ | Cheap to read, no copy needed |
+| One-off reporting spanning several systems | ✅ | Avoids standing pipelines |
+| Serving BI over a few external tables | ⚠️ | Fine at low concurrency; watch load |
+| Regular scheduled reads of the same table | ⚠️ | Recurrent pulls may justify ingest |
+| Filtered/aggregated reads with good pushdown | ⚠️ | Verify predicates push to source |
+| Snowflake/BigQuery cross-cloud queries | ⚠️ | Works, but egress and latency accrue |
+| Selecting a few columns from wide tables | ⚠️ | Confirm projection pushdown applies |
+| Large fact-table scans | ❌ | Pulls volume over connector; ingest |
+| High-concurrency dashboards on source | ❌ | Load and cost land on the source DB |
+| Sub-second SLA queries | ❌ | Network + planning adds latency |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Repeated large full-table scans | ❌ | Move data once via ETL instead |
+| Write-back / updating the source | ❌ | Read-only access model |
+| Low-latency operational (OLTP) serving | ❌ | Analytical read path, not a DB API |
+| High-concurrency BI on the source DB | ❌ | Concurrency pressure hits the source |
+| Complex transforms best done in-source | ⚠️ | Unpushed logic runs in Databricks |
+| Source with weak pushdown support | ⚠️ | Most work executes after full pull |
+| Strict data-residency on movement | ⚠️ | Query still pulls rows cross-boundary |
+| Heavy joins across many federated sources | ⚠️ | Little pushdown; large intermediate data |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 5 |
+| Analytics Engineers | 4 |
+| Platform Engineers | 4 |
+| Data Scientists | 3 |
+| BI Teams | 3 |
+| AI Engineers | 2 |
+| Executives | 3 |
+| Architects | 5 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 4 |
+| Implementation Speed | 5 |
+| Governance | 5 |
+| Security | 4 |
+| Maintainability | 4 |
+| Scalability | 3 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 4 |
+| Business Value | 4 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Unity Catalog | Holds connections and foreign catalogs; enforces grants, lineage, and audit. |
+| Connections (UC securable) | Store source host and credentials as a governed object. |
+| Databricks SQL / Spark | Query engines that plan, push down, and execute federated reads. |
+| Serverless SQL warehouses | Common compute for interactive federated queries. |
+| Delta Lake | Target when federated data is later materialized or ingested. |
+| Lakeflow pipelines / Jobs | Consume federated reads when converting exploration into ETL. |
+| Query pushdown layer | Determines which filters/aggregations run in the source. |
+| Networking (PrivateLink / firewall) | Provides reachability to the external source. |
+| Materialized views | Cache federated results to cut repeated remote reads. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Ingest via ETL/ELT (Lakeflow, batch) | In-Databricks | One copy to maintain, but fast repeated reads and full pushdown-free scans. |
+| Auto Loader / COPY INTO | In-Databricks | Efficient bulk file ingest; not live query-in-place. |
+| Delta Sharing | In-Databricks | Cross-org no-copy sharing of Delta assets, not arbitrary external DBs. |
+| Trino / Starburst | External | Mature federation engine, but separate governance and platform to run. |
+| Denodo / data virtualization | External | Broad connectivity and caching; added product, cost, and lock-in. |
+| Snowflake external/iceberg tables | External | Source-side federation; keeps you in that platform's engine. |
+| Native connectors (JDBC in Spark) | In-Databricks | Works without UC, but no governed catalog, lineage, or central grants. |
+
+## 11. Strengths
+- **Query in place** across many external systems — no ingestion required to start.
+- **Delays or avoids ETL** for exploration, prototyping, and low-volume access.
+- **UC-governed**: connections and foreign catalogs get central grants, lineage, and audit.
+- **Single namespace** unifies Delta and external tables in one query.
+- **Fast to stand up** — create a connection, get a foreign catalog in minutes.
+- Broad source coverage: **Postgres, MySQL, Snowflake, Redshift, BigQuery, SQL Server, Synapse, Oracle**, and more.
+- **Pushdown** of filters, projections, and some aggregations reduces data pulled.
+- Smooths **gradual migration** off legacy warehouses by reading live.
+- **No duplicate storage** on the lakehouse side.
+- Works with **serverless SQL** for interactive access.
+
+## 12. Limitations
+- **Pushdown is source- and operation-dependent**; unsupported logic pulls rows first.
+- **Large scans move volume** over the connector — slow and costly.
+- Load and concurrency land on the **source system**, which may not be sized for it.
+- **Read-only**: no writes back to the federated source.
+- **Cross-cloud/region egress** and network latency accrue per query.
+- Not every source or data type is supported; **coverage varies**.
+- **No caching by default** — repeated queries re-hit the source unless materialized.
+- Query performance is **less predictable** than local Delta scans.
+- Source **schema drift** can break foreign catalog objects.
+- Fine-grained masking depends on **views**, adding modeling work.
+
+## 13. Common Mistakes
+- Using federation for **repeated large scans** that should have been ingested.
+- Ignoring **pushdown behavior** and assuming filters run in the source.
+- Pointing **high-concurrency dashboards** at a production OLTP database.
+- Overlooking **egress and latency** on cross-cloud sources.
+- Treating it as a **write path** or an operational integration.
+- Skipping **materialized views** for hot, repeated federated queries.
+- Not sizing the **source system** for added analytical load.
+- Granting broad access on connections instead of **scoped foreign catalogs**.
+
+## 14. Design Recommendations
+- ✔ Use federation for **exploration and low-volume** access; **ingest** hot, large, or high-concurrency data.
+- ✔ Verify **pushdown** for your predicates and aggregations on each source.
+- ✔ Add **materialized views** to cache frequently repeated federated results.
+- ✔ Read from **replicas**, not primaries, to protect operational sources.
+- ✔ Co-locate compute and source **region/cloud** to cut egress and latency.
+- ✔ Scope grants at the **foreign catalog / schema** level, not the raw connection.
+- ✔ Use **PrivateLink / firewall rules** for secure reachability.
+- ✔ Set a clear **federate-vs-ingest** policy per source and revisit as volume grows.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+|---|---|
+| Explore external data before ETL | ✅ Core purpose |
+| Join lakehouse + warehouse ad hoc | ✅ One governed query |
+| Govern external sources in UC | ✅ Connections + catalogs |
+| Gradual warehouse migration | ✅ Read live during cutover |
+| Small reference tables in place | ✅ No copy needed |
+| Repeated large fact scans | ❌ Ingest via ETL |
+| High-concurrency BI on source | ❌ Load hits the source |
+| Sub-second SLA serving | ❌ Network + planning latency |
+| Write-back to source | ❌ Read-only |
+| Strict no-data-movement residency | ⚠️ Rows still pulled per query |
+
+## 16. Quick Comparison
+| Criteria | Lakehouse Federation | Ingest via ETL | Trino / Starburst | Denodo |
+|---|---|---|---|---|
+| Copy created | No | Yes | No | No (cached optional) |
+| Governance | UC-native | UC-native | Separate | Product-native |
+| Setup effort | Low | Medium | Medium–High | High |
+| Repeated large scans | Weak | Strong | Medium | Medium |
+| Source coverage | Broad | Broad | Very broad | Very broad |
+| Extra platform to run | No | No | Yes | Yes |
+
+## 17. Maturity
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | Medium |
+| Production Readiness | Medium |
+| Governance Readiness | High |
+| AI Readiness | Low |
+
+## 18. Cost Considerations
+- **Licensing:** included with Unity Catalog; no separate product. Verify current pricing.
+- **Compute:** you pay Databricks query compute plus load induced on the **source system**.
+- **Storage:** no duplicate lakehouse storage; data stays in the source.
+- **Operational Overhead:** low to set up; ongoing effort is tuning pushdown and managing source load.
+- **Training:** modest — connections and foreign catalogs are standard UC concepts.
+- **Watch:** cross-cloud/region **egress**, large scans over the connector, and source-side concurrency cost.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** governed query-in-place across external databases for exploration, ad-hoc joins, and gradual migration.
+- ✔ **Avoid when:** you need repeated large scans, high-concurrency serving, sub-second SLAs, or write-back.
+- ✔ **Biggest benefit:** unify and govern external sources in Unity Catalog without building pipelines.
+- ✔ **Biggest limitation:** performance and cost depend on pushdown and source load; heavy access still wants ETL.
+- ✔ **Overall recommendation:** adopt as the default first look at external data, then ingest the sources that prove hot or high-volume. See the [feature catalog](/databricks-features).

@@ -1,0 +1,227 @@
+---
+sidebar_position: 20
+title: "Dynamic Views — Architecture Guide"
+description: "Unity Catalog views whose SQL logic masks columns and filters rows based on the querying user's identity or group membership at query time."
+---
+
+# Dynamic Views
+
+## 1. Executive Summary
+Dynamic views are Unity Catalog SQL views that embed identity-aware logic — `current_user()` and `is_account_group_member()` — so each principal sees a masked, row-filtered projection of the same underlying table.
+
+## 2. Primary Purpose
+- **Why it exists:** deliver row- and column-level security using ordinary view SQL, before or instead of dedicated masking primitives.
+- **Business problem:** different roles, regions, and tenants need different slices of one dataset without maintaining separate copies.
+- **Technical problem:** base-table grants are all-or-nothing on a column or row; views inject per-user logic on read.
+- **Scope:** logical views over tables; no data is copied, and enforcement happens when the view is queried.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Users / BI / Notebooks / AI Agents / SQL / Apps
+        ↓
+Compute (Serverless, SQL Warehouses, Shared clusters)
+        ↓
+┌──────────────────────────────────────────────┐
+│  UNITY CATALOG                                 │
+│   ┌────────────────────────────────────────┐  │
+│   │  DYNAMIC VIEW (SQL)                      │ │
+│   │  CASE WHEN is_account_group_member(...)  │ │
+│   │  current_user() → mask cols / filter rows│ │
+│   └────────────────────────────────────────┘  │
+│  grants · base tables · lineage                │
+└──────────────────────────────────────────────┘
+        ↓
+Delta Lake / Parquet on object storage
+```
+- Sits **on top of base tables** inside Unity Catalog; consumers get the view, not the table.
+- Logic runs **at query time** on UC-compliant compute, evaluated per calling principal.
+- Grant `SELECT` on the **view**, not the base table, so the view is the only door in.
+- Composes with lineage and grants, but the security lives in hand-written SQL.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☐ Developer Experience
+☐ Data Engineering
+☑ Data Governance
+☐ AI
+☐ Machine Learning
+☐ Storage
+☑ Security
+☐ Administration
+☐ Monitoring
+```
+- A **Data Governance** control: it decides which rows and columns each user sees.
+- **Security** because the view SQL is the enforcement boundary for sensitive data.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+|---|---|---|
+| Mask PII columns for non-privileged groups | ✅ | `CASE` on `is_account_group_member()` redacts per role |
+| Row filtering by region or business unit | ✅ | `WHERE` predicate keyed on group membership |
+| Multi-tenant isolation in a shared table | ✅ | Filter rows to the caller's tenant mapping |
+| Role-conditional column detail (full vs partial) | ✅ | Return raw, hashed, or NULL by group |
+| Lookup-table-driven entitlements | ✅ | Join a mapping table on `current_user()` |
+| Combine masking and filtering in one object | ✅ | Single view expresses both dimensions |
+| Legacy pattern before native masks existed | ✅ | Long-supported, widely understood approach |
+| Custom logic native masks cannot express | ✅ | Arbitrary SQL, joins, and conditionals |
+| Presenting a curated schema to BI users | ✅ | View also reshapes and renames columns |
+| Environments not yet on ABAC or masks | ⚠️ | Works, but weigh native options first |
+| Very high table count with identical rules | ⚠️ | Per-view upkeep scales poorly; prefer ABAC |
+| Deeply nested view-on-view chains | ⚠️ | Performance and debugging degrade |
+| Rules that must apply to future tables automatically | ⚠️ | Views do not inherit; ABAC does |
+| Non-Databricks engines must enforce the rule | ⚠️ | Enforcement is UC compute only |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Consistent masking across hundreds of tables | ❌ | View sprawl; ABAC or native masks scale better |
+| Auto-governing newly created tables | ❌ | Views must be authored per object |
+| Base table is directly grantable to users | ❌ | Users bypass the view and read raw data |
+| Governing non-UC query engines | ❌ | Only UC-aware compute enforces view logic |
+| Legacy Hive metastore without UC identity | ❌ | Identity functions need Unity Catalog |
+| Simple object-level yes/no access | ⚠️ | Plain `GRANT`/`REVOKE` is simpler |
+| Fine-grained control on no-isolation clusters | ⚠️ | Needs serverless or shared UC compute |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 4 |
+| Analytics Engineers | 5 |
+| Platform Engineers | 3 |
+| Data Scientists | 3 |
+| BI Teams | 4 |
+| AI Engineers | 2 |
+| Executives | 3 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 4 |
+| Implementation Speed | 5 |
+| Governance | 3 |
+| Security | 4 |
+| Maintainability | 2 |
+| Scalability | 2 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 5 |
+| Business Value | 4 |
+| Innovation | 2 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Unity Catalog | Hosts the view and supplies identity functions evaluated at query time. |
+| Identity federation (SCIM) | Provides account-level groups that `is_account_group_member()` checks. |
+| Delta Lake | Governed base tables the view reads against. |
+| Serverless / Shared compute | UC-compliant engines that enforce view logic per caller. |
+| Databricks SQL & Photon | Execute view predicates and masking during queries. |
+| Grants (GRANT/REVOKE) | Route access to the view while withholding the base table. |
+| Entitlement mapping tables | Optional lookup tables joined on `current_user()` for row scoping. |
+| Lineage | Shows base-to-view relationships for review and impact analysis. |
+| Terraform / Asset Bundles | Version-control view definitions and grants as code. |
+| System Tables & Audit Logs | Record access to the view for compliance review. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Native column masks | In-Databricks | Reusable UDF masks per column; less sprawl, but no reshaping in one object |
+| Native row filters | In-Databricks | Declarative row predicate on the table; cleaner, but per-table setup |
+| ABAC policies | In-Databricks | Tag-driven, central, inherits to future objects; needs a tagging taxonomy |
+| Manual `GRANT`/`REVOKE` | In-Databricks | Object-level only; no row/column content logic |
+| Separate per-role tables | In-Databricks | Physical isolation, but data duplication and pipeline overhead |
+| Immuta | External policy engine | Rich multi-platform policy, but added product, cost, integration |
+| Open Policy Agent (OPA) | External OSS engine | General-purpose policy, but not native to UC data-plane enforcement |
+
+## 11. Strengths
+- Expresses arbitrary security logic in plain SQL — joins, `CASE`, conditionals.
+- Combines row filtering and column masking in a single object.
+- No data duplication; the base table stays canonical.
+- Long-supported and widely understood; low learning curve.
+- Reshapes, renames, and curates columns while it secures them.
+- Group-based checks via `is_account_group_member()` avoid per-user edits.
+- Enforced at query time across BI, SQL, notebooks, and apps uniformly.
+- Definitions are codifiable in Terraform / Asset Bundles for review.
+- Works today without a tagging taxonomy or newer policy features.
+- Fine-grained control beyond what plain grants can express.
+
+## 12. Limitations
+- Security lives in hand-written SQL; a logic error silently over-exposes data.
+- Per-view authoring does not scale to hundreds of tables (view sprawl).
+- No inheritance; new tables need new views written by hand.
+- Base table must be withheld, or users read around the view.
+- Nested view-on-view chains hurt performance and debuggability.
+- Uses **account groups**, not workspace-local groups — a common trap.
+- Requires Unity Catalog and UC-compliant compute; no legacy Hive.
+- Enforcement is in-Databricks; external engines do not honor it.
+- Maintenance burden grows as schemas and entitlements change.
+- Harder to audit uniformly than centrally listed policies.
+
+## 13. Common Mistakes
+- Granting `SELECT` on the base table, letting users bypass the view.
+- Using `is_member()` (workspace group) instead of `is_account_group_member()`.
+- Writing checks against individual users rather than groups.
+- Building deep view-on-view stacks that no one can reason about.
+- Assuming the view secures non-Databricks engines reading the storage.
+- No per-persona testing, so masking gaps ship to production.
+- Hardcoding entitlements in SQL instead of a maintainable mapping table.
+- Keeping dynamic views and native masks/ABAC in parallel with conflicting logic.
+- Forgetting that view owners' privileges affect what the view can read.
+
+## 14. Design Recommendations
+- ✔ Grant on the **view only**; never expose the base table to consumers.
+- ✔ Use `is_account_group_member()` with **account groups**, not `is_member()`.
+- ✔ Match on **groups**, and drive row scope from a **mapping table**, not literals.
+- ✔ Keep views **shallow** — avoid view-on-view chains for security logic.
+- ✔ For many tables with the same rule, prefer **native masks or ABAC**.
+- ✔ Codify view SQL and grants in **Terraform / Asset Bundles**; review via PRs.
+- ✔ Test each view against representative **personas** before production.
+- ✔ Document the intended masking/filtering contract next to the definition.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+|---|---|
+| Custom row/column logic in SQL | ✅ Arbitrary view expressions |
+| Combine masking and filtering in one object | ✅ Single view does both |
+| Multi-tenant isolation on a shared table | ✅ Filter to caller's tenant |
+| Reshape schema while securing it | ✅ View curates columns |
+| Consistent rules across many tables | ⚠️ ABAC scales better |
+| Reusable column mask across tables | ⚠️ Native column masks fit better |
+| Auto-govern future tables | ❌ No inheritance |
+| Object-level yes/no access | ❌ Plain grants suffice |
+| Enforce on non-UC engines | ❌ UC compute only |
+| Legacy Hive metastore data | ❌ Requires Unity Catalog |
+
+## 16. Quick Comparison
+| Criterion | Dynamic views | Native masks / row filters | ABAC | Immuta |
+|---|---|---|---|---|
+| Granularity | Row + column, coded SQL | Row + column, declarative | Row + column, tag-based | Row + column, policy-based |
+| Scales to many objects | No (per view) | Partial (per table) | Yes (inheritance) | Yes |
+| Covers future objects | No | No | Yes | Yes |
+| Logic flexibility | High (full SQL) | Medium (UDF/predicate) | Medium (tag match) | High |
+| Native to Unity Catalog | Yes | Yes | Yes | No (external) |
+| Added product/cost | No | No | No | Yes |
+
+## 17. Maturity
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | Medium–High |
+| Production Readiness | High |
+| Governance Readiness | Medium |
+| AI Readiness | Low–Medium |
+
+## 18. Cost Considerations
+- **Licensing:** part of Unity Catalog; no separate license. Verify current pricing.
+- **Compute:** view logic runs at query time on serverless/shared UC compute (billed as compute); predicates and joins add overhead per query.
+- **Storage:** none directly; views are metadata over existing tables.
+- **Operational Overhead:** the real cost is authoring, testing, and maintaining view SQL as schemas and entitlements evolve.
+- **Training:** upskilling on identity functions, account vs workspace groups, and secure grant patterns.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** custom, SQL-expressed row/column security on a handful of tables, especially when one object must both mask and reshape.
+- ✔ **Avoid when:** the same rule must apply consistently across many or future tables — use ABAC or native masks instead.
+- ✔ **Biggest benefit:** arbitrary identity-aware logic in plain SQL with no data duplication.
+- ✔ **Biggest limitation:** security lives in hand-written per-view SQL that does not scale or inherit and is easy to get wrong.
+- ✔ **Overall recommendation:** use for targeted, bespoke cases within Unity Catalog; grant on the view only, match on account groups, and migrate broad patterns to native masks or ABAC.
