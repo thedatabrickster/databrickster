@@ -1,0 +1,232 @@
+---
+sidebar_position: 20
+title: "Row & Column-Level Security — Architecture Guide"
+description: "Unity Catalog native row filters and column masks — SQL UDFs bound directly to tables that filter rows and redact columns per calling principal at query time."
+---
+
+# Row & Column-Level Security
+
+## 1. Executive Summary
+Unity Catalog row filters and column masks are SQL UDFs bound directly to a table so each query returns only the rows and column values the calling principal is entitled to, enforced on the table itself rather than through a separate view.
+
+## 2. Primary Purpose
+- **Why it exists:** apply fine-grained (row + cell) access control on the base table so every consumer inherits it, with no view to route around.
+- **Business problem:** one dataset must serve many roles, regions, and tenants under regulatory constraints without copies or per-team objects.
+- **Technical problem:** `GRANT`/`REVOKE` is all-or-nothing per table/column; content-aware rules need query-time logic that travels with the table.
+- **Scope:** a row filter is one function returning a boolean predicate; a column mask is one function returning a transformed value; both attach via `ALTER TABLE`.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Users / BI / Notebooks / AI Agents / SQL / Apps
+        ↓
+Compute (Serverless, SQL Warehouses, Shared clusters)
+        ↓
+┌───────────────────────────────────────────────┐
+│  UNITY CATALOG                                  │
+│   ┌─────────────────────────────────────────┐  │
+│   │  TABLE                                    │ │
+│   │   ROW FILTER  → fn(region) : boolean      │ │
+│   │   COLUMN MASK → fn(ssn)   : masked value  │ │
+│   │   (SQL UDFs invoked per row, per caller)  │ │
+│   └─────────────────────────────────────────┘  │
+│  grants · tags · lineage · governed functions   │
+└───────────────────────────────────────────────┘
+        ↓
+Delta Lake / Parquet on object storage
+```
+- Bound **to the table object**, so tables, downstream views, and reads all enforce it uniformly.
+- Functions run **at query time** per calling principal on UC-compliant compute.
+- Reuse **one function across many tables**; identity is read via `current_user()` / `is_account_group_member()` inside the UDF.
+- Composes with grants, tags, and lineage; the security lives in registered, governed functions.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☐ Developer Experience
+☐ Data Engineering
+☑ Data Governance
+☐ AI
+☐ Machine Learning
+☐ Storage
+☑ Security
+☐ Administration
+☐ Monitoring
+```
+- A **Data Governance** control: it decides which rows and cell values each principal sees on the canonical table.
+- **Security** because the bound functions are the enforcement boundary for sensitive data, applied at the source.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+|---|---|---|
+| Mask PII columns (SSN, email) for non-privileged groups | ✅ | Column mask UDF redacts per role at the cell |
+| Row filtering by region, country, or business unit | ✅ | Row filter returns a group-keyed boolean predicate |
+| Multi-tenant isolation in one shared fact table | ✅ | Filter rows to the caller's tenant mapping |
+| Enforce on the base table, not just a view | ✅ | Consumers cannot route around a view |
+| One mask reused across many tables | ✅ | Register the UDF once, attach it everywhere |
+| Partial reveal (last 4 digits, hashed, NULL) | ✅ | Mask returns transformed rather than dropped values |
+| Regulated data (HIPAA, PCI, GDPR) on a lakehouse table | ✅ | Cell-level redaction meets least-privilege needs |
+| Row scope driven by an entitlement mapping table | ✅ | UDF joins a lookup on `current_user()` |
+| Downstream views/pipelines must inherit the rule | ✅ | Enforcement travels with the base table |
+| Consistent masking logic maintained centrally | ✅ | Change the function, all bound tables update |
+| Rules that must apply to future tables automatically | ⚠️ | Must attach per table; ABAC inherits by tag |
+| Very high table count with identical rules | ⚠️ | Per-table binding is manual; consider ABAC |
+| Complex reshaping plus security in one object | ⚠️ | Masks transform cells, not schema; use a view |
+| Non-Databricks engines must enforce the rule | ⚠️ | Enforcement is UC compute only |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Governing non-UC query engines reading storage | ❌ | Only UC-aware compute honors the functions |
+| Legacy Hive metastore without UC identity | ❌ | Identity functions and binding need Unity Catalog |
+| Simple object-level yes/no access | ❌ | Plain `GRANT`/`REVOKE` is simpler |
+| Reshaping, renaming, joining while securing | ❌ | Masks change cell values, not schema; use a view |
+| Auto-governing every new table with zero setup | ⚠️ | Each table needs an explicit binding; ABAC fits better |
+| Fine-grained control on no-isolation clusters | ⚠️ | Needs serverless or shared UC compute |
+| Extremely selective row filter on huge scans | ⚠️ | Predicate runs per row; validate performance |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 5 |
+| Analytics Engineers | 4 |
+| Platform Engineers | 4 |
+| Data Scientists | 3 |
+| BI Teams | 3 |
+| AI Engineers | 2 |
+| Executives | 3 |
+| Architects | 5 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 4 |
+| Implementation Speed | 4 |
+| Governance | 5 |
+| Security | 5 |
+| Maintainability | 4 |
+| Scalability | 3 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 4 |
+| Business Value | 4 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Unity Catalog | Hosts the tables, functions, and bindings and supplies identity functions. |
+| Governed SQL UDFs | The row filter and column mask logic registered as catalog functions. |
+| Identity federation (SCIM) | Provides account-level groups the functions check for membership. |
+| Delta Lake | The governed base tables the filters and masks are attached to. |
+| Serverless / Shared compute | UC-compliant engines that invoke the functions per caller. |
+| Databricks SQL & Photon | Execute filter predicates and mask expressions during queries. |
+| Grants (GRANT/REVOKE) | Object-level access that fine-grained rules refine, not replace. |
+| Entitlement mapping tables | Optional lookups joined inside a UDF for row scoping. |
+| Tags / ABAC | Complementary tag-driven policy path for broad, inheriting rules. |
+| Lineage | Shows which tables carry which functions for review and impact analysis. |
+| Terraform / Asset Bundles | Version-control functions and bindings as code. |
+| System Tables & Audit Logs | Record access and definition changes for compliance review. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Dynamic views | In-Databricks | Row/column logic in view SQL; also reshapes schema, but users can route around if the base table is grantable, and it does not bind to the table |
+| ABAC policies | In-Databricks | Tag-driven, central, inherits to future objects; needs a tagging taxonomy and is newer |
+| Manual `GRANT`/`REVOKE` | In-Databricks | Object/column-level only; no row or content-aware logic |
+| Separate per-role tables | In-Databricks | Physical isolation, but data duplication and pipeline overhead |
+| Application-layer filtering | External / app tier | Full control in the app, but every consumer must reimplement it and the table stays unprotected |
+| Immuta | External policy engine | Rich multi-platform policy and audit, but added product, cost, and integration |
+| Open Policy Agent (OPA) | External OSS engine | General-purpose policy, but not native to UC data-plane enforcement |
+
+## 11. Strengths
+- Bound to the base table, so views, pipelines, and direct reads all inherit the rule.
+- Consumers cannot route around it the way they can bypass a grantable view.
+- One function reused across many tables; central logic, single point of change.
+- Row filters and column masks are declarative bindings over registered functions.
+- Cell-level masking returns partial, hashed, or NULL values, not just dropped rows.
+- Group-based checks via `is_account_group_member()` avoid per-user edits.
+- Enforced at query time uniformly across BI, SQL, notebooks, and apps.
+- Functions and bindings are codifiable in Terraform / Asset Bundles for review.
+- Refines rather than replaces existing object-level grants and tags.
+- Native to Unity Catalog; no external product, license, or integration.
+
+## 12. Limitations
+- Security lives in UDF logic; a function error silently over-exposes data.
+- Bindings are per table; no automatic inheritance to future tables (ABAC covers that).
+- Masks transform cell values but do not reshape, rename, or join schema.
+- Requires Unity Catalog and UC-compliant compute; no legacy Hive metastore.
+- Enforcement is in-Databricks; external engines reading storage do not honor it.
+- Row-filter predicates run per row and can add scan overhead on large tables.
+- Uses **account groups**, not workspace-local groups — a common trap.
+- Function owner privileges affect what a mask/filter can read; misconfig leaks or breaks.
+- One row filter and limited masks per table; complex needs may still push to views.
+- Debugging a wrong result means tracing into UDF logic, not reading a view definition.
+
+## 13. Common Mistakes
+- Using `is_member()` (workspace group) instead of `is_account_group_member()`.
+- Writing checks against individual users rather than groups.
+- Assuming the rule secures non-Databricks engines reading the underlying storage.
+- Forgetting that the function's owner privileges govern what it can read.
+- No per-persona testing, so masking or filtering gaps ship to production.
+- Hardcoding entitlements in the UDF instead of a maintainable mapping table.
+- Expecting masks to reshape schema — they transform cell values only.
+- Running fine-grained control on no-isolation clusters that cannot enforce UC.
+- Duplicating logic across many hand-authored functions instead of reusing one.
+- Layering dynamic views, masks, and ABAC with conflicting or redundant rules.
+
+## 14. Design Recommendations
+- ✔ Bind functions to the **base table** so all downstream reads inherit the rule.
+- ✔ Use `is_account_group_member()` with **account groups**, not `is_member()`.
+- ✔ Match on **groups**, and drive row scope from a **mapping table**, not literals.
+- ✔ Register **one reusable function** and attach it across tables; change it once.
+- ✔ For broad rules over many or future tables, evaluate **ABAC** first.
+- ✔ Use a **dynamic view** when you also need to reshape or curate schema.
+- ✔ Codify functions and bindings in **Terraform / Asset Bundles**; review via PRs.
+- ✔ Test each binding against representative **personas** before production.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+|---|---|
+| Row/cell security enforced on the base table | ✅ Binds to the table itself |
+| Reusable mask across many tables | ✅ One function, many bindings |
+| Multi-tenant isolation on a shared table | ✅ Row filter to caller's tenant |
+| Partial reveal or redaction of PII | ✅ Column mask transforms cells |
+| Downstream views/pipelines must inherit it | ✅ Enforcement travels with the table |
+| Reshape schema while securing it | ⚠️ Use a dynamic view |
+| Consistent rules across many/future tables | ⚠️ ABAC inherits by tag |
+| Object-level yes/no access | ❌ Plain grants suffice |
+| Enforce on non-UC engines | ❌ UC compute only |
+| Legacy Hive metastore data | ❌ Requires Unity Catalog |
+
+## 16. Quick Comparison
+| Criterion | Row filters / column masks | Dynamic views | ABAC | Immuta |
+|---|---|---|---|---|
+| Enforcement point | Base table (bound) | Separate view object | Table via tag policy | External policy plane |
+| Bypass risk | Low (on the table) | Higher (if base grantable) | Low | Low |
+| Scales to many objects | Partial (per binding) | No (per view) | Yes (inheritance) | Yes |
+| Covers future objects | No | No | Yes | Yes |
+| Reshapes schema | No | Yes | No | No |
+| Reusable logic | Yes (shared UDF) | Partial | Yes (policy) | Yes |
+| Native to Unity Catalog | Yes | Yes | Yes | No (external) |
+
+## 17. Maturity
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | Low–Medium |
+
+## 18. Cost Considerations
+- **Licensing:** part of Unity Catalog; no separate license. Verify current pricing.
+- **Compute:** filters and masks run at query time on serverless/shared UC compute (billed as compute); per-row predicates and mask expressions add overhead per query.
+- **Storage:** none directly; functions and bindings are metadata over existing tables.
+- **Operational Overhead:** authoring, testing, and maintaining functions and bindings as schemas and entitlements evolve; auditing which tables carry which rules.
+- **Training:** upskilling on SQL UDFs, identity functions, account vs workspace groups, and when to choose masks vs views vs ABAC.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** enforcing row- and cell-level rules directly on canonical Unity Catalog tables so every consumer inherits them, with reusable functions.
+- ✔ **Avoid when:** the rule must reshape schema (use a dynamic view) or auto-apply to many/future tables (use ABAC).
+- ✔ **Biggest benefit:** security bound to the table itself — no view to route around, and one function reused across tables.
+- ✔ **Biggest limitation:** bindings are per table with no inheritance, and the logic lives in UDFs that are easy to misconfigure.
+- ✔ **Overall recommendation:** make native row filters and column masks the default for fine-grained security on governed tables; reserve dynamic views for reshaping and ABAC for broad, tag-driven, inheriting policy.

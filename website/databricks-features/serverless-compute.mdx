@@ -1,0 +1,234 @@
+---
+sidebar_position: 20
+title: "Serverless Compute — Architecture Guide"
+description: "Fully managed, instant-start Databricks compute for notebooks, jobs, pipelines, SQL, and model serving — no cluster sizing, provisioning, or infrastructure to manage."
+---
+
+# Serverless Compute
+
+## 1. Executive Summary
+Serverless compute is Databricks-managed, instant-start compute — provisioned, scaled, and terminated by Databricks from a warm pool — that runs notebooks, Lakeflow Jobs, Lakeflow Declarative Pipelines, SQL warehouses, and model serving without customers sizing or operating any VMs.
+
+## 2. Primary Purpose
+- **Why it exists:** classic clusters require sizing, startup waits, and idle-cost management; serverless removes that operational surface.
+- **Business problem solved:** cuts time-to-first-result and idle spend, and shifts compute ops from platform teams to Databricks.
+- **Technical problem solved:** delivers second-scale startup, per-workload autoscaling, and patched runtimes from a shared warm pool in the Databricks account.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Users / Analysts / Notebooks / Jobs / Pipelines / SQL / Serving
+        ↓
+Compute Layer   →→→ Serverless (instant-start, autoscaled, Databricks-managed)
+        ↓
+Engine          (Apache Spark + Photon; DBSQL engine for SQL)
+        ↓
+Governance      (Unity Catalog: permissions, lineage, budget policies)
+        ↓
+Table Format    (Delta Lake: transaction log + Parquet)
+        ↓
+Object Storage  (S3 / ADLS / GCS)
+```
+
+- Serverless is the **managed compute substrate** — a drop-in alternative to provisioning classic clusters.
+- It spans **five surfaces**: notebooks, Lakeflow Jobs, Lakeflow Declarative Pipelines, SQL warehouses, and Mosaic AI Model Serving.
+- Compute runs in the **Databricks account**, not the customer VPC/subscription — a key isolation and networking distinction.
+- Governance and cost attribution flow through **Unity Catalog** and **budget policies** rather than cluster tags.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☑ Developer Experience
+☑ Data Engineering
+☐ Data Governance
+☑ AI
+☑ Machine Learning
+☐ Storage
+☐ Security
+☑ Administration
+☐ Monitoring
+```
+- Core placement is **Data Engineering** and **Developer Experience** — the execution fabric for ETL, notebooks, and pipelines.
+- **AI / Machine Learning:** backs model serving and serverless notebook-based experimentation.
+- **Administration:** enabled and cost-governed centrally via budget policies and account settings.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+|---|---|---|
+| Ad-hoc notebook exploration | ✅ | Second-scale start removes cluster wait |
+| Scheduled batch ETL in Lakeflow Jobs | ✅ | No idle cluster; scales per task run |
+| Lakeflow Declarative Pipelines | ✅ | Managed autoscaling tuned to pipeline load |
+| BI dashboards and ad-hoc SQL | ✅ | Serverless SQL warehouses start in seconds |
+| Bursty, unpredictable workloads | ✅ | Warm pool absorbs spikes without pre-provisioning |
+| Short, frequent jobs | ✅ | Avoids per-run cluster startup overhead |
+| Teams without platform/ops staff | ✅ | No sizing, patching, or node management |
+| Model serving with variable traffic | ✅ | Scales replicas to request volume |
+| Standardizing on managed runtimes | ✅ | Databricks patches and version-manages the runtime |
+| Fast prototyping and demos | ✅ | Zero setup to first query or cell |
+| Intermittent analyst usage | ✅ | Pay per-second only while running |
+| Cost reduction on idle clusters | ✅ | No idle-VM billing between runs |
+| Fixed instance-type or GPU pinning | ⚠️ | Limited/no node-type selection vs classic |
+| Heavy custom init scripts / OS packages | ⚠️ | Restricted environment; verify library support |
+| Long always-on streaming | ⚠️ | Viable, but validate cost vs a dedicated cluster |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Specific VM family / GPU pinning required | ❌ | No low-level instance selection |
+| Deep cluster/Spark-config customization | ❌ | Managed environment restricts tuning knobs |
+| Init scripts, custom OS packages, or DBFS-mounted drivers | ⚠️ | Limited support; validate before committing |
+| Strict in-VPC data-plane compute mandate | ⚠️ | Compute runs in Databricks account; confirm networking/compliance |
+| Cost attribution via cluster tags | ⚠️ | Use budget policies instead of per-cluster tags |
+| Region without serverless availability | ❌ | Feature not offered everywhere; verify region |
+| Workloads needing full Spark UI / driver SSH | ⚠️ | Reduced low-level observability and access |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 5 |
+| Analytics Engineers | 5 |
+| Platform Engineers | 3 |
+| Data Scientists | 4 |
+| BI Teams | 5 |
+| AI Engineers | 4 |
+| Executives | 4 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 5 |
+| Implementation Speed | 5 |
+| Governance | 4 |
+| Security | 4 |
+| Maintainability | 5 |
+| Scalability | 5 |
+| Cost Optimization | 4 |
+| Ease of Adoption | 5 |
+| Business Value | 4 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Unity Catalog | Required governance layer for permissions, lineage, and budget policies |
+| Delta Lake | Default table format read and written by serverless workloads |
+| Lakeflow Jobs | Orchestrates serverless task execution |
+| Lakeflow Declarative Pipelines | Runs declarative ETL on serverless compute |
+| Databricks SQL | Serverless SQL warehouses serve BI and ad-hoc queries |
+| Notebooks | Interactive serverless execution environment |
+| Mosaic AI Model Serving | Serverless endpoints for real-time inference |
+| Photon | Vectorized engine accelerating serverless Spark and SQL |
+| Budget policies | Attribute and cap serverless spend in place of cluster tags |
+| Git folders / Asset Bundles | Deploy code that targets serverless environments |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Classic all-purpose / job clusters | In-Databricks | Full node/config control, but startup waits and idle cost |
+| Instance pools | In-Databricks | Warm classic VMs cut startup, but still self-managed and sized |
+| Serverless SQL warehouses | In-Databricks | Same serverless model, specialized for SQL/BI (a subset of this feature) |
+| Classic SQL warehouses (Pro/Classic) | In-Databricks | In-VPC compute, but slower start and idle billing |
+| Cluster policies on classic compute | In-Databricks | Governs classic clusters; more control, more ops than serverless |
+| Cloud-native serverless (EMR Serverless, Synapse, BigQuery) | External | Provider-managed, but outside Unity Catalog and lakehouse integration |
+
+## 11. Strengths
+- Second-scale startup from a warm pool — near-zero wait to first result.
+- No cluster sizing, provisioning, patching, or node management.
+- Per-second billing with no idle-VM cost between runs.
+- Autoscaling handled automatically per workload.
+- Spans notebooks, jobs, pipelines, SQL, and model serving under one model.
+- Databricks-managed runtime keeps versions patched and consistent.
+- Lowers barrier to entry for teams without platform staff.
+- Photon acceleration available on serverless compute.
+- Integrated with Unity Catalog governance and lineage.
+- Predictable operational surface reduces platform toil.
+
+## 12. Limitations
+- Little to no low-level control over instance types, GPUs, or Spark configs.
+- Init scripts, custom OS packages, and some libraries are restricted.
+- Compute runs in the Databricks account, not the customer VPC/subscription.
+- Cost attribution uses budget policies, not familiar cluster tags.
+- Regional and workload-type availability varies — verify coverage.
+- Reduced access to Spark UI, driver, and low-level logs.
+- Per-second DBU rates can exceed classic for steady, long-running loads.
+- Less predictable performance ceiling than a pinned, tuned cluster.
+- GPU/specialized-hardware support is narrower than classic clusters.
+- Harder to enforce bespoke networking or private-connectivity requirements.
+
+## 13. Common Mistakes
+- Assuming serverless is always cheaper — steady 24/7 loads can favor classic.
+- Skipping budget policies, then losing cost attribution across teams.
+- Expecting cluster-tag chargeback to work unchanged.
+- Porting init-script-dependent workloads without validating support.
+- Ignoring data-plane location for compliance/networking reviews.
+- Trying to pin instance types or tune Spark configs that are managed away.
+- Not testing library/runtime compatibility before migrating production jobs.
+- Overlooking region availability during platform standardization.
+
+## 14. Design Recommendations
+- ✔ Default new notebooks, jobs, and pipelines to serverless unless a hard constraint blocks it.
+- ✔ Define budget policies up front for per-team cost attribution.
+- ✔ Use serverless SQL warehouses for BI and ad-hoc query workloads.
+- ✔ Keep classic clusters for GPU pinning, custom OS, and deep tuning.
+- ✔ Benchmark cost for steady long-running loads before switching from classic.
+- ✔ Confirm serverless availability in target regions during design.
+- ✔ Validate library and networking requirements against the managed environment.
+- ✔ Standardize deployment via Asset Bundles targeting serverless environments.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+|---|---|
+| Fast startup / low latency to first result | ✅ Warm-pool instant start |
+| Minimize idle compute cost | ✅ Per-second, no idle VM |
+| No platform/ops team available | ✅ Fully managed |
+| SQL / BI development | ✅ Serverless SQL warehouses |
+| Bursty or intermittent workloads | ✅ Autoscales on demand |
+| Fine-grained instance/GPU control | ❌ Not configurable |
+| Custom init scripts / OS packages | ⚠️ Restricted; validate first |
+| In-VPC data-plane compute mandate | ⚠️ Runs in Databricks account |
+| Per-team cost attribution | ⚠️ Use budget policies, not tags |
+| Steady 24/7 heavy compute | ⚠️ Benchmark vs classic |
+
+## 16. Quick Comparison
+
+| Criterion | Serverless Compute | Classic Clusters | Instance Pools | Serverless SQL Warehouse |
+|---|---|---|---|---|
+| Startup time | Seconds | Minutes | Reduced (warm VMs) | Seconds |
+| Infra management | None | Full | Partial | None |
+| Instance-type control | None | Full | Full | None |
+| Idle cost | None | Yes (until terminated) | Warm-VM cost | None |
+| Data-plane location | Databricks account | Customer VPC | Customer VPC | Databricks account |
+| Best for | Mixed managed workloads | Custom/tuned workloads | Faster classic startup | SQL / BI |
+
+## 17. Maturity
+
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | Medium–High |
+
+## 18. Cost Considerations
+- **Licensing:** billed in DBUs at serverless rates, per-second; verify current pricing.
+- **Compute:** no separate cloud-VM bill — Databricks bundles infrastructure into the serverless DBU rate.
+- **Storage:** unchanged — Delta data sits in your object storage, billed by the cloud provider.
+- **Operational Overhead:** near-zero — no sizing, patching, or node management.
+- **Training:** minimal — teams skip cluster-tuning skills but should learn budget policies and cost monitoring.
+- Note: for steady long-running loads, compare serverless DBU cost against classic clusters before committing; verify current pricing.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** teams wanting instant, autoscaled compute with no infrastructure to manage across notebooks, jobs, pipelines, and SQL.
+- ✔ **Avoid when:** you need instance-type/GPU pinning, deep Spark tuning, custom init scripts, or in-VPC data-plane compute.
+- ✔ **Biggest benefit:** second-scale startup with no idle cost and no cluster operations.
+- ✔ **Biggest limitation:** minimal low-level control and cost attribution via budget policies instead of cluster tags.
+- ✔ **Overall recommendation:** make serverless the default compute, keeping classic clusters for specialized control and steady heavy loads.

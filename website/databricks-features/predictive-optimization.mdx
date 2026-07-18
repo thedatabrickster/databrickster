@@ -1,0 +1,227 @@
+---
+sidebar_position: 20
+title: "Predictive Optimization — Architecture Guide"
+description: "Databricks automatically runs Delta table maintenance — OPTIMIZE, VACUUM, clustering, and statistics — based on observed usage, removing manual tuning and scheduling."
+---
+
+# Predictive Optimization
+
+## 1. Executive Summary
+Predictive Optimization lets Databricks decide when and how to run Delta table maintenance — OPTIMIZE, VACUUM, clustering, and statistics — from observed usage, so teams stop hand-tuning and scheduling maintenance jobs.
+
+## 2. Primary Purpose
+- **Why it exists:** table maintenance is recurring, easy to forget, and hard to size correctly at scale.
+- **Business problem solved:** consistent query performance and lower storage/compute cost without dedicated maintenance headcount.
+- **Technical problem solved:** removes hand-written OPTIMIZE/VACUUM jobs and cron schedules; work runs only where telemetry shows it pays off.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Users / BI / SQL / ML
+        ↓
+Query & Compute    (Databricks SQL, Photon, Spark)
+        ↓
+Governance         (Unity Catalog: managed tables + telemetry)
+        ↓
+Maintenance        →→→ Predictive Optimization  (OPTIMIZE · VACUUM · clustering · stats)
+        ↓
+Table Format       (Delta Lake: transaction log + Parquet)
+        ↓
+Object Storage     (S3 / ADLS / GCS)
+```
+
+- Sits in the **maintenance / operations layer**, below query engines and above the Delta files they scan.
+- Driven by Unity Catalog usage signals and table statistics, not by fixed schedules.
+- Decides which tables to maintain, when, and how much — then runs the work on managed serverless compute.
+- Transparent to readers and writers; no DDL or query changes required.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☐ Developer Experience
+☑ Data Engineering
+☑ Data Governance
+☐ AI
+☐ Machine Learning
+☑ Storage
+☐ Security
+☑ Administration
+☑ Monitoring
+```
+- Primary role is **Data Engineering** and **Storage**: it keeps physical table layout and file sizes healthy.
+- Touches **Governance** and **Administration** because it is enabled and scoped through Unity Catalog and account settings.
+- Relies on **Monitoring** telemetry to decide where maintenance is worth running.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+|---|---|---|
+| Large fleets of Delta tables with no maintenance owner | ✅ | Removes per-table scheduling entirely |
+| MERGE / streaming tables that accumulate small files | ✅ | OPTIMIZE runs when fragmentation warrants it |
+| Tables needing VACUUM for storage and compliance hygiene | ✅ | Old files reclaimed without a manual job |
+| Medallion Silver/Gold serving tables | ✅ | Keeps layout healthy for BI query mix |
+| Pairing with Automatic Liquid Clustering | ✅ | Applies and evolves clustering in the background |
+| Environments where maintenance jobs are forgotten or stale | ✅ | Usage-driven, no cron to rot |
+| Platform teams standardizing maintenance across workspaces | ✅ | One account/catalog setting instead of many jobs |
+| Cost-sensitive teams over-running OPTIMIZE everywhere | ✅ | Spends only where telemetry shows benefit |
+| Tables with unpredictable, spiky write patterns | ✅ | Adapts cadence to actual activity |
+| Unity Catalog managed tables | ✅ | Best-supported and default scope |
+| Migrating off hand-built maintenance notebooks | ✅ | Retires bespoke OPTIMIZE/VACUUM code |
+| Stats maintenance for query planning | ✅ | Keeps statistics current for the optimizer |
+| Rarely queried archival tables | ⚠️ | Little signal, limited payoff |
+| Strict, fixed maintenance windows required | ⚠️ | Timing is managed, not user-scheduled |
+| Very small tables under a few GB | ⚠️ | Maintenance yields marginal benefit |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Non-Delta / external table formats | ❌ | Operates on Delta only |
+| Foreign / federated tables (Lakehouse Federation) | ❌ | Databricks does not own their storage layout |
+| Guaranteed maintenance at an exact clock time | ⚠️ | Cadence is telemetry-driven, not fixed |
+| Air-gapped need to disable all background compute | ⚠️ | Feature runs managed compute you do not schedule |
+| Tables never queried or written | ⚠️ | Insufficient signal to act on |
+| Bespoke retention logic beyond standard VACUUM | ⚠️ | Custom retention still needs explicit control |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 5 |
+| Analytics Engineers | 4 |
+| Platform Engineers | 5 |
+| Data Scientists | 3 |
+| BI Teams | 3 |
+| AI Engineers | 2 |
+| Executives | 3 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 5 |
+| Implementation Speed | 5 |
+| Governance | 4 |
+| Security | 3 |
+| Maintainability | 5 |
+| Scalability | 5 |
+| Cost Optimization | 4 |
+| Ease of Adoption | 5 |
+| Business Value | 4 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Unity Catalog | Governs scope, enablement, and the usage telemetry that drives decisions. |
+| Delta Lake | Provides the transaction log, file layout, and stats the feature maintains. |
+| Serverless compute | Executes the managed OPTIMIZE, VACUUM, and clustering work. |
+| Automatic Liquid Clustering | Predictive Optimization applies and evolves clustering layout in the background. |
+| Databricks SQL / Photon | Query engine whose history signals which tables benefit from maintenance. |
+| Query history / system tables | Telemetry and cost/observability source for maintenance operations. |
+| Lakeflow pipelines & Jobs | Common producers of the incrementally written tables being maintained. |
+| Billing / system tables | Surface the compute consumed so spend can be attributed and monitored. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Manual OPTIMIZE / VACUUM jobs | In-Databricks | Full control, but you own scheduling, sizing, and drift. |
+| DIY scheduling via Lakeflow Jobs / cron | In-Databricks | Explicit timing, but brittle and grows with table count. |
+| Notebook-based maintenance scripts | In-Databricks | Flexible, but bespoke code to test and maintain forever. |
+| Auto Optimize (legacy auto-compaction) | In-Databricks | Write-time compaction only; narrower than usage-driven maintenance. |
+| External engine auto-maintenance (e.g. Snowflake) | External | Similar intent on a separate, proprietary storage engine. |
+| No maintenance (raw appends) | Baseline | Zero effort; small files, stale stats, and rising cost over time. |
+
+## 11. Strengths
+- Removes per-table OPTIMIZE/VACUUM scheduling across large table fleets.
+- Runs maintenance only where usage telemetry shows a payoff.
+- Applies and evolves layout when paired with Automatic Liquid Clustering.
+- Keeps statistics current so the query optimizer plans well.
+- Reclaims storage through VACUUM without a hand-built retention job.
+- Enabled once through Unity Catalog rather than per workspace or table.
+- Uses managed serverless compute — no cluster sizing for maintenance.
+- Adapts cadence to spiky and unpredictable write patterns.
+- Consistent maintenance behavior across ETL, BI, and ML serving tables.
+- Lowers total cost of ownership by retiring bespoke maintenance code.
+
+## 12. Limitations
+- Delta-only; external and foreign tables are out of scope.
+- Best supported on Unity Catalog managed tables.
+- Maintenance timing is managed, not pinned to fixed clock windows.
+- Background work consumes compute that appears on the bill.
+- Decisions are heuristic; cadence can lag sudden workload shifts.
+- Limited transparency into exactly why a given run fired or was skipped.
+- Little benefit on rarely queried or very small tables.
+- Custom retention beyond standard VACUUM still needs explicit control.
+- Cannot maintain layout for data that never generates usage signal.
+- Requires trusting a managed process to run compute on your behalf.
+
+## 13. Common Mistakes
+- Keeping legacy OPTIMIZE/VACUUM jobs running alongside it and paying twice.
+- Assuming it works on external, foreign, or non-managed tables.
+- Not monitoring maintenance compute spend after broad enablement.
+- Expecting maintenance at an exact time rather than a managed cadence.
+- Treating it as a substitute for good schema design and clustering choices.
+- Disabling it on tables that would benefit, to "save cost," without checking telemetry.
+- Overlooking VACUUM retention implications for time-travel and compliance.
+
+## 14. Design Recommendations
+- ✔ Enable at the catalog or account level for consistent coverage.
+- ✔ Retire hand-written OPTIMIZE/VACUUM jobs once it is active.
+- ✔ Pair with Automatic Liquid Clustering so layout is chosen and applied end to end.
+- ✔ Prefer Unity Catalog managed tables for full support.
+- ✔ Monitor maintenance spend and query improvement via system tables.
+- ✔ Keep explicit control only where custom retention or timing is mandatory.
+- ✔ Review VACUUM retention against time-travel and audit requirements.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+|---|---|
+| Hands-off table maintenance | ✅ Core purpose |
+| Retire manual OPTIMIZE/VACUUM scheduling | ✅ Removes the jobs |
+| Cost-controlled maintenance | ✅ Runs where it pays off |
+| Automatic clustering applied continuously | ✅ Pairs with Auto Liquid Clustering |
+| Unity Catalog managed tables | ✅ Best-supported scope |
+| Exact fixed maintenance windows | ⚠️ Cadence is managed |
+| Custom retention beyond VACUUM | ⚠️ Keep explicit control |
+| External / foreign tables | ❌ Delta managed only |
+| Non-Delta storage formats | ❌ Delta-only |
+
+## 16. Quick Comparison
+
+| Criterion | Predictive Optimization | Manual Maintenance Jobs | DIY Scheduling | No Maintenance |
+|---|---|---|---|---|
+| Who decides when | Databricks telemetry | Engineer | Engineer/cron | No one |
+| Scheduling effort | None | High | High | None |
+| Scales with table count | Yes | Poorly | Poorly | N/A |
+| Cost targeting | Usage-driven | Manual | Manual | None |
+| Layout degrades over time | No | If jobs lapse | If jobs lapse | Yes |
+| Maintenance code to own | None | Some | Most | None |
+
+## 17. Maturity
+
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+- **Licensing:** no separate license; part of the Databricks platform — verify current pricing.
+- **Compute:** managed OPTIMIZE/VACUUM/clustering consumes serverless compute; watch spend after broad enablement.
+- **Storage:** VACUUM reclaims space; net storage impact is usually a reduction.
+- **Operational Overhead:** very low — retiring manual jobs is the main saving.
+- **Training:** minimal; teams mainly need to understand scope, retention, and how to monitor spend.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** large fleets of Unity Catalog managed Delta tables with no dedicated maintenance owner.
+- ✔ **Avoid when:** tables are external/foreign, non-Delta, or need exact fixed maintenance windows or custom retention.
+- ✔ **Biggest benefit:** hands-off, usage-driven maintenance that cuts cost and effort while keeping performance steady.
+- ✔ **Biggest limitation:** managed timing and consumed compute mean less direct control over when and where work runs.
+- ✔ **Overall recommendation:** enable platform-wide as the default maintenance strategy and pair with Automatic Liquid Clustering; keep manual control only for tables with strict retention or timing needs.

@@ -1,0 +1,230 @@
+---
+sidebar_position: 20
+title: "Partner Connect — Architecture Guide"
+description: "A guided admin surface that sets up validated partner tools with auto-provisioned compute, tokens, and connections."
+---
+
+# Partner Connect
+
+## 1. Executive Summary
+
+Partner Connect is a guided catalog inside the workspace that sets up validated partner tools (ingestion, BI, governance) by auto-provisioning the compute, service principal, token, and connection details they need to reach the Lakehouse.
+
+## 2. Primary Purpose
+
+- **Why it exists:** remove the manual, error-prone steps of wiring a third-party tool to Databricks.
+- **Business problem solved:** slow, inconsistent onboarding of partner tools across teams and workspaces.
+- **Technical problem solved:** hand-creating SQL warehouses, service principals, tokens, and JDBC/ODBC endpoints for each tool.
+- **What it is:** a convenience and admin surface, not a data-plane runtime — it configures a connection and hands off.
+- **Validation note:** the partner catalog is curated; listed tools are pre-tested against Databricks connection patterns.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Admin/Analyst → Partner Connect → Auto-provisioned (Warehouse + SP + Token + Connection) → Partner Tool → SQL / Delta
+   (setup UI)     (guided catalog)      (one-time config artifacts)                       (Fivetran, dbt,   (governed
+                                                                                           Power BI, Tableau) tables)
+```
+
+- Sits at the **Administration** edge, not in the ingestion or query runtime path.
+- Produces configuration artifacts once; the partner tool then talks to the Lakehouse directly.
+- Downstream traffic flows over standard SQL warehouse / JDBC / ODBC endpoints, governed by Unity Catalog.
+- After setup, Partner Connect is out of the loop — it is not a proxy or gateway.
+
+## 4. Typical Architecture Placement
+
+```
+☐ User Interface
+☐ Developer Experience
+☐ Data Engineering
+☐ Data Governance
+☐ AI
+☐ Machine Learning
+☐ Storage
+☐ Security
+☑ Administration
+☐ Monitoring
+```
+
+- Core home is **Administration** — it orchestrates one-time setup of tool connections.
+- Touches Security indirectly by generating service principals and tokens, but does not manage them long-term.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+|---|---|---|
+| First-time Fivetran ingestion setup | ✅ | Auto-creates warehouse and credentials |
+| Connecting dbt Cloud to the Lakehouse | ✅ | Pre-validated connection profile |
+| Standing up Power BI against a warehouse | ✅ | Generates endpoint and token |
+| Tableau connector configuration | ✅ | Guided ODBC/JDBC setup |
+| Onboarding a new analyst team to a BI tool | ✅ | Low-friction, repeatable |
+| Evaluating a partner tool in a POC | ✅ | Fast trial provisioning |
+| Standardizing tool setup across teams | ✅ | Reduces manual variance |
+| Non-admin analysts needing a guided path | ✅ | Simplifies credential creation |
+| Governance/observability tool onboarding | ✅ | Validated integration steps |
+| Reverse-ETL or activation tool setup | ✅ | Common connection pattern |
+| One-off trial of a listed SaaS product | ✅ | Quick, disposable config |
+| Bulk, scripted provisioning across workspaces | ⚠️ | Use Terraform/APIs instead |
+| Tool not in the partner catalog | ⚠️ | Configure connection manually |
+| Fine-grained, least-privilege credentials | ⚠️ | Defaults may over-grant |
+| Ongoing credential rotation and lifecycle | ⚠️ | Not managed here after setup |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Infrastructure-as-code environments | ❌ | Terraform provider is auditable and repeatable |
+| Runtime data movement or transformation | ❌ | It only configures; it does not move data |
+| Strict least-privilege security posture | ⚠️ | Default tokens/SPs may be broad |
+| Automated CI/CD provisioning | ❌ | Use SDK/CLI/Terraform, not a UI wizard |
+| Tools requiring custom network/PrivateLink setup | ⚠️ | Wizard covers standard paths only |
+| Centralized secret management mandate | ⚠️ | Generated tokens sit outside vault workflows |
+| Unlisted or bespoke internal tools | ❌ | No catalog entry to drive setup |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 3 |
+| Analytics Engineers | 3 |
+| Platform Engineers | 2 |
+| Data Scientists | 2 |
+| BI Teams | 5 |
+| AI Engineers | 2 |
+| Executives | 2 |
+| Architects | 3 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 3 |
+| Implementation Speed | 5 |
+| Governance | 2 |
+| Security | 2 |
+| Maintainability | 2 |
+| Scalability | 2 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 5 |
+| Business Value | 3 |
+| Innovation | 2 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Databricks SQL Warehouse | The compute endpoint most partner tools connect to. |
+| Service Principals | Machine identity auto-created for the partner tool. |
+| Personal Access Tokens / OAuth | Credential generated to authenticate the connection. |
+| Unity Catalog | Governs what the provisioned identity can actually access. |
+| JDBC/ODBC endpoints | Standard connection protocols the tools use post-setup. |
+| Clusters / Serverless | Alternative compute target for some connectors. |
+| Partner tool accounts | The external SaaS (Fivetran, dbt, Power BI, Tableau) being linked. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Manual partner setup | In-tool config | Full control, more steps and inconsistency |
+| Direct JDBC/ODBC connection | Native protocol | No wizard; requires known endpoint and credentials |
+| Databricks Terraform provider | IaC | Auditable and repeatable, more upfront effort |
+| Databricks SDK / CLI | Scripted | Automatable, needs code and maintenance |
+| Lakeflow Connect | Native ingestion | Managed pipelines vs configuring an external tool |
+| Delta Sharing | Native sharing | Shares data directly, no external tool needed |
+
+## 11. Strengths
+
+- Fastest path from zero to a working partner-tool connection.
+- Auto-creates warehouse, service principal, and token in one flow.
+- Curated catalog reduces guesswork on tool compatibility.
+- Low-friction for non-admin and BI users.
+- Consistent connection pattern across the listed tools.
+- Good for POCs and trials where speed matters.
+- Reduces support tickets for common setup mistakes.
+- Surfaces the right connection details without doc-hunting.
+- Works across ingestion, BI, and governance tool categories.
+- No custom code required to get connected.
+
+## 12. Limitations
+
+- Only supports tools in the curated partner catalog.
+- Generated credentials may be broader than least-privilege.
+- Not suited to infrastructure-as-code or CI/CD workflows.
+- No lifecycle management — rotation and cleanup are manual.
+- UI-driven, so it does not scale to bulk provisioning.
+- Limited control over network topology (PrivateLink, IP allowlists).
+- Configures once; offers no ongoing monitoring of the connection.
+- Default warehouse sizing may not match workload needs.
+- Tokens created outside centralized secret-management flows.
+- Setup convenience can obscure what was actually provisioned.
+
+## 13. Common Mistakes
+
+- Treating it as a runtime integration rather than a one-time setup.
+- Leaving auto-generated tokens un-rotated and un-tracked.
+- Using it in production where Terraform/SDK would be auditable.
+- Over-privileging the auto-created service principal.
+- Assuming the default warehouse is right-sized for the workload.
+- Forgetting to apply Unity Catalog grants to scope access.
+- Losing track of orphaned warehouses and identities after trials.
+- Expecting network/PrivateLink specifics to be handled by the wizard.
+
+## 14. Design Recommendations
+
+- ✔ Use it for POCs, trials, and first-time onboarding — not fleet provisioning.
+- ✔ Immediately review and scope the generated service principal and grants.
+- ✔ Rotate or replace default tokens per your secret-management policy.
+- ✔ Right-size or replace the auto-created warehouse for real workloads.
+- ✔ Reproduce production connections with Terraform or the SDK.
+- ✔ Track provisioned artifacts so trial resources can be cleaned up.
+- ✔ Confirm Unity Catalog governs the connected identity's access.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+|---|---|
+| Fast first-time tool setup | ✅ Guided, auto-provisioned |
+| POC or trial of a listed tool | ✅ Quick and disposable |
+| BI tool onboarding (Power BI/Tableau) | ✅ Common supported path |
+| Ingestion tool setup (Fivetran/dbt) | ✅ Pre-validated connection |
+| Infrastructure-as-code provisioning | ❌ Use Terraform provider |
+| Bulk multi-workspace provisioning | ❌ Use SDK/CLI |
+| Least-privilege credentialing | ⚠️ Review and scope after |
+| Runtime data movement | ❌ Not a data plane |
+| Tool absent from catalog | ❌ Configure manually |
+
+## 16. Quick Comparison
+
+| Criterion | Partner Connect | Manual setup | Terraform provider | Direct JDBC/ODBC |
+|---|---|---|---|---|
+| Setup speed | Fastest | Slow | Medium | Medium |
+| Repeatability | Low | Low | High | Medium |
+| Auditability | Low | Low | High | Medium |
+| Skill required | Minimal | Moderate | High | Moderate |
+| Best for | Trials/onboarding | One-offs | Production IaC | Known endpoints |
+
+## 17. Maturity
+
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | Medium |
+| Production Readiness | Low |
+| Governance Readiness | Low |
+| AI Readiness | Low |
+
+## 18. Cost Considerations
+
+- **Licensing:** no separate charge for Partner Connect; partner tools bill on their own terms.
+- **Compute:** the auto-created SQL warehouse incurs DBUs whenever the tool queries it.
+- **Storage:** none directly; data lands via the connected tool into Delta.
+- **Operational Overhead:** low to set up, but untracked trial resources add cleanup cost.
+- **Training:** minimal; the wizard is self-explanatory. Verify current pricing.
+
+## 19. Executive Takeaway
+
+- ✔ **Best for:** fast, guided onboarding and trials of validated partner tools.
+- ✔ **Avoid when:** you need auditable, repeatable, least-privilege provisioning.
+- ✔ **Biggest benefit:** near-instant, error-free connection setup for common tools.
+- ✔ **Biggest limitation:** a convenience surface with weak lifecycle and governance controls.
+- ✔ **Overall recommendation:** use for evaluation and initial onboarding, then codify production connections with Terraform or the SDK.

@@ -1,0 +1,244 @@
+---
+sidebar_position: 20
+title: "Online Tables — Architecture Guide"
+description: "Read-only, auto-synced low-latency serving copies of Delta tables for real-time key-value lookups by apps, agents, and feature retrieval."
+---
+
+# Online Tables
+
+## 1. Executive Summary
+
+A managed, read-only serving copy of a Delta table that auto-syncs and answers single-row key-value lookups at low latency for apps, agents, and feature retrieval.
+
+## 2. Primary Purpose
+
+- **Why it exists:** give Delta data a fast point-lookup path that the analytical engine is not built to serve.
+- **Business problem:** power real-time app and model experiences from governed Lakehouse data without standing up a separate serving database.
+- **Technical problem:** serve sub-second keyed reads at high concurrency while keeping the served copy synced from its Delta source.
+
+:::note[Direction]
+Databricks is steering real-time serving and OLTP toward **Lakebase** (managed Postgres). Online Tables remains valid for read-only key-value lookups, but evaluate Lakebase for new serving work.
+:::
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Users / Apps / Agents / Models
+        ↓
+Databricks Apps · Model Serving · Feature Serving endpoints
+        ↓
+Online Table (read-only KV serving copy)  ← sub-second point lookups
+        ↓
+Auto-sync (continuous or triggered)
+        ↓
+Delta Lake source table (governed by Unity Catalog)
+```
+
+- Sits in the **serving tier** in front of the Lakehouse, never in the analytical query path.
+- Consumed by Model Serving, Feature Serving, Apps, and agents for keyed retrieval.
+- Read-only: all writes go to the Delta source, then propagate through sync.
+
+## 4. Typical Architecture Placement
+
+```
+☐ User Interface
+☑ Developer Experience
+☑ Data Engineering
+☐ Data Governance
+☑ AI
+☑ Machine Learning
+☑ Storage
+☐ Security
+☐ Administration
+☐ Monitoring
+```
+
+- Primary role is a low-latency serving store for models, apps, and agents.
+- Overlaps ML/AI (feature and context lookups) and data engineering (Delta sync).
+- Governance and identity are inherited from Unity Catalog, not owned here.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+| --- | --- | --- |
+| Real-time feature lookup for model serving | ✅ | Sub-second keyed reads at inference time |
+| Serving precomputed features from Delta | ✅ | Auto-sync keeps served features current |
+| Reference/lookup data for apps | ✅ | Fast point access to governed Delta data |
+| Agent context or profile retrieval | ✅ | Keyed reads for per-entity context |
+| Personalization attributes by user key | ✅ | High-concurrency single-row lookups |
+| Product/catalog detail by ID | ✅ | Point reads, not scans |
+| Fraud/risk scoring signal lookup | ✅ | Low-latency feature retrieval in the request path |
+| Enriching real-time events with Delta data | ✅ | Keyed join against a synced copy |
+| Recommendation candidate metadata | ✅ | Fast retrieval alongside Vector Search |
+| Read-heavy, write-rare serving data | ✅ | Matches the read-only model |
+| Slowly changing dimension serving | ⚠️ | Works; tune sync mode to update cadence |
+| Moderately fresh lookups (seconds of lag) | ⚠️ | Continuous sync helps; confirm freshness needs |
+| Composite-key lookups | ⚠️ | Design the primary key deliberately |
+| High-cardinality dimension serving | ⚠️ | Validate storage and sync cost at scale |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+| --- | --- | --- |
+| Transactional writes / OLTP | ❌ | Read-only; use Lakebase or an external OLTP DB |
+| Analytical queries, aggregations, scans | ❌ | Use Delta + Databricks SQL |
+| Range scans or complex multi-table joins | ❌ | Built for single-key point access |
+| Sub-100ms writes into serving layer | ❌ | Writes must land in Delta first |
+| Strong read-after-write consistency | ⚠️ | Sync lag means served copy trails the source |
+| Ad-hoc exploration of served data | ⚠️ | Query the Delta source instead |
+| Very large tables served in full | ⚠️ | Validate cost; serve only what apps need |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+| --- | --- |
+| Data Engineers | 3 |
+| Analytics Engineers | 2 |
+| Platform Engineers | 3 |
+| Data Scientists | 3 |
+| BI Teams | 1 |
+| AI Engineers | 5 |
+| Executives | 2 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+| --- | --- |
+| Developer Productivity | 4 |
+| Implementation Speed | 4 |
+| Governance | 3 |
+| Security | 3 |
+| Maintainability | 4 |
+| Scalability | 3 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 4 |
+| Business Value | 3 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+| --- | --- |
+| Delta Lake | The source table that the online copy syncs from. |
+| Unity Catalog | Governs identity and access for the online table and its source. |
+| Mosaic AI Model Serving | Reads features/context from the online table at inference. |
+| Feature Engineering / Feature Serving | Publishes and serves features backed by online tables. |
+| Databricks Apps | Consumes low-latency lookups as an app backend read path. |
+| Agent Bricks / agents | Retrieve keyed profile or context data. |
+| Mosaic AI Vector Search | Complements online tables for semantic vs. keyed retrieval. |
+| Change Data Feed | Enables efficient incremental sync from the Delta source. |
+| Serverless compute | Runs the sync and serving infrastructure. |
+| SDK / REST API | Programmatic creation and management of online tables. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+| --- | --- | --- |
+| Lakebase | In-Databricks | Managed Postgres with read/write OLTP and two-way Delta sync; broader than read-only KV. |
+| Redis | External KV/cache | Fastest in-memory lookups; you own ops, sync, and governance. |
+| Amazon DynamoDB | External NoSQL | Massive-scale managed KV; no Delta sync, separate governance. |
+| Azure Cosmos DB | External NoSQL | Global distribution; build the Lakehouse integration yourself. |
+| Application-side cache | Caching layer | Cheap and simple; stale data and cache-invalidation burden. |
+| Direct Delta / Databricks SQL query | In-Databricks | No serving copy; higher latency, not for request-path point reads. |
+
+## 11. Strengths
+
+- Sub-second single-row lookups from governed Delta data.
+- Auto-sync (continuous or triggered) removes manual serving-copy pipelines.
+- Read-only model keeps Delta as the single source of truth.
+- Native integration with Model Serving and Feature Serving.
+- Governance and identity inherited from Unity Catalog.
+- Fully managed serving/sync infrastructure; no external KV store to run.
+- High read concurrency suited to request-path lookups.
+- Change Data Feed enables efficient incremental updates.
+- Serves features and context without an external database hop.
+- Simple mental model: one Delta source, one synced serving copy.
+
+## 12. Limitations
+
+- Read-only: no writes into the serving layer; all writes go through Delta.
+- Sync lag means the served copy trails the source; not strongly consistent.
+- Point-lookup only; no range scans, aggregations, or complex joins.
+- Serving full large or high-cardinality tables can be costly.
+- Databricks is converging serving on Lakebase, so investment focus may shift.
+- Primary-key design constrains access patterns and must be planned early.
+- Freshness depends on sync mode; continuous sync costs more than triggered.
+- Limits and behavior are evolving; verify current capabilities.
+- Not a general-purpose database or cache-replacement for arbitrary access.
+- Governance depth for the serving copy is thinner than for Delta assets.
+
+## 13. Common Mistakes
+
+- Expecting write support and treating it as an OLTP store.
+- Assuming instant freshness and ignoring sync lag in the request path.
+- Choosing a primary key that does not match the lookup pattern.
+- Serving entire large tables instead of only the columns/rows apps need.
+- Using it for analytical queries that belong in Databricks SQL.
+- Picking continuous sync when triggered sync would meet freshness needs.
+- Building on online tables where Lakebase is the better strategic fit.
+- Overlooking cost of serving high-cardinality dimensions in full.
+
+## 14. Design Recommendations
+
+- ✔ Use online tables only for read-only key-value lookups from Delta.
+- ✔ Evaluate Lakebase first for new serving/OLTP work given the platform direction.
+- ✔ Match the primary key to the request-path lookup pattern.
+- ✔ Serve a narrow, purpose-built projection, not the full source table.
+- ✔ Choose sync mode (continuous vs. triggered) from real freshness needs.
+- ✔ Enable Change Data Feed on the source for efficient incremental sync.
+- ✔ Budget served-copy storage and sync compute against low-latency benefit.
+- ✔ Verify current limits, freshness behavior, and pricing before production.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+| --- | --- |
+| Real-time feature lookup | ✅ Sub-second keyed reads |
+| Model/agent context retrieval | ✅ Low-latency point access |
+| App read-path lookups from Delta | ✅ Managed serving copy |
+| Transactional writes / OLTP | ❌ Use Lakebase or external DB |
+| Analytical queries / scans | ❌ Use Databricks SQL |
+| Strong read-after-write consistency | ⚠️ Sync lag applies |
+| New serving investment (strategic) | ⚠️ Consider Lakebase direction |
+| External-scale KV (many regions) | ⚠️ Redis/DynamoDB may fit |
+| Serving very large tables in full | ⚠️ Validate cost first |
+
+## 16. Quick Comparison
+
+| Criterion | Online Tables | Lakebase | Redis | DynamoDB |
+| --- | --- | --- | --- | --- |
+| Workload | Read-only KV serving | OLTP read/write | In-memory KV/cache | Managed NoSQL KV |
+| Hosting | Managed in Databricks | Managed in Databricks | You operate (or managed) | Managed (AWS) |
+| Delta sync | Native, one-way | Native, two-way | Build yourself | Build yourself |
+| Latency | Sub-second | Sub-second | Sub-millisecond | Single-digit ms |
+| Governance | Unity Catalog | Unity Catalog | Separate | Separate |
+| Ops burden | Very low | Low | Medium–High | Low |
+
+## 17. Maturity
+
+| Dimension | Rating |
+| --- | --- |
+| Technology Readiness | High |
+| Enterprise Readiness | Medium |
+| Production Readiness | Medium |
+| Governance Readiness | Medium |
+| AI Readiness | High |
+
+## 18. Cost Considerations
+
+- **Licensing:** consumption-based via Databricks; no separate license. Verify current pricing.
+- **Compute:** managed sync and serving infrastructure; continuous sync costs more than triggered.
+- **Storage:** the online serving copy is stored in addition to the Delta source.
+- **Operational Overhead:** low — no KV store to run; effort is key design, projection, and sync tuning.
+- **Training:** minimal; teams mainly learn sync modes and serving-copy design patterns.
+
+## 19. Executive Takeaway
+
+- ✔ **Best for:** read-only, low-latency key-value lookups on governed Delta data for models, apps, and agents.
+- ✔ **Avoid when:** you need transactional writes, analytical queries, or strong read-after-write consistency.
+- ✔ **Biggest benefit:** managed, auto-synced sub-second serving from Delta with no external KV store to operate.
+- ✔ **Biggest limitation:** read-only with sync lag, and Databricks is steering new serving/OLTP toward Lakebase.
+- ✔ **Overall recommendation:** use for pure read-only feature/lookup serving today; evaluate Lakebase for new serving investment.
+
+See the full [feature catalog](/databricks-features) for related components.

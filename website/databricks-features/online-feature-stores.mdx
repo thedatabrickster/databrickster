@@ -1,0 +1,221 @@
+---
+sidebar_position: 20
+title: "Online Feature Stores — Architecture Guide"
+description: "Low-latency serving layer that syncs Unity Catalog feature tables to online stores so real-time models read precomputed features at inference with train/serve consistency."
+---
+
+# Online Feature Stores
+
+## 1. Executive Summary
+Online Feature Stores replicate offline Unity Catalog feature tables into a low-latency key-value store (Lakebase / online tables) so real-time models fetch precomputed features in single-digit milliseconds at inference, using the same values produced offline for training.
+
+## 2. Primary Purpose
+- **Why it exists:** offline Delta tables are optimized for scan throughput, not per-key point lookups that real-time inference needs.
+- **Business problem solved:** enables real-time decisions (fraud, recommendations, pricing) without rebuilding a bespoke feature-caching stack per model.
+- **Technical problem solved:** guarantees the feature values served online match those used in training, removing a leading cause of silent model degradation.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Raw / Bronze Delta
+        ↓
+Feature pipelines (batch/streaming, Lakeflow)
+        ↓
+Offline feature tables in Unity Catalog (Delta, PK-keyed)
+        ↓  sync / continuous refresh
+Online store (Lakebase / online table, key-value)
+        ↓  low-latency lookup
+Model Serving  →  real-time prediction
+```
+- Sits between governed offline feature tables and the model endpoint as the **low-latency read layer**.
+- Reads are by primary key; writes come only from the offline sync, not from applications.
+- Feature references logged with the model let Model Serving resolve online lookups automatically.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☐ Developer Experience
+☑ Data Engineering
+☐ Data Governance
+☐ AI
+☑ Machine Learning
+☑ Storage
+☐ Security
+☐ Administration
+☐ Monitoring
+```
+- Core to **Machine Learning**: supplies fresh features to real-time inference.
+- **Storage**: a hot, key-indexed replica of selected offline feature tables.
+- **Data Engineering** owns the sync pipelines that keep the online copy current.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+| --- | --- | --- |
+| Real-time fraud / risk scoring | ✅ | Needs sub-10ms feature reads per request |
+| Personalized recommendations at request time | ✅ | Per-user features fetched on the fly |
+| Dynamic pricing / bidding | ✅ | Low-latency lookups within tight SLAs |
+| Feature values must match training | ✅ | Same offline computation synced online |
+| Models behind Model Serving endpoints | ✅ | Auto feature lookup from logged refs |
+| Features reused across multiple online models | ✅ | One synced table feeds many endpoints |
+| Precomputed aggregates read per key | ✅ | Point lookups, not scans |
+| Streaming-updated features needing freshness | ✅ | Continuous sync keeps hot copy current |
+| Feature serving to external apps / services | ✅ | Feature Serving endpoints expose lookups |
+| Mix of on-demand and precomputed features | ✅ | Precomputed served, on-demand computed in function |
+| Batch scoring on large tables | ⚠️ | Offline join is cheaper than online reads |
+| Very large per-request feature vectors | ⚠️ | Validate payload size and latency budget |
+| Ultra-high write throughput to features | ⚠️ | Sync lag may exceed freshness SLA |
+| Sub-millisecond at extreme QPS | ⚠️ | Confirm store throughput/latency limits |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+| --- | --- | --- |
+| Offline / batch inference only | ❌ | Offline join is simpler and cheaper |
+| General-purpose OLTP application store | ❌ | Read-optimized replica, not a write DB |
+| Analyst SQL exploration | ❌ | Query the offline Delta table instead |
+| Raw unstructured blob storage | ❌ | Store computed features, not media |
+| Features recomputed cheaply at inference | ⚠️ | On-demand compute may beat sync overhead |
+| One throwaway real-time model | ⚠️ | Setup and sync cost may not pay back |
+| Freshness needs below sync latency | ⚠️ | Consider streaming or on-demand functions |
+| Tiny feature set, few requests | ⚠️ | Overhead may exceed benefit |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+| --- | --- |
+| Data Engineers | 4 |
+| Analytics Engineers | 2 |
+| Platform Engineers | 4 |
+| Data Scientists | 4 |
+| BI Teams | 1 |
+| AI Engineers | 5 |
+| Executives | 2 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+| --- | --- |
+| Developer Productivity | 4 |
+| Implementation Speed | 3 |
+| Governance | 4 |
+| Security | 4 |
+| Maintainability | 3 |
+| Scalability | 4 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 3 |
+| Business Value | 4 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+| --- | --- |
+| Unity Catalog | Governs both offline tables and online store objects with permissions and lineage. |
+| Offline feature tables (Delta) | Source of truth that the online store syncs from. |
+| Lakebase / online tables | Key-value backing store that serves low-latency lookups. |
+| Model Serving | Resolves and joins online features at inference time. |
+| MLflow | Logs feature references so serving auto-resolves lookups. |
+| Feature Serving endpoints | Expose feature lookups to apps beyond model endpoints. |
+| Lakeflow Declarative Pipelines | Build and refresh the offline features that feed the sync. |
+| Structured Streaming | Keeps offline features fresh so the online copy stays current. |
+| Lakeflow Jobs | Schedule periodic offline recompute and sync triggers. |
+| On-demand feature functions | Compute request-time features that complement precomputed ones. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+| --- | --- | --- |
+| Recompute features at inference | In-Databricks / app | No sync lag, but risks train/serve skew and adds latency |
+| On-demand feature functions only | In-Databricks | Great for request-time inputs; not for heavy precomputed aggregates |
+| Redis as custom online store | External | Full latency control, but you build sync, TTL, and consistency |
+| DynamoDB feature cache | External | Managed scale on AWS; separate governance and glue code |
+| Feast online store | External | Portable and flexible; you operate registry, stores, and infra |
+| Tecton online serving | External | Rich streaming feature platform; added license and integration |
+| Vertex / SageMaker online store | External | Comparable managed serving; ties to that cloud, less lakehouse-native |
+
+## 11. Strengths
+- Single-digit millisecond point lookups for real-time inference.
+- Same offline computation synced online, so values match training.
+- Model Serving auto-resolves logged feature references, less glue code.
+- One synced table feeds many endpoints and external apps.
+- Continuous or scheduled sync keeps the hot copy fresh.
+- Governed under Unity Catalog with permissions and lineage.
+- On-demand functions complement precomputed features in one lookup.
+- Read replica isolates serving load from offline pipelines.
+- Scales reads independently of batch feature compute.
+- Feature Serving exposes lookups beyond model endpoints.
+
+## 12. Limitations
+- Sync lag means the online copy trails the offline source.
+- Adds hot storage plus a separate store to provision and monitor.
+- Read-optimized replica, not a general OLTP write database.
+- Freshness below sync latency needs streaming or on-demand compute.
+- Throughput and latency limits must be validated per SLA.
+- Extra cost that batch-only inference does not incur.
+- Primary-key and timestamp design errors surface only at serving.
+- Very large feature vectors can breach latency budgets.
+- Best experience assumes Unity Catalog is fully adopted.
+- Cross-region / cross-cloud serving may need added replication patterns.
+
+## 13. Common Mistakes
+- Recomputing features for serving instead of syncing, reintroducing skew.
+- Ignoring sync lag and assuming online equals the latest offline value.
+- Provisioning an online store for models that only score in batch.
+- Not logging feature references, forcing manual lookups at serving.
+- Treating the online store as a writable application database.
+- Overlooking online read cost and TTL until latency or bills spike.
+- Poor primary-key choice that inflates lookup latency.
+- No ownership for sync freshness, letting features silently go stale.
+- Serving oversized feature payloads that miss the latency target.
+
+## 14. Design Recommendations
+- ✔ Provision online stores only for models that need real-time lookups.
+- ✔ Sync from governed offline tables; never let apps write the online copy.
+- ✔ Log feature references with the model so serving auto-joins them.
+- ✔ Match sync mode (triggered vs continuous) to the freshness SLA.
+- ✔ Use on-demand functions for request-time inputs, not precomputed sync.
+- ✔ Design primary keys and timestamp keys deliberately for lookups.
+- ✔ Monitor sync lag, read latency, throughput, and cost together.
+- ✔ Size feature payloads to stay within the endpoint latency budget.
+- ✔ Assign explicit owners and SLAs for each sync pipeline.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+| --- | --- |
+| Real-time feature lookup | ✅ Core purpose |
+| Train/serve consistency | ✅ Synced from offline source |
+| Behind Model Serving endpoints | ✅ Auto feature lookup |
+| Reuse features across online models | ✅ One synced table, many endpoints |
+| Feature serving to external apps | ✅ Feature Serving endpoints |
+| Offline / batch inference only | ⚠️ Offline join is cheaper |
+| Request-time-only inputs | ⚠️ Use on-demand functions |
+| Freshness below sync latency | ⚠️ Streaming or on-demand needed |
+| General OLTP write store | ❌ Wrong tool |
+| Analyst SQL exploration | ❌ Query offline Delta instead |
+
+## 16. Quick Comparison
+| Criterion | Online Feature Store | Redis / DynamoDB cache | Feast online store | Recompute at inference |
+| --- | --- | --- | --- | --- |
+| Lakehouse-native | Yes | No | Partial | Depends |
+| Train/serve consistency | Synced from offline | Manual wiring | SDK-managed | Skew risk |
+| Governance / lineage | Unity Catalog native | External | External registry | None |
+| Operational burden | Managed on lakehouse | Self-built sync | Self-operated | Low infra, high latency |
+| Read latency | Single-digit ms | Sub-ms tunable | Depends on store | Compute-bound |
+
+## 17. Maturity
+| Dimension | Rating |
+| --- | --- |
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+- **Licensing:** included with Databricks ML / serving capabilities; no separate online-store license. Verify current pricing.
+- **Compute:** sync pipeline runs and serving endpoint compute are the main drivers.
+- **Storage:** a hot, duplicated copy of selected features on top of offline Delta storage.
+- **Operational Overhead:** owning sync freshness, keys, TTL, and latency monitoring is the ongoing cost.
+- **Training:** moderate learning curve for sync modes, key design, and latency tuning.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** real-time models behind Model Serving that need precomputed features fetched in milliseconds with values consistent with training.
+- ✔ **Avoid when:** inference is batch-only, features are cheap to recompute at request time, or you need a general-purpose write database.
+- ✔ **Biggest benefit:** low-latency lookups of the same governed features used offline, eliminating train/serve skew for real-time inference.
+- ✔ **Biggest limitation:** it adds a synced hot store with sync lag, extra cost, and freshness SLAs to manage.
+- ✔ **Overall recommendation:** adopt for production real-time models once offline feature tables exist in Unity Catalog; skip it for batch-only or throwaway use.

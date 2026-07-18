@@ -1,0 +1,224 @@
+---
+sidebar_position: 20
+title: "Photon — Architecture Guide"
+description: "The vectorized, C++ query engine that transparently accelerates SQL and DataFrame workloads on Databricks compute."
+---
+
+# Photon
+
+## 1. Executive Summary
+Photon is a vectorized, native (C++) query engine that runs beneath Spark to transparently accelerate SQL and DataFrame operators, trading a higher per-unit compute rate for lower total runtime on scan-, join-, and aggregation-heavy workloads.
+
+## 2. Primary Purpose
+- **Why it exists:** the JVM-based Spark engine leaves modern CPU throughput unused; Photon reclaims it with columnar, SIMD-style execution.
+- **Business problem solved:** faster query and ETL completion, higher warehouse concurrency, and often lower total cost despite a higher DBU rate.
+- **Technical problem solved:** vectorized operators, cache-efficient columnar memory, and native code paths replace row-at-a-time JVM execution for supported operations.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Users / BI / SQL / Notebooks / ETL Jobs
+        ↓
+Language APIs   (Spark SQL, PySpark / DataFrame)
+        ↓
+Catalyst Optimizer  (query plan)
+        ↓
+Execution       →→→ Photon (native C++/vectorized)  ⇄  Spark (JVM fallback)
+        ↓
+Table Format    (Delta Lake: transaction log + Parquet)
+        ↓
+Object Storage  (S3 / ADLS / GCS)
+```
+
+- Photon is an **execution-layer accelerator** inside the engine — not a separate service or API.
+- It sits **below the optimizer**: Catalyst plans, then supported operators run in Photon; unsupported ones fall back to Spark within the same query.
+- It is **on by default** for SQL warehouses and serverless, and available as a toggle on classic compute.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☐ Developer Experience
+☑ Data Engineering
+☐ Data Governance
+☐ AI
+☐ Machine Learning
+☐ Storage
+☐ Security
+☐ Administration
+☐ Monitoring
+```
+- Core placement is **Data Engineering** — it accelerates ETL, SQL, and warehouse query execution.
+- It is infrastructure-level and transparent: no code, API, or governance changes are required to adopt it.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+|---|---|---|
+| Databricks SQL warehouse queries | ✅ | Default engine; large scan/join/aggregate speedups |
+| Large table scans with filters | ✅ | Vectorized reads and predicate pushdown on Parquet/Delta |
+| Joins and aggregations at scale | ✅ | Native hash joins and grouped aggregation are core strengths |
+| BI dashboard and ad-hoc SQL | ✅ | Lower latency raises concurrency per warehouse |
+| Delta MERGE / UPDATE / DELETE | ✅ | Photon-accelerated writes speed medallion ETL |
+| Medallion Bronze→Silver→Gold ETL | ✅ | Scan- and transform-heavy stages benefit most |
+| Structured Streaming (supported ops) | ✅ | Vectorized operators apply to streaming plans too |
+| High-concurrency serverless SQL | ✅ | Faster runtime frees slots for more parallel queries |
+| Window functions and sorts | ✅ | Vectorized implementations reduce CPU time |
+| String / date / numeric expressions | ✅ | Native expression evaluation covers common functions |
+| Wide, columnar analytical tables | ✅ | Columnar layout matches Photon's memory model |
+| Heavy Python / Scala UDF pipelines | ⚠️ | UDFs run outside Photon; forces Spark fallback |
+| Small / short queries | ⚠️ | Speedup may not offset the higher DBU rate |
+| RDD-based or legacy Spark code | ⚠️ | RDD APIs are not Photon-accelerated |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Pipelines dominated by Python UDFs | ⚠️ | UDF rows exit Photon; little to no speedup, higher rate |
+| Pure ML training on Spark ML / libraries | ❌ | Training compute is not accelerated by Photon |
+| RDD / low-level transformation code | ❌ | Photon covers SQL/DataFrame operators, not RDDs |
+| Tiny datasets and trivial queries | ⚠️ | Runtime already low; rate premium not recovered |
+| Workloads bottlenecked on I/O or network | ⚠️ | CPU acceleration cannot fix non-CPU bottlenecks |
+| Unsupported operators / data types | ⚠️ | Plan falls back to Spark; benefit is partial |
+| Cost-sensitive dev/scratch clusters | ⚠️ | Higher DBU rate without production-scale payoff |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 5 |
+| Analytics Engineers | 5 |
+| Platform Engineers | 4 |
+| Data Scientists | 3 |
+| BI Teams | 5 |
+| AI Engineers | 2 |
+| Executives | 4 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 4 |
+| Implementation Speed | 5 |
+| Governance | 3 |
+| Security | 3 |
+| Maintainability | 4 |
+| Scalability | 5 |
+| Cost Optimization | 4 |
+| Ease of Adoption | 5 |
+| Business Value | 4 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Databricks Runtime | Photon ships as part of the DBR and Photon-enabled runtimes. |
+| Apache Spark / Catalyst | Provides the query plan Photon executes and the fallback path. |
+| Delta Lake | Primary table format Photon reads and writes with accelerated ops. |
+| Databricks SQL warehouses | Ships Photon on by default as the execution engine. |
+| Serverless compute | Runs Photon transparently for SQL and jobs. |
+| Unity Catalog | Governs the data Photon queries; no Photon-specific config. |
+| Lakeflow Jobs / Pipelines | ETL orchestration whose transform stages Photon accelerates. |
+| Parquet | Columnar on-disk format aligned with Photon's vectorized reads. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Standard Spark (JVM) execution | In-Databricks | Lower DBU rate but slower on scan/join/aggregate; often higher total cost |
+| Photon off on classic compute | In-Databricks | Cheaper per DBU; appropriate for UDF-heavy or ML jobs |
+| External MPP warehouse (Snowflake, BigQuery) | External | Separate engine and storage; adds data movement and a second platform |
+| Trino / Presto | External | Open query engine; self-managed, no native Delta write acceleration |
+| DuckDB / single-node engines | External | Fast for small data on one node; no distributed scale |
+
+## 11. Strengths
+- Transparent: no code changes to adopt; enabled by configuration.
+- Large speedups on scans, joins, aggregations, sorts, and window functions.
+- Vectorized, SIMD-style execution uses modern CPUs far more fully than the JVM.
+- Accelerates Delta writes (MERGE/UPDATE/DELETE), not just reads.
+- Faster runtime frees warehouse slots, raising effective concurrency.
+- Default on SQL warehouses and serverless — no operational setup.
+- Falls back to Spark per-operator, so queries still complete when unsupported.
+- Often lowers total job cost despite the higher DBU rate.
+- Consistent memory management reduces some spill and GC pressure.
+- Benefits compound on wide, columnar analytical tables.
+
+## 12. Limitations
+- Higher DBU rate; net savings depend on realized speedup.
+- No benefit for Python/Scala UDF-bound work — data exits Photon.
+- Does not accelerate ML training or RDD-based code.
+- Operator and data-type coverage is incomplete; partial plans fall back.
+- Speedup is workload-dependent and hard to predict without testing.
+- Little gain on I/O-, network-, or small-query-bound workloads.
+- Fallback can be silent — teams may pay the premium without the benefit.
+- Available only on Photon-enabled runtimes and compute types.
+- Behavior and coverage vary by DBR version.
+- No user-tunable knobs; acceleration is automatic, not configurable.
+
+## 13. Common Mistakes
+- Enabling Photon on UDF-heavy pipelines and expecting speedups.
+- Turning it on for tiny or short queries where the rate premium dominates.
+- Comparing DBU rate alone instead of total cost (rate times runtime).
+- Not verifying via the query plan that operators actually ran in Photon.
+- Assuming ML training clusters benefit from Photon.
+- Leaving Photon on for dev/scratch clusters that never hit scale.
+- Ignoring fallback: unsupported ops quietly revert to Spark.
+- Skipping A/B measurement before rolling Photon out fleet-wide.
+
+## 14. Design Recommendations
+- ✔ Keep Photon on for SQL warehouses and serverless (the default).
+- ✔ Benchmark representative jobs both ways; compare total cost, not DBU rate.
+- ✔ Prefer native SQL/DataFrame expressions over UDFs to stay in Photon.
+- ✔ Inspect the query plan to confirm operators run natively.
+- ✔ Reserve Photon-off classic clusters for UDF-heavy or ML workloads.
+- ✔ Rewrite hot Python UDFs as SQL or built-in functions where feasible.
+- ✔ Re-test after DBR upgrades as operator coverage expands.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+|---|---|
+| SQL warehouse / BI queries | ✅ Default and clearly faster |
+| Large scan/join/aggregate ETL | ✅ Core strength |
+| Delta MERGE-heavy pipelines | ✅ Accelerated writes |
+| High-concurrency serverless SQL | ✅ Frees slots via speed |
+| Python UDF-dominated jobs | ❌ Runs outside Photon |
+| ML model training | ❌ Not accelerated |
+| Tiny / short queries | ⚠️ Rate may exceed savings |
+| Cost-sensitive dev clusters | ⚠️ Premium without payoff |
+
+## 16. Quick Comparison
+
+| Criterion | Photon | Standard Spark (JVM) | External MPP warehouse |
+|---|---|---|---|
+| Adoption effort | None (toggle) | None (default engine) | High (new platform) |
+| DBU / unit rate | Higher | Baseline | Separate pricing |
+| Scan/join/aggregate speed | Fastest | Baseline | Comparable, varies |
+| UDF / ML workloads | No benefit | Full support | Limited / N/A |
+| Data movement | None | None | Requires copy/sync |
+| Open format writes | Yes (Delta) | Yes (Delta) | Proprietary primary |
+
+## 17. Maturity
+
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High (inherits Unity Catalog) |
+| AI Readiness | Low (not an ML/AI accelerator) |
+
+## 18. Cost Considerations
+- **Licensing:** no separate license; billed through a higher Photon DBU rate. Verify current pricing.
+- **Compute:** higher rate per DBU, but fewer DBUs when runtime drops — net effect is workload-specific.
+- **Storage:** no change; Photon does not alter data layout or storage cost.
+- **Operational Overhead:** minimal — no tuning, no infrastructure to manage.
+- **Training:** near zero; adoption is transparent, though teams should learn to read plans and measure total cost.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** scan-, join-, and aggregation-heavy SQL and ETL on SQL warehouses and serverless.
+- ✔ **Avoid when:** workloads are dominated by Python/Scala UDFs, ML training, or tiny queries.
+- ✔ **Biggest benefit:** transparent runtime acceleration that often lowers total cost despite a higher rate.
+- ✔ **Biggest limitation:** the higher DBU rate delivers no payback on non-accelerated (UDF/ML) work.
+- ✔ **Overall recommendation:** leave it on by default; measure total cost per workload and keep Photon-off compute for UDF- and ML-heavy jobs.
