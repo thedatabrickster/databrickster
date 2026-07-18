@@ -1,0 +1,247 @@
+---
+sidebar_position: 20
+title: "Databricks Apps — Architecture Guide"
+description: "Host interactive Python and Node web apps inside Databricks on managed serverless compute, with workspace authentication, Unity Catalog governance, and resource binding to endpoints and warehouses."
+---
+
+# Databricks Apps
+
+## 1. Executive Summary
+
+Databricks Apps hosts interactive web applications (Streamlit, Dash, Gradio, Flask, or Node) inside the workspace on managed serverless compute, with built-in workspace authentication and governed access to data, models, and endpoints.
+
+## 2. Primary Purpose
+
+- **Why it exists:** give data and AI teams a way to ship internal apps without provisioning a separate server, login system, or network path.
+- **Business problem:** dashboards and models stay trapped in notebooks; standing up a hosted app usually means a platform team, infra tickets, and weeks of lead time.
+- **Technical problem:** removes the app-server, container, TLS, SSO, and secrets plumbing that normally sits between a prototype and a shared internal tool.
+- **Governance angle:** app identity and user identity both flow through Unity Catalog, so data access is enforced the same way it is everywhere else in the platform.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Users / Business / Analysts / Executives
+        ↓
+User Interfaces        (Databricks Apps ◀ HERE, AI/BI Dashboards, Genie, notebooks)
+        ↓
+AI & Machine Learning  (Model Serving, Agents, Vector Search)
+        ↓
+Governance / Identity  (Unity Catalog, workspace auth, OAuth on-behalf-of)
+        ↓
+Data & Compute         (SQL Warehouses, Lakeflow, Serverless)
+        ↓
+Storage                (Delta Lake, Volumes)
+```
+
+- Sits at the **presentation edge** — the front door users click, not where data is processed.
+- Binds to **resources** (serving endpoints, SQL warehouses, secrets, UC objects) rather than embedding credentials.
+- A natural front end for **agents, model endpoints, and dashboards** built elsewhere in the platform.
+- Runs on **managed serverless compute**; there is no cluster to size or keep warm for the app tier.
+
+## 4. Typical Architecture Placement
+
+```
+☑ User Interface
+☑ Developer Experience
+☐ Data Engineering
+☑ Data Governance
+☑ AI
+☐ Machine Learning
+☐ Storage
+☑ Security
+☐ Administration
+☐ Monitoring
+```
+
+- Primarily a **UI / developer-experience** layer for internal apps and agent front ends.
+- Governance and security are integral: workspace SSO plus UC-scoped app and user identities.
+- Not a data-engineering or storage component — it consumes governed data and endpoints, it does not produce them.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+|---|---|---|
+| Internal data app for a business team | ✅ | No separate server or login to build |
+| Chat/front end for a served agent or LLM | ✅ | Binds directly to a Model Serving endpoint |
+| Interactive dashboard beyond BI tiles | ✅ | Full Streamlit/Dash control over layout and logic |
+| Data-entry or write-back tool over Delta | ✅ | Governed writes via warehouse or endpoint |
+| Approval / human-in-the-loop workflow | ✅ | User identity carried through for auditability |
+| Parameterized report generator | ✅ | Query a warehouse and render on demand |
+| ML model demo for stakeholders | ✅ | Gradio/Streamlit UI in front of a served model |
+| Ops/monitoring console over UC tables | ✅ | Live queries with governed access |
+| Self-service data request portal | ✅ | Workspace auth restricts to internal users |
+| Lightweight CRUD tool for reference data | ✅ | Flask/Node app bound to a warehouse |
+| Prototype to validate an app before scale-out | ✅ | Fast path from notebook to shared URL |
+| Public / unauthenticated website | ❌ | Requires workspace login by design |
+| High-concurrency consumer-facing app | ⚠️ | Sized for internal, not internet-scale traffic |
+| Long-running background compute jobs | ⚠️ | Use Lakeflow Jobs; apps serve requests, not batches |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Public website with anonymous users | ❌ | Access is gated by workspace identity |
+| Internet-scale consumer traffic | ❌ | Managed for internal-scale concurrency |
+| Heavy CPU/GPU compute in the app process | ❌ | Offload to endpoints, warehouses, or Jobs |
+| Long-running batch/ETL pipelines | ❌ | Belongs in Lakeflow, not a request-serving app |
+| Arbitrary low-level network/socket services | ⚠️ | HTTP app model; limited protocol control |
+| Apps needing custom OS packages / root | ⚠️ | Managed runtime constrains system-level control |
+| Multi-region active-active failover UI | ⚠️ | Tied to the workspace region |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 3 |
+| Analytics Engineers | 4 |
+| Platform Engineers | 3 |
+| Data Scientists | 4 |
+| BI Teams | 3 |
+| AI Engineers | 5 |
+| Executives | 2 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 5 |
+| Implementation Speed | 5 |
+| Governance | 5 |
+| Security | 5 |
+| Maintainability | 4 |
+| Scalability | 3 |
+| Cost Optimization | 4 |
+| Ease of Adoption | 4 |
+| Business Value | 4 |
+| Innovation | 4 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Unity Catalog | Governs data, model, and object access for both app and user identity. |
+| Workspace Identity / SSO | Authenticates users and provides the app service principal. |
+| Model Serving | Backend for agent and model front ends the app calls. |
+| SQL Warehouses | Query engine apps bind to for governed reads and write-back. |
+| Serverless Compute | Managed runtime that hosts the app process. |
+| Secrets / Resources | Bound credentials and endpoint references injected at runtime. |
+| Vector Search | Retrieval backend for RAG-style app front ends. |
+| Genie / AI-BI | Embeddable conversational and dashboard capabilities. |
+| Git / Repos | Source control and CI/CD for app code and deployment. |
+| Volumes | Governed file storage for uploads and assets. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| AI/BI Dashboards | In-Databricks | Faster for pure charts; no custom app logic or write-back. |
+| Genie spaces | In-Databricks | Conversational analytics only; not a general app framework. |
+| Self-hosted on ECS / Kubernetes | External | Full control and scale; you own auth, TLS, secrets, and ops. |
+| Streamlit Community Cloud | External | Simple public hosting; no UC governance or workspace identity. |
+| Hugging Face Spaces | External | Easy ML demos; data leaves the governance boundary. |
+| Internal PaaS (Heroku-style) | External | Familiar deploy flow; separate identity and data-access plumbing. |
+| Cloud app services (App Runner, Cloud Run) | External | Scales to internet traffic; no native lakehouse governance. |
+
+## 11. Strengths
+
+- No separate app server, TLS, or SSO to build — the platform provides them.
+- Workspace authentication out of the box; only internal users reach the app.
+- Governed **on-behalf-of** identity so data access matches the logged-in user.
+- Resource binding injects endpoint/warehouse/secret references, not raw credentials.
+- Managed serverless compute — nothing to size, patch, or keep warm.
+- Supports common Python frameworks (Streamlit, Dash, Gradio, Flask) and Node.
+- Natural, low-latency front end for in-platform agents, models, and dashboards.
+- Unity Catalog lineage and permissions extend to what the app touches.
+- Fast path from notebook prototype to a shared, governed URL.
+- Git-based deployment fits standard CI/CD workflows.
+
+## 12. Limitations
+
+- Sized for internal concurrency, not internet-scale consumer traffic.
+- Requires workspace identity — no anonymous or public access.
+- Constrained managed runtime; limited OS-level and system-package control.
+- Heavy compute must be offloaded to endpoints, warehouses, or Jobs.
+- Request-serving model, not suited to long-running background work.
+- Tied to a single workspace and region — limited cross-region failover.
+- Framework and runtime versions follow platform-supported baselines.
+- App-tier scaling is coarser than a hand-tuned Kubernetes deployment.
+- Cold start can add latency after idle periods.
+- Portability is low; apps assume the Databricks resource and auth model.
+
+## 13. Common Mistakes
+
+- Embedding credentials in code instead of binding resources and secrets.
+- Confusing app service-principal identity with user identity for data access.
+- Running heavy compute in the app process rather than a serving endpoint.
+- Trying to serve public/anonymous users against a workspace-gated app.
+- Skipping Unity Catalog grants, so the app can read more than intended.
+- Using an app for batch pipelines that belong in Lakeflow Jobs.
+- Ignoring cold-start and concurrency limits when setting expectations.
+- No Git/CI pipeline — deploying by hand from a laptop.
+- Over-fetching in the app tier instead of pushing filters to the warehouse.
+- Assuming internet-scale throughput from an internal-scale service.
+
+## 14. Design Recommendations
+
+- ✔ Bind endpoints, warehouses, and secrets as resources — never hardcode keys.
+- ✔ Decide per feature whether app or user identity should govern the data call.
+- ✔ Push filtering and aggregation to SQL warehouses; keep the app tier thin.
+- ✔ Call Model Serving / Vector Search for compute rather than doing it in-process.
+- ✔ Scope Unity Catalog grants to the minimum the app needs.
+- ✔ Manage app code in Git with a CI/CD deployment path.
+- ✔ Use on-behalf-of auth when per-user row/column governance matters.
+- ✔ Reserve apps for interactive request-serving; send batch work to Jobs.
+- ✔ Test concurrency and cold-start behavior against expected internal load.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+|---|---|
+| Internal data/AI app, no separate server | ✅ Core use case |
+| Front end for an agent or model | ✅ Binds to Model Serving |
+| Custom UI beyond BI tiles | ✅ Full framework control |
+| Governed per-user data access | ✅ On-behalf-of identity |
+| Data write-back / CRUD tool | ✅ Via warehouse binding |
+| Public, unauthenticated site | ❌ Workspace login required |
+| Internet-scale consumer traffic | ❌ Internal-scale service |
+| Heavy in-process compute | ❌ Offload to endpoints/Jobs |
+| Batch / ETL pipelines | ❌ Use Lakeflow Jobs |
+| Pure charts with no app logic | ⚠️ AI/BI Dashboards may suffice |
+
+## 16. Quick Comparison
+
+| Criterion | Databricks Apps | Self-hosted (ECS/K8s) | Streamlit Cloud | Hugging Face Spaces |
+|---|---|---|---|---|
+| Managed compute | Yes (serverless) | No (you run it) | Yes | Yes |
+| Built-in auth / SSO | Yes (workspace) | DIY | Limited | Limited |
+| Lakehouse data governance | Native (UC) | Manual | None | None |
+| On-behalf-of identity | Yes | DIY | No | No |
+| Operational burden | Low | High | Low | Low |
+| Public / internet scale | No | Yes | Yes | Yes |
+
+## 17. Maturity
+
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | Medium |
+| Governance Readiness | High |
+| AI Readiness | High |
+
+## 18. Cost Considerations
+
+- **Licensing:** consumption-based via DBUs on serverless compute; no separate app license. Verify current pricing.
+- **Compute:** billed while the app runs; backend endpoint and warehouse usage is billed separately when the app calls them.
+- **Storage:** minimal for the app itself; data and assets live in Delta/Volumes and are billed there.
+- **Operational Overhead:** low — no servers, TLS, SSO, or patching to manage; effort shifts to app code and resource binding.
+- **Training:** low for teams already using Streamlit/Dash/Flask; main learning curve is the identity and resource-binding model.
+
+## 19. Executive Takeaway
+
+- ✔ **Best for:** internal data and AI apps and agent front ends that need governed data access with no separate server or login.
+- ✔ **Avoid when:** you need a public, anonymous, or internet-scale consumer application.
+- ✔ **Biggest benefit:** ship governed internal apps in days — auth, identity, and data access come from the platform.
+- ✔ **Biggest limitation:** internal-scale, workspace-gated, and low portability outside the Databricks model.
+- ✔ **Overall recommendation:** default choice for internal apps and agent UIs on Databricks; use self-hosted ECS/K8s, Streamlit Cloud, or Hugging Face Spaces only for public or internet-scale needs.

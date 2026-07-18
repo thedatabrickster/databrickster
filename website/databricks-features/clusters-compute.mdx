@@ -1,0 +1,239 @@
+---
+sidebar_position: 20
+title: "Clusters / Compute — Architecture Guide"
+description: "The classic Spark compute substrate — all-purpose and job clusters with configurable node types, autoscaling, access modes, Photon, and Databricks Runtime — that runs notebooks, jobs, ETL, and ML."
+---
+
+# Clusters / Compute
+
+## 1. Executive Summary
+Databricks clusters are the classic, provisioned Spark compute substrate — sets of driver and worker VMs running a chosen Databricks Runtime (DBR), optionally with Photon and autoscaling — that execute notebooks, jobs, ETL, and ML workloads.
+
+## 2. Primary Purpose
+- **Why it exists:** Spark workloads need a running cluster of machines; clusters provision, configure, and manage that fleet.
+- **Business problem solved:** turns raw cloud VMs into governed, right-sized, cost-controlled analytics compute without manual Spark cluster administration.
+- **Technical problem solved:** supplies a driver, autoscaling workers, a tuned DBR, libraries, access controls, and Photon acceleration as one managed unit.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Users / Notebooks / Jobs / ETL / ML
+        ↓
+Compute Layer   →→→ Clusters (driver + workers, DBR, Photon)
+        ↓
+Engine          (Apache Spark + Photon)
+        ↓
+Governance      (Unity Catalog: access modes, permissions, lineage)
+        ↓
+Table Format    (Delta Lake: transaction log + Parquet)
+        ↓
+Object Storage  (S3 / ADLS / GCS)
+```
+
+- Clusters are the **provisioned compute substrate** beneath code-first workloads.
+- **All-purpose clusters** serve interactive notebook and ad-hoc work; **job clusters** run scheduled/automated tasks.
+- Every cluster runs a **DBR** version and an **access mode** that determines Unity Catalog compatibility.
+- The classic counterpart to **serverless compute**, which removes VM management entirely.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☑ Developer Experience
+☑ Data Engineering
+☐ Data Governance
+☐ AI
+☑ Machine Learning
+☐ Storage
+☐ Security
+☑ Administration
+☐ Monitoring
+```
+- Core placement is **Data Engineering** and **Machine Learning** — the execution fleet for ETL and training.
+- **Developer Experience:** all-purpose clusters back interactive notebooks and REPL work.
+- **Administration:** node types, autoscaling, policies, and pools are configured and governed here.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+|---|---|---|
+| Interactive notebook development | ✅ | All-purpose clusters give a persistent, shared REPL |
+| Scheduled batch ETL jobs | ✅ | Job clusters spin up, run, and terminate per run |
+| Distributed ML training | ✅ | GPU node types and full library control on the driver/workers |
+| Custom libraries / init scripts required | ✅ | Classic clusters allow installs and node customization |
+| Fine-grained instance-type control | ✅ | Choose exact VM families, GPUs, local SSDs, spot mix |
+| Long-running streaming pipelines | ✅ | Dedicated clusters sustain always-on Structured Streaming |
+| Workloads needing Spark UI / driver access | ✅ | Full driver, logs, and Spark UI available |
+| Cost control across many teams | ✅ | Cluster policies + pools cap types, sizes, and idle spend |
+| Single-user ML/dev with UC + full APIs | ✅ | Single-user access mode gives broad API surface under UC |
+| Shared multi-user interactive analytics | ✅ | Shared access mode isolates users under Unity Catalog |
+| Bursty backfills and reprocessing | ✅ | Autoscaling absorbs peak worker demand |
+| Reserved-instance / spot cost optimization | ✅ | Pools and instance policies reduce VM cost |
+| Short, spiky SQL/notebook tasks | ⚠️ | Serverless may start faster and idle cheaper |
+| Simple SQL/BI serving | ⚠️ | SQL warehouses are the purpose-built path |
+| Teams wanting zero infra management | ⚠️ | Serverless compute removes VM sizing entirely |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| BI dashboards and SQL analytics | ⚠️ | SQL warehouses give better concurrency and autostart |
+| Sporadic, short interactive queries | ⚠️ | Idle classic clusters waste spend; use serverless |
+| Teams unwilling to manage VM sizing | ⚠️ | Serverless removes node-type and scaling decisions |
+| Millisecond OLTP / point lookups | ❌ | Spark compute is not a transactional store |
+| Per-request app backends | ❌ | Clusters are batch/interactive engines, not app runtimes |
+| Instant, no-warmup task startup | ⚠️ | Classic clusters incur VM provisioning latency |
+| Fully serverless-only governance mandate | ❌ | Classic clusters run customer-managed VMs by design |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 5 |
+| Analytics Engineers | 3 |
+| Platform Engineers | 5 |
+| Data Scientists | 5 |
+| BI Teams | 2 |
+| AI Engineers | 4 |
+| Executives | 2 |
+| Architects | 5 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 4 |
+| Implementation Speed | 3 |
+| Governance | 4 |
+| Security | 4 |
+| Maintainability | 3 |
+| Scalability | 5 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 3 |
+| Business Value | 4 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Apache Spark | The distributed engine clusters exist to run. |
+| Databricks Runtime (DBR) | The tuned Spark distribution and library set each cluster boots. |
+| Photon | Optional native vectorized engine enabled per cluster. |
+| Unity Catalog | Governs data access; access mode determines UC compatibility. |
+| Cluster Policies | Constrain node types, sizes, autoscaling, and tags for cost/compliance. |
+| Instance Pools | Pre-warmed VM pools that cut cluster start latency and cost. |
+| Lakeflow Jobs | Creates and manages ephemeral job clusters for scheduled tasks. |
+| Serverless Compute | The managed alternative that removes cluster/VM management. |
+| Cloud VMs / Object Storage | The underlying instances and persistence clusters consume. |
+| MLflow / ML Runtime | ML-tuned DBR and GPU clusters for training and tracking. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Serverless compute | In-Databricks managed compute | No VM sizing, fast start, idle savings; less node/library control, feature-dependent availability. |
+| SQL warehouses (incl. serverless) | In-Databricks SQL compute | Purpose-built SQL/BI concurrency and autostart; not for code-first Python/Scala ETL or custom libraries. |
+| Instance pools + classic clusters | In-Databricks compute optimization | Faster starts and lower VM cost; still requires sizing and pool management. |
+| Amazon EMR / Google Dataproc | External managed Spark | Cloud-native Spark; no Photon/DBR tuning, weaker lakehouse governance, separate ops. |
+| Self-managed OSS Spark (K8s/YARN) | External open-source | Full control, no license premium; you own patching, tuning, scaling, and governance. |
+| Single-node compute | In-Databricks small compute | Cheap for small data and light ML; no distribution beyond one machine. |
+
+## 11. Strengths
+- Full control over node types, GPUs, local storage, and spot/on-demand mix.
+- Autoscaling adjusts worker count to workload without manual resizing.
+- Job clusters isolate each run and terminate automatically after completion.
+- Custom libraries, init scripts, and environment tuning are supported.
+- Photon toggles native vectorized acceleration without code changes.
+- Access modes (single-user, shared) integrate cluster isolation with Unity Catalog.
+- Cluster policies enforce cost, tag, and configuration guardrails at scale.
+- Instance pools cut startup latency and reuse pre-warmed VMs.
+- DBR delivers pre-tuned, patched Spark with ML and GPU variants.
+- Direct Spark UI, driver logs, and metrics aid debugging and tuning.
+
+## 12. Limitations
+- VM provisioning adds startup latency versus serverless warm capacity.
+- Idle all-purpose clusters waste spend unless auto-termination is set.
+- Right-sizing node types and autoscaling ranges requires expertise.
+- No-isolation/legacy modes are not Unity Catalog compatible.
+- Some UC and newer features assume single-user or serverless compute.
+- Customer-managed VMs mean patching cadence and quota planning fall on the team.
+- Over-provisioned drivers/workers inflate cost without improving throughput.
+- Shared access mode restricts some languages/APIs (e.g., certain Scala/RDD paths).
+- Autoscaling reacts with lag; very spiky loads may over- or under-provision.
+- Managing many clusters across teams grows administrative overhead.
+
+## 13. Common Mistakes
+- Leaving all-purpose clusters running idle instead of setting auto-termination.
+- Using all-purpose clusters for scheduled jobs instead of cheaper job clusters.
+- Skipping cluster policies, letting teams pick oversized or non-compliant nodes.
+- Choosing a UC-incompatible access mode and losing governance.
+- Over-provisioning static clusters rather than enabling autoscaling.
+- Ignoring instance pools, paying full cold-start latency every run.
+- Enabling Photon expecting speedups on UDF-heavy or non-vectorizable code.
+- Pinning old DBR versions and missing performance and security patches.
+- Running interactive SQL/BI on general clusters instead of SQL warehouses.
+- Sizing the driver too small for collect-heavy or many-task workloads.
+
+## 14. Design Recommendations
+- ✔ Use job clusters for scheduled/automated work and all-purpose for interactive.
+- ✔ Enforce cluster policies to cap node types, sizes, autoscaling, and tags.
+- ✔ Set aggressive auto-termination on all-purpose clusters.
+- ✔ Choose single-user or shared access mode for full Unity Catalog compatibility.
+- ✔ Use instance pools to reduce start latency and VM cost.
+- ✔ Enable Photon for SQL/DataFrame-heavy pipelines; measure UDF-heavy cases.
+- ✔ Prefer autoscaling over static oversizing; bound min/max to the workload.
+- ✔ Evaluate serverless for spiky, short, or management-light workloads.
+- ✔ Standardize DBR versions (LTS) and patch cadence across teams.
+- ✔ Route BI/SQL to SQL warehouses, not general-purpose clusters.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+|---|---|
+| Interactive notebook development | ✅ All-purpose clusters |
+| Scheduled production ETL | ✅ Job clusters |
+| Distributed / GPU ML training | ✅ Full node and library control |
+| Custom libraries or init scripts | ✅ Classic compute supports it |
+| Fine-grained instance-type control | ✅ Choose exact VMs |
+| Zero infrastructure management | ⚠️ Serverless fits better |
+| SQL / BI serving | ⚠️ Use SQL warehouses |
+| Short, spiky interactive tasks | ⚠️ Serverless starts faster |
+| Governed access under Unity Catalog | ✅ Single-user or shared mode |
+| Millisecond OLTP lookups | ❌ Not a transactional store |
+
+## 16. Quick Comparison
+
+| Criteria | Classic clusters | Serverless compute | SQL warehouses | External Spark (EMR/Dataproc) |
+|---|---|---|---|---|
+| VM management | Customer-managed | Fully managed | Managed | Customer/cloud-managed |
+| Start latency | Provision delay | Fast (warm) | Fast (autostart) | Provision delay |
+| Node-type control | Full | Minimal/none | Minimal | Full |
+| Custom libraries / init scripts | Yes | Limited | No | Yes |
+| Photon / DBR tuning | Yes | Yes | Yes (Photon) | None |
+| Best fit | Code-first ETL/ML | Spiky, low-ops | SQL/BI | Non-Databricks Spark |
+
+## 17. Maturity
+
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High (with UC-compatible access modes) |
+| AI Readiness | High (ML Runtime + GPU node types) |
+
+## 18. Cost Considerations
+- **Licensing:** compute bills as DBUs plus underlying cloud VMs; Photon and ML/GPU runtimes carry their own rates. Verify current pricing.
+- **Compute:** dominant cost driver — scales with node type, worker count, and runtime; spot instances and autoscaling reduce spend, idle clusters waste it.
+- **Storage:** minimal for the cluster itself; costs sit in the Delta/object storage it reads and writes, plus any local SSD tiers.
+- **Operational Overhead:** moderate — sizing, policies, pools, DBR upgrades, and quota planning; higher than serverless, lower than self-managed OSS.
+- **Training:** moderate — cluster configuration, access modes, and autoscaling tuning require platform expertise to run cost-efficiently.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** code-first ETL, ML training, and interactive development needing node-type, library, and cost control.
+- ✔ **Avoid when:** workloads are SQL/BI serving, ultra-spiky, or the team wants zero infrastructure management.
+- ✔ **Biggest benefit:** granular control over compute — instance types, autoscaling, Photon, and access modes — with policy-driven cost governance.
+- ✔ **Biggest limitation:** VM provisioning latency and configuration/idle overhead versus serverless.
+- ✔ **Overall recommendation:** use classic clusters for control-heavy ETL/ML — job clusters for automation, policies and pools for cost — and shift spiky or low-ops workloads to serverless and SQL warehouses.
+
+See the full [feature catalog](/databricks-features) for related guides.

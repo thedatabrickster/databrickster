@@ -1,0 +1,228 @@
+---
+sidebar_position: 20
+title: "Compliance Security Profile — Architecture Guide"
+description: "A workspace and account setting that turns on hardened security controls and enhanced monitoring to meet regulated compliance standards such as FedRAMP, HIPAA, and PCI-DSS."
+---
+
+# Compliance Security Profile
+
+## 1. Executive Summary
+The Compliance Security Profile is a workspace/account setting that enables a bundle of hardened security controls and enhanced security monitoring so a Databricks environment can meet regulated standards such as FedRAMP Moderate/High, HIPAA, PCI-DSS, and IRAP.
+
+## 2. Primary Purpose
+- **Why it exists:** provide a one-switch, provider-attested baseline that satisfies external auditors instead of hand-assembling controls.
+- **Business problem:** regulated workloads (health, payments, government) cannot run without demonstrable, standard-aligned hardening.
+- **Technical problem:** ad-hoc hardening drifts, is hard to prove, and misses controls (FIPS crypto, image hardening, host monitoring).
+- **Scope:** applied per compliance standard at the workspace level, backed by account-level settings and enforced through control-plane policy.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Users / Admins / Auditors / Service Principals
+        ↓  (governed access)
+Account Console (settings + compliance standards)
+        ↓
+┌───────────────────────────────────────────────┐
+│  COMPLIANCE SECURITY PROFILE                    │
+│  hardened images · FIPS crypto · restricted     │
+│  controls · enhanced host + workload monitoring │
+└───────────────────────────────────────────────┘
+        ↓                          ↓
+Compute (clusters / SQL /       Enhanced Security
+serverless) run hardened        Monitoring agents
+        ↓                          ↓
+Unity Catalog + Delta (governed data, at rest/in transit)
+```
+- Sits at the **security/administration** layer — it constrains and instruments the whole environment, it does not process data.
+- Acts as a **policy envelope**: once on, compute launches with hardened images and stricter defaults.
+- Pairs enforcement (restricted controls) with evidence (enhanced monitoring, audit trail).
+- Applies beneath governance (Unity Catalog) and above raw compute and storage.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☐ Developer Experience
+☐ Data Engineering
+☐ Data Governance
+☐ AI
+☐ Machine Learning
+☐ Storage
+☑ Security
+☑ Administration
+☑ Monitoring
+```
+- Core **Security** control: hardens images, enforces FIPS-validated crypto, and restricts risky configuration.
+- **Administration** because it is enabled and scoped by account/workspace admins per standard.
+- **Monitoring** because it adds enhanced host- and workload-level security telemetry beyond audit logs.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+|---|---|---|
+| FedRAMP Moderate/High workloads | ✅ | Provides the attested control baseline required |
+| HIPAA-regulated PHI processing | ✅ | Hardening plus monitoring supports safeguards |
+| PCI-DSS cardholder data environments | ✅ | Restricted controls and FIPS crypto align to requirements |
+| Government / public-sector data platforms | ✅ | Meets IRAP/FedRAMP-style expectations |
+| Handling classified or high-sensitivity data | ✅ | Hardened images reduce host attack surface |
+| Audit-driven security posture standardization | ✅ | One consistent, provable baseline across workspaces |
+| Multi-workspace regulated estate | ✅ | Applied per workspace with account-level consistency |
+| Requiring FIPS 140-2/3 validated encryption | ✅ | Enforces validated cryptographic modules |
+| Enhanced runtime threat monitoring | ✅ | Adds host/workload security agents |
+| Contractual security-standard obligations | ✅ | Demonstrates named-standard adherence |
+| General enterprise hardening (no named regime) | ⚠️ | Works, but adds constraints you may not need |
+| Latency-sensitive workloads | ⚠️ | Monitoring and hardening add minor overhead |
+| Environments needing bleeding-edge features | ⚠️ | Some newer features/regions may be unsupported |
+| Cost-sensitive dev/test sandboxes | ⚠️ | Constraints and overhead rarely justified there |
+| Non-regulated analytics teams | ⚠️ | Restrictions can slow iteration without benefit |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Exploratory dev/test with no compliance need | ❌ | Adds constraints and cost with no return |
+| Teams needing every preview feature immediately | ❌ | Profile can lag on feature/region support |
+| Replacing data-access governance | ❌ | Not a substitute for Unity Catalog permissions |
+| Sole answer to full compliance certification | ⚠️ | Covers platform controls, not your processes |
+| Ultra low-latency real-time workloads | ⚠️ | Monitoring/hardening overhead may matter |
+| Rapidly changing multi-region rollout | ⚠️ | Region availability may constrain placement |
+| Small non-regulated startups | ⚠️ | Operational overhead outweighs benefit |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 3 |
+| Analytics Engineers | 2 |
+| Platform Engineers | 5 |
+| Data Scientists | 2 |
+| BI Teams | 2 |
+| AI Engineers | 2 |
+| Executives | 4 |
+| Architects | 5 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 2 |
+| Implementation Speed | 4 |
+| Governance | 4 |
+| Security | 5 |
+| Maintainability | 4 |
+| Scalability | 4 |
+| Cost Optimization | 2 |
+| Ease of Adoption | 4 |
+| Business Value | 4 |
+| Innovation | 2 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Account Console | Where compliance standards are selected and enforced. |
+| Unity Catalog | Governs data access alongside the hardened environment. |
+| Enhanced Security Monitoring | Adds host/workload security agents and telemetry. |
+| Audit Logs / System Tables | Provide the evidence trail auditors review. |
+| Customer-managed keys | Strengthen encryption at rest within regulated deployments. |
+| Private networking (PrivateLink/VNet) | Restrict network exposure to satisfy standards. |
+| Compute (clusters, SQL, serverless) | Launches with hardened images and restricted controls. |
+| Delta Lake | Stores governed data encrypted in transit and at rest. |
+| Cluster Policies | Complement the profile by constraining compute configuration. |
+| IP access lists / SSO | Limit and federate authenticated access to the workspace. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Manual workspace hardening | In-Databricks/manual | Full control, but drifts and is hard to attest. |
+| Cluster Policies + custom controls | In-Databricks | Constrains compute, but not a named-standard baseline. |
+| Cloud compliance tooling (Config, Defender, SCC) | External | Broad cloud coverage, but lacks Databricks-internal hardening. |
+| Separate isolated/dedicated accounts | External/architecture | Strong blast-radius isolation, but higher cost and duplication. |
+| Third-party CSPM / posture tools | External | Added detection and reporting, but another integration. |
+| GovCloud / sovereign region deployment | External/architecture | Regulatory boundary, but region and feature limits. |
+
+## 11. Strengths
+- One setting enables a provider-attested, standard-aligned control bundle.
+- Hardened base images reduce host and OS attack surface.
+- Enforces FIPS-validated cryptography for regulated encryption needs.
+- Adds enhanced security monitoring beyond standard audit logging.
+- Restricts risky configuration so environments stay within policy.
+- Consistent baseline reproducible across many workspaces.
+- Reduces manual hardening effort and configuration drift.
+- Backed by Databricks compliance attestations auditors recognize.
+- Applies per standard, so scope matches each workload's regime.
+- Integrates with Unity Catalog, CMK, and private networking.
+
+## 12. Limitations
+- Not all features or runtimes are supported under every profile.
+- Region availability is limited, especially for FedRAMP High and GovCloud.
+- Restricted controls can block workflows teams previously relied on.
+- Enhanced monitoring and hardening add compute and cost overhead.
+- Covers platform controls only — not your policies, processes, or people.
+- Enabling or changing standards can require compute restarts or recreation.
+- Some serverless and preview capabilities may be unavailable.
+- Higher-tier plans (often Enterprise) are typically required.
+- Troubleshooting is harder inside a locked-down, monitored environment.
+- Does not by itself deliver certification; auditors still assess the whole system.
+
+## 13. Common Mistakes
+- Treating the profile as full compliance rather than one control layer.
+- Enabling it in dev/test where it adds cost without benefit.
+- Not checking feature and region support before committing workloads.
+- Assuming it replaces Unity Catalog data-access governance.
+- Skipping customer-managed keys and private networking that standards expect.
+- Ignoring the added monitoring cost and operational overhead.
+- Applying the wrong standard for the actual regulatory obligation.
+- Forgetting that restricted controls may break existing automation.
+- No plan for the compute restart/recreation that enablement triggers.
+- Failing to align workspace scoping with the data's sensitivity.
+
+## 14. Design Recommendations
+- ✔ Map each workload to its actual regime before selecting a standard.
+- ✔ Enable the profile at initial workspace setup, not after go-live.
+- ✔ Pair it with Unity Catalog, CMK, private networking, and IP access lists.
+- ✔ Verify feature and region support for your required capabilities first.
+- ✔ Isolate regulated workloads in dedicated, profile-enabled workspaces.
+- ✔ Feed enhanced monitoring and audit logs into your SIEM.
+- ✔ Budget for the added monitoring and hardening overhead.
+- ✔ Document the profile as evidence within your control matrix.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+|---|---|
+| FedRAMP / HIPAA / PCI workloads | ✅ Attested baseline |
+| FIPS-validated encryption | ✅ Enforced by profile |
+| Enhanced runtime monitoring | ✅ Included agents |
+| Consistent multi-workspace hardening | ✅ Reproducible baseline |
+| Data-access governance | ❌ Use Unity Catalog |
+| Full certification on its own | ⚠️ Platform controls only |
+| Bleeding-edge feature access | ⚠️ Support may lag |
+| Dev/test sandboxes | ❌ Overhead not justified |
+| Low-latency real-time workloads | ⚠️ Minor overhead |
+| Multi-region flexibility | ⚠️ Region limits apply |
+
+## 16. Quick Comparison
+| Criterion | Compliance Security Profile | Manual hardening | Cloud compliance tooling | Separate isolated accounts |
+|---|---|---|---|---|
+| Named-standard attestation | Yes | No | Partial | Depends on setup |
+| Databricks-internal hardening | Full | Manual | Minimal | Manual |
+| Setup effort | Low | High | Medium | High |
+| Drift risk | Low | High | Medium | Medium |
+| Cost overhead | Medium | Low–Medium | Medium | High |
+| Best role | Regulated baseline | Bespoke control | Cloud posture | Blast-radius isolation |
+
+## 17. Maturity
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | High |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+- **Licensing:** typically requires a higher tier (often Enterprise) and specific standard support; verify current pricing.
+- **Compute:** hardened images and monitoring agents add modest per-node overhead versus standard compute.
+- **Storage:** minimal direct impact; encryption and CMK usage may add small key-management cost.
+- **Operational Overhead:** feature/region constraints and stricter controls increase design, testing, and support effort.
+- **Training:** security and platform teams must learn the profile's constraints, evidence, and troubleshooting patterns; assign a clear owner.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** regulated workloads (FedRAMP, HIPAA, PCI-DSS) needing an attested, hardened, monitored baseline.
+- ✔ **Avoid when:** the environment has no compliance obligation and the constraints only add cost and friction.
+- ✔ **Biggest benefit:** one setting delivers standard-aligned hardening plus enhanced monitoring across the environment.
+- ✔ **Biggest limitation:** feature and region support is constrained and it does not by itself grant certification.
+- ✔ **Overall recommendation:** enable it at setup for regulated workspaces, pair it with Unity Catalog, CMK, and private networking, and treat it as one documented layer of a broader compliance program.

@@ -1,0 +1,246 @@
+---
+sidebar_position: 20
+title: "Databricks Assistant — Architecture Guide"
+description: "Context-aware, in-product AI helper that generates, explains, and debugs code and SQL and answers workspace questions using Unity Catalog context."
+---
+
+# Databricks Assistant
+
+## 1. Executive Summary
+
+Databricks Assistant is a context-aware, in-product AI helper embedded in notebooks, the SQL editor, and the file editor that generates, explains, transforms, and debugs code and SQL and answers workspace questions using Unity Catalog metadata — a developer-productivity aid, not an autonomous agent.
+
+## 2. Primary Purpose
+
+- **Why it exists:** shorten the loop between intent and working code inside the tools developers already use.
+- **Business problem:** authoring, fixing, and understanding data code is slow and depends on tribal knowledge of schemas and past work.
+- **Technical problem:** developers lack schema-aware, in-context help; generic assistants do not know the workspace's tables, columns, or errors.
+- **What it is not:** a background agent that runs jobs or takes actions on its own — it drafts, a human reviews and executes.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Developers / Analysts / Data Engineers
+        ↓
+Developer Experience   (Databricks Assistant ◀ HERE, Notebooks, SQL Editor, File Editor)
+        ↓
+Governance / Context   (Unity Catalog metadata, lineage, table & column names)
+        ↓
+Compute                (Clusters, SQL Warehouses, Serverless)
+        ↓
+Data Engineering / SQL (Spark, Lakeflow, Databricks SQL)
+        ↓
+Storage                (Delta Lake, Volumes)
+```
+
+- Sits in the **developer-experience** layer — an authoring aid that produces code a human runs.
+- Reads **Unity Catalog** metadata (table/column names, comments, types) to ground suggestions; does not sit in the query execution path.
+- Invoked inline where work happens: notebook cells, SQL editor, file editor, and error diagnostics.
+- Output is **editable code and explanations**, never a silent action against data.
+
+## 4. Typical Architecture Placement
+
+```
+☐ User Interface
+☑ Developer Experience
+☐ Data Engineering
+☐ Data Governance
+☑ AI
+☐ Machine Learning
+☐ Storage
+☐ Security
+☐ Administration
+☐ Monitoring
+```
+
+- Primarily a **developer-experience / AI** capability — assists authoring, does not own runtime or governance.
+- Governance and privacy of prompts are inherited from Unity Catalog and workspace admin controls, not defined here.
+- Not a data-engineering, serving, or administration component; it accelerates the humans working in those layers.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+|---|---|---|
+| Draft a SQL query against known UC tables | ✅ | Schema-aware; uses real table and column names |
+| Explain an unfamiliar query or notebook cell | ✅ | Plain-language summary of intent and logic |
+| Debug a failed cell or SQL error | ✅ | Reads the error and suggests a fix inline |
+| Generate boilerplate PySpark / pandas code | ✅ | Fast first draft the developer refines |
+| Transform or refactor an existing snippet | ✅ | In-place edits to selected code |
+| Add comments or docstrings to code | ✅ | Speeds documentation of existing work |
+| Convert SQL to PySpark or vice versa | ✅ | Reduces manual translation effort |
+| Answer "how do I…" workspace questions | ✅ | In-product help without leaving the editor |
+| Optimize a slow query or suggest joins | ⚠️ | Suggestions need review against real plans |
+| Discover which table holds a given field | ⚠️ | Grounded in UC metadata, still verify lineage |
+| Onboard a new engineer to a codebase | ⚠️ | Explanations help; not a substitute for docs |
+| Write unit tests for a function | ⚠️ | Useful drafts; coverage must be checked |
+| Generate a full multi-file pipeline | ⚠️ | Better for snippets than end-to-end builds |
+| Author production DDL / migrations unreviewed | ❌ | Always human-review schema changes |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Autonomous execution of jobs or actions | ❌ | Not an agent; drafts only, human runs |
+| Applying suggestions to prod without review | ❌ | Output can be wrong or unsafe |
+| Business-user natural-language analytics | ⚠️ | Use Genie; Assistant targets developers |
+| Building a customer-facing chatbot | ❌ | Use Agent Framework / Model Serving |
+| Large-scale batch code generation | ❌ | Interactive aid, not a pipeline |
+| Reasoning over row-level data content | ⚠️ | Uses metadata, not full table contents |
+| Sole source of truth for correctness | ❌ | Suggestions require validation and testing |
+| Governed model comparison / prompt eval | ⚠️ | Use AI Playground and MLflow evaluation |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 5 |
+| Analytics Engineers | 5 |
+| Platform Engineers | 3 |
+| Data Scientists | 4 |
+| BI Teams | 3 |
+| AI Engineers | 3 |
+| Executives | 1 |
+| Architects | 2 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 5 |
+| Implementation Speed | 5 |
+| Governance | 4 |
+| Security | 4 |
+| Maintainability | 3 |
+| Scalability | 3 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 5 |
+| Business Value | 4 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| Unity Catalog | Supplies table/column metadata and comments that ground suggestions and scope what the user can see. |
+| Notebooks | Primary surface for code generation, explanation, and inline fixes. |
+| SQL Editor / Databricks SQL | Surface for schema-aware query authoring and error help. |
+| File Editor | Enables assistance in `.py`, `.sql`, and other workspace files. |
+| Catalog Explorer | Shares the metadata layer the Assistant reasons over. |
+| Clusters / SQL Warehouses | Execute the code the Assistant drafts once a human runs it. |
+| Git / Repos | Where reviewed, Assistant-drafted code is versioned. |
+| Workspace Admin / Account Console | Enables or disables the feature and controls data-use settings. |
+| Foundation Models (backing LLM) | Provide the generation capability behind the Assistant. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| Genie | In-Databricks | Natural-language BI for business users; not code-focused developer help. |
+| AI Playground | In-Databricks | Model/prompt prototyping surface; no inline editor assistance. |
+| GitHub Copilot | External | Broad IDE code completion, but no Unity Catalog schema awareness or workspace context. |
+| Claude Code / AI coding CLIs | External | Powerful multi-file, agentic coding in the terminal; not embedded in the Databricks workspace or UC-aware. |
+| Generic chatbots (ChatGPT, etc.) | External | Flexible Q&A, but no workspace context and prompts leave governed boundaries. |
+| IDE plugins + Databricks Connect | External | Local dev flexibility, but assistance is generic, not schema-grounded. |
+
+## 11. Strengths
+
+- Embedded where work happens — no context switch out of the editor.
+- Unity Catalog awareness grounds SQL in real table and column names.
+- Inline error diagnosis and one-click fix suggestions.
+- Explains unfamiliar code and queries in plain language.
+- Fast boilerplate and refactor drafts across SQL, PySpark, and pandas.
+- Access is scoped by the user's existing UC permissions.
+- No separate setup or keys for developers to manage.
+- Answers workspace "how-to" questions without leaving the product.
+- Lowers onboarding friction for new engineers and analysts.
+- Governed prompt handling keeps context inside the platform boundary.
+
+## 12. Limitations
+
+- Not autonomous — cannot run jobs or take actions on its own.
+- Suggestions can be incorrect and always require human review.
+- Reasons over metadata, not full row-level table contents.
+- Best on focused snippets; weaker on large multi-file builds.
+- Optimization advice is heuristic, not plan-verified.
+- Quality depends on UC metadata quality (comments, naming).
+- Not a governed evaluation surface for models or prompts.
+- Feature availability and model backing vary by region and tier.
+- Admin data-use and privacy settings must be configured deliberately.
+- Not aimed at business users doing self-service analytics.
+
+## 13. Common Mistakes
+
+- Treating output as correct without review or testing.
+- Applying generated DDL or migrations directly to production.
+- Expecting agent-like autonomous execution of tasks.
+- Assuming it reads full table data rather than metadata.
+- Using it for business-user analytics instead of Genie.
+- Ignoring poor UC comments/naming, then blaming weak suggestions.
+- Pasting sensitive external data into prompts without checking policy.
+- Skipping admin review of data-use and privacy settings before rollout.
+- Relying on it for architecture decisions it cannot validate.
+- Not committing reviewed output to Git, losing traceability.
+
+## 14. Design Recommendations
+
+- ✔ Invest in Unity Catalog comments and consistent naming to improve grounding.
+- ✔ Review the admin data-use and privacy settings before enabling org-wide.
+- ✔ Treat every suggestion as a draft — review, test, then run.
+- ✔ Route business-user questions to Genie, developer help to the Assistant.
+- ✔ Commit reviewed, Assistant-drafted code to Git/Repos.
+- ✔ Set clear team norms on what may be pasted into prompts.
+- ✔ Use it for snippets and fixes; use dedicated tools for full builds.
+- ✔ Pair with Catalog Explorer so metadata stays discoverable and accurate.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+|---|---|
+| In-notebook code generation | ✅ Core use case |
+| Schema-aware SQL authoring | ✅ Uses UC metadata |
+| Error debugging in editor | ✅ Inline fix suggestions |
+| Code explanation / onboarding | ✅ Plain-language summaries |
+| Developer productivity | ✅ Primary intent |
+| Governed prompt handling | ✅ Within platform controls |
+| Business-user analytics | ⚠️ Prefer Genie |
+| Query optimization | ⚠️ Review suggestions |
+| Autonomous task execution | ❌ Not an agent |
+| Production changes unreviewed | ❌ Always human-review |
+| Customer-facing AI app | ❌ Use Agent Framework |
+
+## 16. Quick Comparison
+
+| Criterion | Databricks Assistant | GitHub Copilot | Claude Code / AI CLI | Generic chatbot |
+|---|---|---|---|---|
+| Unity Catalog schema awareness | Native | None | None | None |
+| Embedded in Databricks workspace | Yes | No (IDE) | No (terminal) | No |
+| Permission-scoped by UC | Yes | No | No | No |
+| Multi-file / agentic coding | No | Partial | Yes | No |
+| Prompt data stays in platform | Yes | Depends | Depends | No |
+| Setup for developers | None | Plugin | Install | Account |
+
+## 17. Maturity
+
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | Medium (assist, not runtime) |
+| Governance Readiness | High |
+| AI Readiness | High |
+
+## 18. Cost Considerations
+
+- **Licensing:** included with the workspace; no separate SKU for core use. Verify current pricing.
+- **Compute:** the code it drafts consumes cluster or warehouse compute only when a human runs it; the Assistant itself is low-overhead.
+- **Storage:** negligible — no persistent artifacts beyond code the developer saves.
+- **Operational Overhead:** minimal — no infra to run; effort is admin configuration and UC metadata hygiene.
+- **Training:** low — developers self-serve; teams should still set norms on review and prompt content. Verify regional feature availability.
+
+## 19. Executive Takeaway
+
+- ✔ **Best for:** accelerating developers and analysts writing, explaining, and debugging code and SQL inside the workspace.
+- ✔ **Avoid when:** you need autonomous execution, business-user analytics (use Genie), or unreviewed production changes.
+- ✔ **Biggest benefit:** Unity Catalog-aware, in-product assistance that boosts productivity without leaving the editor.
+- ✔ **Biggest limitation:** not an agent — every suggestion is a draft that requires human review and testing.
+- ✔ **Overall recommendation:** enable broadly after checking privacy settings and metadata quality; treat it as a productivity aid alongside Git review, not a replacement for engineering judgment.

@@ -1,0 +1,235 @@
+---
+sidebar_position: 20
+title: "Databricks CLI — Architecture Guide"
+description: "Unified command-line interface for managing workspace and account resources, authentication profiles, and deploying Asset Bundles."
+---
+
+# Databricks CLI
+
+## 1. Executive Summary
+
+The Databricks CLI is a single, cross-platform command-line tool that wraps the Databricks REST APIs and drives Asset Bundles (DABs), giving developers and CI systems a scriptable, profile-authenticated surface over workspace and account resources.
+
+## 2. Primary Purpose
+
+- **Why it exists:** provide one consistent, automatable entry point to Databricks that works identically on a laptop and inside CI/CD.
+- **Business problem solved:** manual, click-driven workspace changes are unrepeatable, unauditable, and hard to promote across environments.
+- **Technical problem solved:** stable auth (OAuth/token profiles), consistent command coverage of the REST API, and declarative deployment of jobs, pipelines, and other assets via bundles.
+- **Scope note:** it is a *client and orchestration surface*, not a runtime — it deploys and triggers work; compute and data live in the workspace.
+
+## 3. Where It Fits in the Lakehouse
+
+```text
+Developer / CI Runner → Databricks CLI → Auth Profile (OAuth/PAT) → REST API → Workspace/Account → Jobs, Pipelines, UC, Delta
+   (local or pipeline)     (commands)        (~/.databrickscfg)      (HTTPS)     (control plane)     (deployed assets)
+```
+
+- Sits in the **Developer Experience / Administration** layer — outside compute, in front of the control plane.
+- The delivery mechanism for **Asset Bundles**: `bundle validate/deploy/run` promote code and config across dev, staging, and prod.
+- The scripting layer beneath IDE extensions, Terraform runs, and CI jobs that call Databricks.
+- Manages resources (jobs, clusters, secrets, UC objects) but does not process data itself.
+
+## 4. Typical Architecture Placement
+
+```
+☐ User Interface
+☑ Developer Experience
+☐ Data Engineering
+☐ Data Governance
+☐ AI
+☐ Machine Learning
+☐ Storage
+☐ Security
+☑ Administration
+```
+
+- Primary home is **Developer Experience** — the automation and scripting surface for building and deploying on Databricks.
+- Strong **Administration** role: manages profiles, workspaces, service principals, secrets, and account-level resources from scripts.
+
+## 5. Ideal Use Cases
+
+| Scenario | Recommended | Why |
+|---|---|---|
+| CI/CD deployment of jobs and pipelines | ✅ | `bundle deploy` is purpose-built for promotion |
+| Promoting assets across dev/staging/prod | ✅ | Bundle targets parameterize per environment |
+| Scripting repeatable workspace setup | ✅ | Every REST resource has a command |
+| Triggering and monitoring job runs from CI | ✅ | `bundle run` / `jobs run-now` return run state |
+| Managing auth profiles for multiple workspaces | ✅ | `~/.databrickscfg` profiles, OAuth U2M/M2M |
+| Uploading/syncing local code to workspace | ✅ | `sync` mirrors a directory continuously |
+| Managing secrets and scopes | ✅ | Scriptable `secrets` commands |
+| Bulk import/export of notebooks | ✅ | `workspace import-dir` / `export-dir` |
+| Automating Unity Catalog object creation | ✅ | `catalogs`, `schemas`, `grants` commands |
+| Quick ad-hoc REST calls | ✅ | `api` passthrough for uncovered endpoints |
+| Local dev loop for a bundle project | ✅ | `bundle validate` + `deploy --target dev` |
+| Account-level admin (workspaces, SCIM) | ⚠️ | Supported, but Terraform often preferred at scale |
+| Interactive data exploration | ⚠️ | Use SQL editor, notebooks, or Genie instead |
+| One-off tasks by non-developers | ⚠️ | UI is friendlier for non-scripting users |
+| Fine-grained infra-as-code with state | ⚠️ | Terraform provider gives drift detection |
+
+## 6. Poor Fit
+
+| Scenario | Avoid? | Reason |
+|---|---|---|
+| Running SQL queries interactively | ❌ | Use SQL editor, DBSQL, or Genie |
+| Data transformation / ETL logic | ❌ | CLI orchestrates; Spark/Lakeflow execute |
+| Full multi-cloud infra state management | ⚠️ | Terraform provider tracks and reconciles drift |
+| Business-user self-service | ❌ | Requires shell and credential handling |
+| Complex conditional deploy logic | ⚠️ | Wrap in CI scripting or use SDKs directly |
+| Programmatic use inside app code | ⚠️ | Call the SDKs, not a subprocess CLI |
+| Real-time streaming control | ❌ | Not a runtime; manages definitions only |
+
+## 7. Best Suited For
+
+| Role | Fit (1–5) |
+|---|---|
+| Data Engineers | 5 |
+| Analytics Engineers | 4 |
+| Platform Engineers | 5 |
+| Data Scientists | 3 |
+| BI Teams | 2 |
+| AI Engineers | 3 |
+| Executives | 1 |
+| Architects | 4 |
+
+## 8. Enterprise Value
+
+| Dimension | Rating (1–5) |
+|---|---|
+| Developer Productivity | 5 |
+| Implementation Speed | 4 |
+| Governance | 3 |
+| Security | 4 |
+| Maintainability | 4 |
+| Scalability | 4 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 4 |
+| Business Value | 3 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+
+| Depends on / Works with | Role (one sentence) |
+|---|---|
+| REST API | The CLI is a typed wrapper over the workspace and account REST endpoints. |
+| Asset Bundles (DABs) | Declarative project format the CLI validates, deploys, and runs. |
+| OAuth / Identity | Provides U2M and M2M token issuance for profile-based auth. |
+| Unity Catalog | Target for governed resource creation and grants via commands. |
+| Lakeflow Jobs | Deployed and triggered as bundle resources. |
+| Lakeflow Declarative Pipelines | Defined in bundles and deployed/run through the CLI. |
+| Git / Repos | Bundles live in Git; CI checks out and deploys from source. |
+| Secrets | Managed through scriptable scope and secret commands. |
+| Service Principals | Recommended non-human identity for CI authentication. |
+| MLflow / Model Serving | Models and endpoints can be declared as bundle resources. |
+
+## 10. Architecture Alternatives
+
+| Alternative | Type | Trade-off vs this feature |
+|---|---|---|
+| REST API directly | Native | Maximum control; you build auth, retries, and pagination yourself. |
+| SDKs (Python, Go, Java, JS) | Native | Best for embedding in app code; more boilerplate than a shell command. |
+| Terraform Databricks provider | External IaC | State tracking and drift detection; steeper setup, slower inner loop. |
+| Pulumi | External IaC | IaC in general-purpose languages; smaller Databricks ecosystem. |
+| IDE extensions (VS Code) | Native | Friendly local UX built on the CLI; less suited to headless CI. |
+| Workspace UI | Native | Fast for one-offs; not repeatable or version-controlled. |
+| dbx (legacy) | Deprecated | Superseded by Asset Bundles; avoid for new projects. |
+
+## 11. Strengths
+
+- Single tool covering nearly all workspace and account REST resources.
+- Asset Bundles bring declarative, environment-parameterized deployment.
+- Modern OAuth (U2M interactive, M2M service principal) plus legacy PAT support.
+- Named profiles in `~/.databrickscfg` for multi-workspace and multi-account work.
+- Cross-platform single binary; simple install in CI images.
+- `api` passthrough reaches endpoints not yet wrapped as commands.
+- `--output json` makes results easy to pipe into `jq` and scripts.
+- `sync` gives a fast local-to-workspace inner loop.
+- Consistent auth model shared with the SDKs and Terraform provider.
+- Actively developed; command coverage tracks new platform features.
+
+## 12. Limitations
+
+- No state tracking or drift detection — not a replacement for Terraform.
+- Bundle behavior can differ across CLI versions; pin versions in CI.
+- Imperative scripts can drift from actual workspace state over time.
+- Error messages from the underlying API can be terse.
+- Account-level command coverage lags workspace-level coverage.
+- Complex conditional logic pushes you toward SDKs or wrapper scripts.
+- OAuth setup (app registration, redirect) adds first-time friction.
+- No built-in secret vault; relies on env vars or the platform secret store.
+- Bundle schema evolves; older projects may need migration.
+- Not designed for interactive data or query workflows.
+
+## 13. Common Mistakes
+
+- Hardcoding PATs in scripts instead of OAuth M2M or CI secret stores.
+- Not pinning the CLI version, causing non-reproducible bundle deploys.
+- Confusing the legacy CLI (0.x) with the unified CLI; use the current one.
+- Treating the CLI as IaC and expecting drift reconciliation.
+- Deploying to prod with the same profile/identity used for dev.
+- Skipping `bundle validate` before `deploy` in CI.
+- Committing `.databrickscfg` or tokens to Git.
+- Running bundles as a personal user instead of a service principal in CI.
+- Over-scripting REST calls that a single bundle resource could express.
+
+## 14. Design Recommendations
+
+- ✔ Standardize on Asset Bundles for anything promoted across environments.
+- ✔ Use OAuth M2M with service principals for all CI authentication.
+- ✔ Pin the CLI version in CI images and bundle projects.
+- ✔ Define one bundle target per environment (dev/staging/prod).
+- ✔ Run `bundle validate` as a required CI check before deploy.
+- ✔ Store secrets in the platform secret store or CI vault, never in config.
+- ✔ Use `--output json` and parse results for reliable automation.
+- ✔ Reserve Terraform for account/infra with drift needs; CLI for asset delivery.
+
+## 15. Decision Matrix
+
+| Requirement | Use this feature? |
+|---|---|
+| Developer productivity / automation | ✅ Core purpose |
+| CI/CD asset deployment | ✅ Bundles built for this |
+| Environment promotion | ✅ Bundle targets |
+| Interactive SQL development | ❌ Use SQL editor / Genie |
+| ETL execution | ❌ CLI orchestrates only |
+| Infra state + drift detection | ⚠️ Terraform is stronger |
+| Embedding in application code | ⚠️ Prefer the SDKs |
+| Ad-hoc REST access | ✅ `api` passthrough |
+| Multi-workspace administration | ✅ Profiles + commands |
+| Business-user self-service | ❌ Not a UI |
+
+## 16. Quick Comparison
+
+| Criteria | Databricks CLI | REST API | SDKs | Terraform Provider |
+|---|---|---|---|---|
+| Primary use | Scripting + bundle deploy | Raw programmatic access | In-app integration | Infra as code |
+| Auth handling | Built-in profiles/OAuth | Manual | Built-in | Built-in |
+| State / drift | None | None | None | Tracked |
+| Inner-loop speed | Fast | Medium | Medium | Slow |
+| Learning curve | Low | Medium | Medium | Medium-High |
+| Best for | Dev + CI delivery | Custom clients | App code | Governed infra |
+
+## 17. Maturity
+
+| Dimension | Rating |
+|---|---|
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | Medium |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+
+- **Licensing:** the CLI itself is free; you pay only for the workspace resources it manages. Verify current pricing.
+- **Compute:** no cost to run commands; deployed jobs/clusters incur normal DBU and cloud charges.
+- **Storage:** negligible; bundle artifacts and synced files consume workspace/object storage.
+- **Operational Overhead:** version pinning, profile management, and OAuth setup are the main recurring effort.
+- **Training:** low for developers familiar with CLIs; bundle concepts and auth models need brief onboarding.
+
+## 19. Executive Takeaway
+
+- ✔ **Best for:** teams automating Databricks delivery through scripts and CI/CD with Asset Bundles.
+- ✔ **Avoid when:** you need infra state tracking and drift detection — reach for Terraform.
+- ✔ **Biggest benefit:** one consistent, profile-authenticated surface over the whole platform.
+- ✔ **Biggest limitation:** it is imperative and stateless, not a reconciling IaC engine.
+- ✔ **Overall recommendation:** adopt as the default developer and CI automation tool, paired with Terraform where governed infra state is required.

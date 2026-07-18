@@ -1,0 +1,223 @@
+---
+sidebar_position: 20
+title: "Databricks Asset Bundles (DABs) — Architecture Guide"
+description: "Declarative infrastructure-as-code for packaging, versioning, and deploying Databricks jobs, pipelines, and resources across dev and prod targets via CLI and Git."
+---
+
+# Databricks Asset Bundles (DABs)
+
+## 1. Executive Summary
+Databricks Asset Bundles (DABs) are the native infrastructure-as-code format that packages Databricks resources — jobs, pipelines, model endpoints, apps, and their code — into a versioned `databricks.yml` project deployed to per-environment targets (dev/staging/prod) via the Databricks CLI and Git-based CI/CD.
+
+## 2. Primary Purpose
+- **Why it exists:** replace click-ops and ad-hoc REST scripts with a declarative, reviewable definition of Databricks resources.
+- **Business problem:** manually built jobs/pipelines drift between environments, aren't auditable, and can't be reliably promoted dev → prod.
+- **Technical problem:** package source code plus resource config together, parameterize per environment, and deploy atomically and repeatably from CI.
+- **Positioning:** the Databricks-recommended IaC path for application-level resources; complements (not replaces) Terraform for account/workspace provisioning.
+
+## 3. Where It Fits in the Lakehouse
+```text
+Developer / Git Repo
+        ↓
+databricks.yml (bundle definition + targets)
+        ↓
+Databricks CLI  (validate → deploy → run)
+        ↓
+Workspace Resources → Lakeflow Jobs · Pipelines · Model Serving · Apps · Volumes
+        ↓
+Unity Catalog (governance, lineage)
+        ↓
+Delta Lake
+```
+- Sits in the **deployment / developer-experience layer**, above the resources it provisions and below the Git/CI system that drives it.
+- Declares resources but does not run workloads itself — it deploys definitions the platform executes.
+- Deployed artifacts (code, config) land in the workspace file system and are governed by Unity Catalog.
+
+## 4. Typical Architecture Placement
+```
+☐ User Interface
+☑ Developer Experience
+☑ Data Engineering
+☐ Data Governance
+☐ AI
+☐ Machine Learning
+☐ Storage
+☐ Security
+☑ Administration
+☐ Monitoring
+```
+- Primarily a **Developer Experience** capability — brings source control, review, and CI/CD to Databricks resources.
+- Supports **Data Engineering** by packaging jobs and pipelines as deployable units.
+- Touches **Administration** through repeatable, environment-scoped deployments and permission assignment.
+
+## 5. Ideal Use Cases
+| Scenario | Recommended | Why |
+| --- | --- | --- |
+| Promote jobs/pipelines dev → prod | ✅ | Per-target config with one source of truth |
+| CI/CD from GitHub/Azure DevOps/GitLab | ✅ | CLI deploy fits any pipeline runner |
+| Version-controlled resource definitions | ✅ | Config lives in Git, peer-reviewed |
+| Multi-environment parameterization | ✅ | Targets + variables override per environment |
+| Packaging Python wheels with jobs | ✅ | Artifacts built and uploaded on deploy |
+| Deploying Lakeflow Declarative Pipelines | ✅ | First-class pipeline resource type |
+| Deploying Model Serving endpoints | ✅ | Declarative endpoint resource |
+| Deploying Databricks Apps | ✅ | App resource bundled with code |
+| Team standardization via templates | ✅ | `bundle init` scaffolds consistent projects |
+| Reproducible dev workspaces per user | ✅ | Dev target isolates per-user deployments |
+| Ephemeral test/PR environments | ✅ | Spin up and tear down targets in CI |
+| Scheduling jobs as code | ✅ | Schedules and triggers declared in YAML |
+| Account/workspace provisioning | ⚠️ | Terraform provider is the better fit |
+| Managing Unity Catalog grants at scale | ⚠️ | Partial support; Terraform more complete |
+| One-off exploratory notebooks | ⚠️ | IaC overhead not justified |
+
+## 6. Poor Fit
+| Scenario | Avoid? | Reason |
+| --- | --- | --- |
+| Provisioning workspaces, metastores, networking | ❌ | Use the Terraform provider for account-level infra |
+| Ad-hoc interactive exploration | ❌ | No benefit from packaging one-off work |
+| Managing non-Databricks cloud resources | ❌ | DABs scope is Databricks resources only |
+| Full org-wide governance/grants management | ⚠️ | Coverage narrower than Terraform |
+| Teams with no Git or CI discipline | ⚠️ | Value depends on source control workflow |
+| Pure dbt model deployment | ⚠️ | dbt handles models; DABs orchestrates around them |
+
+## 7. Best Suited For
+| Role | Fit (1–5) |
+| --- | --- |
+| Data Engineers | 5 |
+| Analytics Engineers | 4 |
+| Platform Engineers | 5 |
+| Data Scientists | 3 |
+| BI Teams | 2 |
+| AI Engineers | 4 |
+| Executives | 2 |
+| Architects | 5 |
+
+## 8. Enterprise Value
+| Dimension | Rating (1–5) |
+| --- | --- |
+| Developer Productivity | 4 |
+| Implementation Speed | 4 |
+| Governance | 4 |
+| Security | 3 |
+| Maintainability | 5 |
+| Scalability | 4 |
+| Cost Optimization | 3 |
+| Ease of Adoption | 3 |
+| Business Value | 4 |
+| Innovation | 3 |
+
+## 9. Architecture Dependencies
+| Depends on / Works with | Role (one sentence) |
+| --- | --- |
+| Databricks CLI | Executes validate, deploy, run, and destroy commands. |
+| Git / Repos | Stores bundle source and drives review and CI/CD. |
+| Lakeflow Jobs | Common deployed resource — schedules and DAGs as code. |
+| Lakeflow Declarative Pipelines | Declared and deployed as bundle pipeline resources. |
+| Model Serving | Endpoints defined and promoted through targets. |
+| Databricks Apps | App code and config packaged as a bundle resource. |
+| Unity Catalog | Governs deployed artifacts, models, and data access. |
+| MLflow | Models and experiments referenced by deployed resources. |
+| Serverless / Job Clusters | Compute targets referenced in resource definitions. |
+| Service Principals | Identity used for non-interactive prod deployments. |
+| Secret Scopes | Supply credentials referenced by deployed resources. |
+
+## 10. Architecture Alternatives
+| Alternative | Type | Trade-off vs this feature |
+| --- | --- | --- |
+| Terraform Databricks provider | External IaC | Broader account/infra scope; more verbose, no app-code packaging or bundled build |
+| REST API / SDK scripts | Custom scripting | Maximum control; you build idempotency, state, and promotion yourself |
+| Manual UI (click-ops) | Interactive | Fast to start; no versioning, review, or reproducible promotion |
+| dbt projects | Modeling framework | Owns SQL model deploys; does not manage jobs, endpoints, or apps |
+| dbx (legacy) | Predecessor tool | Superseded by DABs; no longer recommended for new work |
+| CI-invoked notebooks | Imperative | Simple but drifts; no declarative diff or teardown |
+
+## 11. Strengths
+- Declarative single source of truth for Databricks resources in Git.
+- Per-target parameterization (variables, overrides) for clean dev/prod separation.
+- Native, first-party — tracks new resource types as the platform evolves.
+- `validate` catches config errors before deploy; `deploy` is repeatable and idempotent.
+- Packages application code (wheels, notebooks) alongside resource config.
+- Fits any CI/CD runner through the CLI; no proprietary orchestrator required.
+- Per-user dev targets isolate developer deployments automatically.
+- Templates (`bundle init`) standardize project structure across teams.
+- Clean teardown via `bundle destroy` for ephemeral environments.
+- Service-principal deployment supports non-interactive, auditable prod releases.
+
+## 12. Limitations
+- Scope is Databricks resources — not workspaces, metastores, or cloud networking.
+- No rich state/plan model like Terraform; drift detection is limited.
+- Unity Catalog grant/governance coverage is narrower than the Terraform provider.
+- YAML complexity grows with variables, targets, and includes on large projects.
+- Debugging deploy failures can mean reading CLI output and workspace state.
+- Newer resource types may lag full bundle support at release.
+- Requires CLI version discipline; behavior can shift across CLI releases.
+- No native secret management — relies on secret scopes and external stores.
+- Rollback is redeploy-a-prior-commit, not an automatic snapshot revert.
+- Learning curve for teams new to IaC and Git-based workflows.
+
+## 13. Common Mistakes
+- Hardcoding environment values instead of using targets and variables.
+- Deploying prod with a personal user identity rather than a service principal.
+- Committing secrets into `databricks.yml` instead of secret scopes.
+- Skipping `bundle validate` in CI, letting bad config reach the workspace.
+- Editing deployed jobs in the UI, causing drift from the bundle.
+- Overusing DABs for account-level infra that belongs in Terraform.
+- One giant bundle for the whole org instead of scoped, team-owned bundles.
+- Pinning no CLI version, so CI behavior changes silently across runs.
+
+## 14. Design Recommendations
+- ✔ Keep one bundle per deployable unit or team domain, not one per org.
+- ✔ Use `dev`, `staging`, `prod` targets with variables for all environment differences.
+- ✔ Deploy prod via a service principal in CI, never an interactive user.
+- ✔ Run `validate` on every pull request; `deploy` only on protected branches.
+- ✔ Pin the Databricks CLI version in CI for reproducible deploys.
+- ✔ Store secrets in secret scopes and reference them, never inline.
+- ✔ Reserve Terraform for workspace/metastore/network; DABs for resources.
+- ✔ Use `bundle init` templates to enforce structure across new projects.
+
+## 15. Decision Matrix
+| Requirement | Use this feature? |
+| --- | --- |
+| Version-controlled Databricks resources | ✅ Core purpose |
+| Dev → prod promotion | ✅ Targets built for it |
+| CI/CD automation | ✅ CLI fits any runner |
+| Packaging code with jobs | ✅ Artifacts on deploy |
+| Deploying pipelines and endpoints | ✅ First-class resources |
+| Workspace/account provisioning | ❌ Use Terraform provider |
+| Full UC governance management | ⚠️ Partial; prefer Terraform |
+| One-off notebook work | ❌ IaC overhead unjustified |
+| SQL model transformations | ⚠️ dbt owns models |
+| Multi-cloud non-Databricks infra | ❌ Out of scope |
+
+## 16. Quick Comparison
+| Criterion | DABs | Terraform provider | REST/SDK scripts | Manual UI |
+| --- | --- | --- | --- | --- |
+| Declarative | Yes | Yes | No | No |
+| Native to Databricks | Yes | Partner-maintained | Yes | Yes |
+| Packages app code | Yes | No | Custom | No |
+| Account/infra scope | No | Yes | Yes | Limited |
+| State / plan model | Limited | Strong | None | None |
+| CI/CD fit | Strong | Strong | Custom | Poor |
+| Learning curve | Medium | High | Medium | Low |
+
+## 17. Maturity
+| Dimension | Rating |
+| --- | --- |
+| Technology Readiness | High |
+| Enterprise Readiness | High |
+| Production Readiness | High |
+| Governance Readiness | Medium |
+| AI Readiness | Medium |
+
+## 18. Cost Considerations
+- **Licensing:** DABs and the Databricks CLI carry no separate license fee; verify current pricing.
+- **Compute:** cost comes from the deployed resources (jobs, pipelines, endpoints), not from bundles themselves.
+- **Storage:** minimal — deployed artifacts and config in the workspace file system.
+- **Operational Overhead:** authoring and maintaining YAML, CI pipelines, and CLI version management.
+- **Training:** upfront investment for teams new to IaC and Git-based deployment workflows.
+
+## 19. Executive Takeaway
+- ✔ **Best for:** teams promoting jobs, pipelines, and endpoints dev → prod through Git-based CI/CD.
+- ✔ **Avoid when:** provisioning workspaces or account-level infra — use the Terraform provider instead.
+- ✔ **Biggest benefit:** one declarative, version-controlled source of truth that ends click-ops drift.
+- ✔ **Biggest limitation:** scope stops at Databricks resources with limited state and governance coverage.
+- ✔ **Overall recommendation:** adopt as the default deployment path for Databricks application resources; pair with Terraform for infrastructure.
