@@ -7,3 +7,13 @@ deep-dive:
   label: Deep Dive
   permalink: /deep-dive
   description: Long-form explorations that go beyond the core lessons
+
+agent-memory:
+  label: Agent Memory
+  permalink: /agent-memory
+  description: Short-term and long-term memory for stateful AI agents
+
+lakebase:
+  label: Lakebase
+  permalink: /lakebase
+  description: Databricks managed Postgres for agent state and memory
