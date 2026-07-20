@@ -24,13 +24,33 @@ function pickBest(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | undefi
   return voices[0];
 }
 
+// Split prose into short, sentence-sized chunks — keeps playback smooth and
+// sidesteps the browser's long-utterance cutoff.
+function toChunks(text: string): string[] {
+  return text
+    .replace(/\s+\n/g, '\n')
+    .split(/\n+/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .flatMap((line) => line.match(/[^.!?]+[.!?]+|\S[^.!?]*$/g) || [line])
+    .map((s) => s.trim())
+    .filter((s) => s.length > 1);
+}
+
+const norm = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
+
+function findArticleRoot(): HTMLElement | null {
+  return (
+    document.querySelector('.theme-doc-markdown') ||
+    document.querySelector('article') ||
+    document.querySelector('main')
+  ) as HTMLElement | null;
+}
+
 // Pull readable prose from the current doc/blog article, skipping code,
 // images, tables, the on-page TOC, and navigation.
 function getChunks(): string[] {
-  const root =
-    document.querySelector('.theme-doc-markdown') ||
-    document.querySelector('article') ||
-    document.querySelector('main');
+  const root = findArticleRoot();
   if (!root) return [];
   const clone = root.cloneNode(true) as HTMLElement;
   clone
@@ -38,16 +58,25 @@ function getChunks(): string[] {
       'pre, .theme-code-block, img, table, .theme-doc-toc-mobile, .theme-doc-toc-desktop, .pagination-nav, .breadcrumbs, button, .theme-doc-version-badge, .theme-doc-breadcrumbs',
     )
     .forEach((n) => n.remove());
-  const text = (clone.innerText || clone.textContent || '').replace(/\s+\n/g, '\n');
-  // Split into short, sentence-sized chunks — keeps playback smooth and
-  // sidesteps the browser's long-utterance cutoff.
-  return text
-    .split(/\n+/)
-    .map((l) => l.trim())
-    .filter(Boolean)
-    .flatMap((line) => line.match(/[^.!?]+[.!?]+|\S[^.!?]*$/g) || [line])
-    .map((s) => s.trim())
-    .filter((s) => s.length > 1);
+  return toChunks(clone.innerText || clone.textContent || '');
+}
+
+// If the reader has highlighted text inside the article, start reading from
+// there (through to the end of the page) rather than from the top.
+function getStartIndex(chunks: string[]): number {
+  const sel = typeof window !== 'undefined' ? window.getSelection() : null;
+  if (!sel || sel.isCollapsed || !sel.rangeCount) return 0;
+  const root = findArticleRoot();
+  if (!root || !root.contains(sel.anchorNode)) return 0;
+  const selChunks = toChunks(sel.toString());
+  if (!selChunks.length) return 0;
+  const needle = norm(selChunks[0]);
+  if (needle.length < 2) return 0;
+  const start = chunks.findIndex((c) => {
+    const n = norm(c);
+    return n === needle || n.includes(needle) || needle.includes(n);
+  });
+  return start > 0 ? start : 0;
 }
 
 type Status = 'idle' | 'playing' | 'paused';
@@ -136,7 +165,7 @@ function Player(): React.ReactElement | null {
     }
     chunks.current = getChunks();
     if (!chunks.current.length) return;
-    idx.current = 0;
+    idx.current = getStartIndex(chunks.current);
     setStatus('playing');
     setOpen(true);
     synth.cancel();
@@ -156,6 +185,9 @@ function Player(): React.ReactElement | null {
         <button
           type="button"
           className={styles.pill}
+          // Prevent the mousedown from collapsing the reader's text selection
+          // before onClick runs — otherwise "start from selection" never sees it.
+          onMouseDown={(e) => e.preventDefault()}
           onClick={play}
           aria-label="Listen to this page">
           <span className={styles.icon} aria-hidden="true">▶</span>
