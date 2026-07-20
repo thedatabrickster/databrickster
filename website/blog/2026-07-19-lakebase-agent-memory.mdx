@@ -1,6 +1,6 @@
 ---
 slug: lakebase-agent-memory
-title: "Context Is Everything: Building Agent Memory on Lakebase"
+title: "From Stateless to Stateful: Agent Memory on Lakebase"
 authors: [databrickster]
 tags: [deep-dive, agent-memory, lakebase]
 description: A hands-on deep dive into building a stateful AI agent on Databricks — short-term memory with CheckpointSaver, long-term memory with DatabricksStore, both persisted in Lakebase, and shipped as a production Databricks App.
@@ -289,8 +289,8 @@ memory. That is the whole trick.
 
 ## Step 4 — Seeing memory work (and not work)
 
-The lab exercises the system across several conversations. Three moments make the
-short-term/long-term distinction concrete.
+Exercising the system across several conversations makes the
+short-term/long-term distinction concrete. Three moments stand out.
 
 **Multi-turn within a session (short-term).** Jordan Chen introduces themselves,
 asks for top products, then follows up with *"How does that compare to other
@@ -349,8 +349,8 @@ loop. The deployment bundle is small and self-contained:
 | `databricks.yml` | Databricks Asset Bundle manifest |
 | `requirements.txt` | Python dependencies |
 
-Two production gotchas from the lab: the app's service principal must be granted
-a Lakebase role (the lab uses `databricks_superuser` for convenience — in
+Two production gotchas worth calling out: the app's service principal must be
+granted a Lakebase role (`databricks_superuser` is the quick path for a demo — in
 production, create a least-privilege custom role), and the `app.yaml` resource
 **keys** must match what the code reads, or the app can't resolve its environment.
 
